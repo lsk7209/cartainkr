@@ -126,10 +126,23 @@ async function generateBlogContent(title: string, keywords: string, category: st
     };
   }
 
+  // Clean up the HTML - replace literal \n with actual line breaks and clean up artifacts
+  let cleanHtml = (parsed.html || parsed.HTML || "")
+    .replace(/\\n/g, "\n")
+    .replace(/\\"/g, '"')
+    .replace(/```json\s*\{?\s*"html"\s*:\s*"/g, "")
+    .replace(/"\s*\}?\s*```/g, "")
+    .trim();
+
+  // Ensure proper HTML structure
+  if (!cleanHtml.startsWith("<article") && !cleanHtml.startsWith("<div")) {
+    cleanHtml = `<article>${cleanHtml}</article>`;
+  }
+
   return {
-    html: parsed.html || parsed.HTML || "",
+    html: cleanHtml,
     imagePrompt: parsed.image_prompt || parsed.imagePrompt || "",
-    excerpt: parsed.excerpt || "",
+    excerpt: (parsed.excerpt || "").replace(/\\n/g, " ").trim(),
   };
 }
 
