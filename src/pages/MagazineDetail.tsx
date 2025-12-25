@@ -196,18 +196,7 @@ const MagazineDetail = () => {
 
           {/* Article Content */}
           <div
-            className="magazine-body prose prose-neutral max-w-none
-              prose-headings:font-bold prose-headings:text-foreground
-              prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
-              prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
-              prose-p:text-foreground/90 prose-p:leading-relaxed prose-p:mb-4
-              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-              prose-strong:text-foreground prose-strong:font-semibold
-              prose-ul:my-4 prose-li:text-foreground/90
-              prose-table:my-6 prose-th:bg-primary prose-th:text-primary-foreground prose-th:px-4 prose-th:py-3
-              prose-td:px-4 prose-td:py-3 prose-td:border-b prose-td:border-border
-              prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground
-              prose-img:rounded-lg prose-img:my-6"
+            className="magazine-body max-w-none"
             dangerouslySetInnerHTML={{ __html: post.content_html }}
           />
 
