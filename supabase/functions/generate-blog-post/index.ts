@@ -63,11 +63,15 @@ async function generateBlogContent(title: string, keywords: string, category: st
 카테고리: ${category}
 
 요구사항:
-1. 총 2,000자 내외의 HTML 포맷 블로그 글 작성
-2. 구조: [Intro - Specs(Table) - Pros/Cons(Info-box) - Cost(Table) - Conclusion - FAQ(Details)]
-3. HTML 태그 사용: article, section, h2, p, table, details, summary 등 시맨틱 태그
-4. CSS 클래스 적용: .styled-table(표), .info-box(팁박스), .blockquote-style(인용구)
-5. 광고 삽입을 위한 문단 간격 충분히 확보
+1. 총 2,500자 이상의 HTML 포맷 블로그 글 작성 (충분히 길고 상세하게)
+2. 구조: [서론 - 핵심정보표(Table) - 상세설명 - 장단점/팁(Info-box) - 비용표(Table) - 결론 - FAQ(Details)]
+3. HTML 태그 사용: article, section, h2, h3, p, table, ul, li, details, summary, blockquote 등 시맨틱 태그
+4. CSS 클래스 반드시 적용:
+   - 표에는 class="styled-table" 사용
+   - 팁/정보 박스에는 class="info-box" 사용 (내부에 h3, ul, li 사용)
+   - 인용구에는 class="blockquote-style" 사용
+5. 가독성을 위해 충분한 단락 구분과 소제목(h2, h3) 활용
+6. 광고 배너 영역은 절대 포함하지 마세요
 
 응답은 반드시 아래 JSON 형식으로만 반환해주세요:
 {
