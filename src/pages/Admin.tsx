@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Settings, Upload, List, Play, Zap } from "lucide-react";
+import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck } from "lucide-react";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 
 interface PostQueue {
   id: string;
@@ -17,10 +18,33 @@ interface PostQueue {
   created_at: string;
 }
 
+interface Post {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  published_at: string;
+  thumbnail_url: string | null;
+}
+
+interface Stats {
+  totalPosts: number;
+  pendingQueue: number;
+  completedQueue: number;
+  thisWeekPosts: number;
+}
+
 const Admin = () => {
   const [bulkText, setBulkText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [queue, setQueue] = useState<PostQueue[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    totalPosts: 0,
+    pendingQueue: 0,
+    completedQueue: 0,
+    thisWeekPosts: 0,
+  });
   const [postsPerDay, setPostsPerDay] = useState("2");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -28,6 +52,8 @@ const Admin = () => {
   useEffect(() => {
     fetchQueue();
     fetchSettings();
+    fetchPosts();
+    fetchStats();
   }, []);
 
   const fetchQueue = async () => {
@@ -41,6 +67,43 @@ const Admin = () => {
       return;
     }
     setQueue(data || []);
+  };
+
+  const fetchPosts = async () => {
+    const { data, error } = await supabase
+      .from("posts")
+      .select("id, title, slug, excerpt, published_at, thumbnail_url")
+      .order("published_at", { ascending: false });
+
+    if (error) {
+      console.error("Posts fetch error:", error);
+      return;
+    }
+    setPosts(data || []);
+  };
+
+  const fetchStats = async () => {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const [postsResult, queueResult] = await Promise.all([
+      supabase.from("posts").select("id, published_at"),
+      supabase.from("post_queue").select("id, status"),
+    ]);
+
+    const allPosts = postsResult.data || [];
+    const allQueue = queueResult.data || [];
+
+    const thisWeekPosts = allPosts.filter(
+      (p) => new Date(p.published_at) >= oneWeekAgo
+    ).length;
+
+    setStats({
+      totalPosts: allPosts.length,
+      pendingQueue: allQueue.filter((q) => q.status === "pending").length,
+      completedQueue: allQueue.filter((q) => q.status === "completed").length,
+      thisWeekPosts,
+    });
   };
 
   const fetchSettings = async () => {
@@ -203,21 +266,172 @@ const Admin = () => {
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <h1 className="text-3xl font-bold mb-8 text-foreground">관리자 페이지</h1>
 
-        <Tabs defaultValue="ingester" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="posts" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Posts
+            </TabsTrigger>
             <TabsTrigger value="ingester" className="flex items-center gap-2">
               <Upload className="w-4 h-4" />
-              Bulk Ingester
+              Ingester
             </TabsTrigger>
             <TabsTrigger value="queue" className="flex items-center gap-2">
               <List className="w-4 h-4" />
-              Queue Manager
+              Queue
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               Settings
             </TabsTrigger>
           </TabsList>
+
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-card rounded-lg border border-border p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <FileCheck className="w-5 h-5 text-primary" />
+                  </div>
+                  <span className="text-muted-foreground text-sm">전체 발행</span>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{stats.totalPosts}</p>
+              </div>
+              <div className="bg-card rounded-lg border border-border p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-green-500/10 rounded-lg">
+                    <TrendingUp className="w-5 h-5 text-green-500" />
+                  </div>
+                  <span className="text-muted-foreground text-sm">이번 주</span>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{stats.thisWeekPosts}</p>
+              </div>
+              <div className="bg-card rounded-lg border border-border p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-yellow-500/10 rounded-lg">
+                    <Calendar className="w-5 h-5 text-yellow-500" />
+                  </div>
+                  <span className="text-muted-foreground text-sm">대기 중</span>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{stats.pendingQueue}</p>
+              </div>
+              <div className="bg-card rounded-lg border border-border p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <FileCheck className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <span className="text-muted-foreground text-sm">처리 완료</span>
+                </div>
+                <p className="text-3xl font-bold text-foreground">{stats.completedQueue}</p>
+              </div>
+            </div>
+
+            <div className="bg-card rounded-lg border border-border p-6">
+              <h2 className="text-xl font-semibold mb-4 text-card-foreground">최근 발행 글</h2>
+              {posts.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">발행된 글이 없습니다.</p>
+              ) : (
+                <div className="space-y-3">
+                  {posts.slice(0, 5).map((post) => (
+                    <div
+                      key={post.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-foreground truncate">{post.title}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(post.published_at), "yyyy.MM.dd HH:mm", { locale: ko })}
+                        </p>
+                      </div>
+                      <a
+                        href={`/magazine/${post.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 p-2 hover:bg-muted rounded-lg transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Posts Tab */}
+          <TabsContent value="posts" className="space-y-6">
+            <div className="bg-card rounded-lg border border-border p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-card-foreground">발행된 글 목록</h2>
+                <Button variant="outline" size="sm" onClick={fetchPosts}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  새로고침
+                </Button>
+              </div>
+
+              {posts.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8">발행된 글이 없습니다.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-3 px-2 font-semibold text-foreground">제목</th>
+                        <th className="text-left py-3 px-2 font-semibold text-foreground">발행일</th>
+                        <th className="text-left py-3 px-2 font-semibold text-foreground">링크</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {posts.map((post) => (
+                        <tr key={post.id} className="border-b border-border/50 hover:bg-muted/50">
+                          <td className="py-3 px-2">
+                            <div className="flex items-center gap-3">
+                              {post.thumbnail_url && (
+                                <img
+                                  src={post.thumbnail_url}
+                                  alt=""
+                                  className="w-12 h-12 object-cover rounded"
+                                />
+                              )}
+                              <div className="min-w-0">
+                                <p className="font-medium text-foreground truncate max-w-[300px]">
+                                  {post.title}
+                                </p>
+                                {post.excerpt && (
+                                  <p className="text-xs text-muted-foreground truncate max-w-[300px]">
+                                    {post.excerpt}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-2 text-muted-foreground whitespace-nowrap">
+                            {format(new Date(post.published_at), "yyyy.MM.dd HH:mm", { locale: ko })}
+                          </td>
+                          <td className="py-3 px-2">
+                            <a
+                              href={`/magazine/${post.slug}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-primary hover:underline"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              보기
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </TabsContent>
 
           <TabsContent value="ingester" className="space-y-6">
             <div className="bg-card rounded-lg border border-border p-6">
