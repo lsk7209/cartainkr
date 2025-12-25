@@ -36,18 +36,21 @@ async function retryWithBackoff<T>(
   throw lastError;
 }
 
-// Generate slug from title
+// Generate slug from title with unique timestamp
 function generateSlug(title: string): string {
-  return title
+  const timestamp = Date.now();
+  const randomStr = Math.random().toString(36).substring(2, 6);
+  
+  // Simple transliteration for common Korean characters
+  const baseSlug = title
     .toLowerCase()
-    .replace(/[가-힣]+/g, (match) => {
-      // Simple Korean to romanization approximation
-      return match.split('').map(() => '').join('');
-    })
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "") || `post-${Date.now()}`;
+    .replace(/^-|-$/g, "");
+  
+  // Always append timestamp and random string to ensure uniqueness
+  return baseSlug ? `${baseSlug}-${timestamp}-${randomStr}` : `post-${timestamp}-${randomStr}`;
 }
 
 // Step 1: Generate blog content using Gemini 2.5 Flash
