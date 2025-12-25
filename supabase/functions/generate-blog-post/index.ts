@@ -56,22 +56,82 @@ async function generateBlogContent(title: string, keywords: string, category: st
   
   const systemPrompt = `당신은 SEO 전문 자동차 에디터입니다. 한국어로 블로그 글을 작성합니다.`;
   
-  const userPrompt = `다음 주제에 대해 SEO 최적화된 블로그 글을 작성해주세요.
+  const userPrompt = `다음 주제에 대해 매우 상세하고 전문적인 블로그 글을 작성해주세요. 가독성과 시각적 매력을 최우선으로 고려하세요.
 
 제목: ${title}
-타겟 키워드: ${keywords}
+키워드: ${keywords}
 카테고리: ${category}
 
-요구사항:
-1. 총 2,500자 이상의 HTML 포맷 블로그 글 작성 (충분히 길고 상세하게)
-2. 구조: [서론 - 핵심정보표(Table) - 상세설명 - 장단점/팁(Info-box) - 비용표(Table) - 결론 - FAQ(Details)]
-3. HTML 태그 사용: article, section, h2, h3, p, table, ul, li, details, summary, blockquote 등 시맨틱 태그
-4. CSS 클래스 반드시 적용:
-   - 표에는 class="styled-table" 사용
-   - 팁/정보 박스에는 class="info-box" 사용 (내부에 h3, ul, li 사용)
-   - 인용구에는 class="blockquote-style" 사용
-5. 가독성을 위해 충분한 단락 구분과 소제목(h2, h3) 활용
-6. 광고 배너 영역은 절대 포함하지 마세요
+=== 필수 HTML 구조 ===
+<article>
+  <header>
+    <h1>제목</h1>
+    <p>부제목/요약</p>
+  </header>
+  
+  <section class="introduction">
+    <p>도입부 (첫 글자가 크게 표시됨)</p>
+  </section>
+  
+  <section class="specs">
+    <h2>📊 핵심 정보</h2>
+    <table class="styled-table">...</table>
+  </section>
+  
+  <section class="pros-cons">
+    <h2>💡 장단점/팁</h2>
+    <div class="info-box">
+      <h3>💡 핵심 포인트</h3>
+      <ul><li>항목들...</li></ul>
+    </div>
+    <blockquote class="blockquote-style">인용구...</blockquote>
+  </section>
+  
+  <section class="cost">
+    <h2>💰 비용 정보</h2>
+    <table class="styled-table">...</table>
+  </section>
+  
+  <section class="details">
+    <h2>📝 상세 설명</h2>
+    <h3>소제목들...</h3>
+    <p>본문...</p>
+    <ol><li>순서 있는 목록...</li></ol>
+  </section>
+  
+  <section class="conclusion">
+    <h2>✅ 결론</h2>
+    <div class="success-box"><h3>✅ 핵심 요약</h3><p>...</p></div>
+  </section>
+  
+  <section class="faq">
+    <h2>❓ 자주 묻는 질문 (FAQ)</h2>
+    <details><summary>질문?</summary><div>답변...</div></details>
+  </section>
+</article>
+
+=== 필수 CSS 클래스 (반드시 사용) ===
+- styled-table: 모든 표에 적용 (그라디언트 헤더, 호버 효과)
+- info-box: 팁/정보 박스 (아이콘, 체크리스트 스타일)
+- success-box: 성공/결론 박스 (초록색 테마)
+- warning-box: 주의사항 박스 (빨간색 테마)
+- blockquote-style: 인용구 (큰따옴표 장식)
+- highlight: 강조 텍스트 (<span class="highlight">중요</span>)
+
+=== 스타일 가이드 ===
+1. 총 3,000자 이상의 풍부한 콘텐츠 작성
+2. h2에는 이모지 사용 (예: "📊 비용 분석", "✅ 결론")
+3. info-box의 h3에 이모지 필수 (💡, 📌, ⚡, 🔑 등)
+4. 순서가 있는 내용은 <ol> 사용 (번호 배지 자동 적용)
+5. 중요한 단어는 <strong> 또는 <span class="highlight"> 사용
+6. FAQ는 최소 5개 이상의 질문 포함
+7. 표는 최소 5행 이상으로 충분한 정보 제공
+8. 각 섹션 사이 충분한 간격 (section 태그로 구분)
+
+=== 금지사항 ===
+- 광고 배너 영역 절대 포함 금지
+- 외부 링크 금지
+- 이미지 태그 금지 (썸네일은 별도 생성)
 
 응답은 반드시 아래 JSON 형식으로만 반환해주세요:
 {
