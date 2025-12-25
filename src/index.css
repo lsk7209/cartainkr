@@ -136,50 +136,74 @@
      Magazine Styled Components - Enhanced
      ======================================== */
   
-  /* Styled Table with gradient header and hover effects */
-  .styled-table {
-    @apply w-full border-collapse my-10 text-sm rounded-xl overflow-hidden shadow-lg;
+  /* Styled Table with gradient header and hover effects - High specificity */
+  .magazine-body .styled-table,
+  .prose .styled-table,
+  table.styled-table {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    margin: 2.5rem 0 !important;
+    font-size: 0.875rem !important;
+    border-radius: 0.75rem !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 40px -10px hsl(var(--primary) / 0.15) !important;
+    border: 1px solid hsl(var(--border)) !important;
   }
 
-  .styled-table thead {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
+  .magazine-body .styled-table thead,
+  .prose .styled-table thead,
+  table.styled-table thead {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 100%) !important;
   }
 
-  .styled-table th {
-    @apply px-5 py-4 text-left font-bold text-primary-foreground tracking-wide;
+  .magazine-body .styled-table th,
+  .prose .styled-table th,
+  table.styled-table th {
+    padding: 1rem 1.25rem !important;
+    text-align: left !important;
+    font-weight: 700 !important;
+    color: hsl(var(--primary-foreground)) !important;
+    letter-spacing: 0.025em !important;
+    border: none !important;
+    background: transparent !important;
   }
 
-  .styled-table th:first-child {
-    @apply rounded-tl-xl;
+  .magazine-body .styled-table td,
+  .prose .styled-table td,
+  table.styled-table td {
+    padding: 1rem 1.25rem !important;
+    border-bottom: 1px solid hsl(var(--border) / 0.5) !important;
+    background-color: hsl(var(--card)) !important;
+    color: hsl(var(--foreground) / 0.9) !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
   }
 
-  .styled-table th:last-child {
-    @apply rounded-tr-xl;
+  .magazine-body .styled-table tbody tr,
+  .prose .styled-table tbody tr,
+  table.styled-table tbody tr {
+    transition: all 0.3s ease !important;
   }
 
-  .styled-table td {
-    @apply px-5 py-4 border-b border-border/50 bg-card;
+  .magazine-body .styled-table tbody tr:hover,
+  .prose .styled-table tbody tr:hover,
+  table.styled-table tbody tr:hover {
+    background-color: hsl(var(--primary) / 0.08) !important;
+    transform: scale(1.005) !important;
   }
 
-  .styled-table tbody tr {
-    @apply transition-all duration-300;
+  .magazine-body .styled-table tbody tr:hover td,
+  .prose .styled-table tbody tr:hover td,
+  table.styled-table tbody tr:hover td {
+    background-color: transparent !important;
   }
 
-  .styled-table tbody tr:hover {
-    @apply bg-primary/5 scale-[1.01];
-    box-shadow: 0 4px 12px hsl(var(--primary) / 0.1);
-  }
-
-  .styled-table tbody tr:last-child td {
-    @apply border-b-0;
-  }
-
-  .styled-table tbody tr:last-child td:first-child {
-    @apply rounded-bl-xl;
-  }
-
-  .styled-table tbody tr:last-child td:last-child {
-    @apply rounded-br-xl;
+  .magazine-body .styled-table tbody tr:last-child td,
+  .prose .styled-table tbody tr:last-child td,
+  table.styled-table tbody tr:last-child td {
+    border-bottom: none !important;
   }
 
   /* Info Box with icon, gradient, and animation */
