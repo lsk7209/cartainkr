@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
 import { BookOpen, Calculator, ArrowRight, Car, TrendingUp, Shield } from "lucide-react";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main>
+      <main className="flex-1">
         {/* Hero Section */}
         <section className="py-20 px-4">
           <div className="container max-w-4xl mx-auto text-center">
@@ -50,6 +51,9 @@ const Index = () => {
         {/* Features */}
         <section className="py-16 px-4 bg-muted/30">
           <div className="container max-w-5xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center mb-10">
+              DriveFlow가 제공하는 서비스
+            </h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-card p-6 rounded-xl border border-border">
                 <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center mb-4">
@@ -84,8 +88,47 @@ const Index = () => {
           </div>
         </section>
 
+        {/* About Section */}
+        <section className="py-16 px-4">
+          <div className="container max-w-4xl mx-auto">
+            <div className="bg-card rounded-2xl border border-border p-8 md:p-12">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
+                  DriveFlow 소개
+                </h2>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                  DriveFlow는 자동차 구매를 계획하는 모든 분들이 올바른 결정을 내릴 수 있도록 
+                  정확하고 투명한 정보를 제공하는 자동차 정보 전문 플랫폼입니다.
+                </p>
+              </div>
+              <div className="grid md:grid-cols-3 gap-6 text-center">
+                <div>
+                  <div className="text-3xl font-bold text-primary mb-2">100+</div>
+                  <div className="text-sm text-muted-foreground">전문 콘텐츠</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-primary mb-2">50,000+</div>
+                  <div className="text-sm text-muted-foreground">월간 방문자</div>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-primary mb-2">98%</div>
+                  <div className="text-sm text-muted-foreground">사용자 만족도</div>
+                </div>
+              </div>
+              <div className="text-center mt-8">
+                <Link
+                  to="/about"
+                  className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+                >
+                  더 알아보기 <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CTA */}
-        <section className="py-20 px-4">
+        <section className="py-20 px-4 bg-muted/30">
           <div className="container max-w-3xl mx-auto text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
               지금 바로 시작하세요
@@ -104,22 +147,7 @@ const Index = () => {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 border-t border-border">
-        <div className="container max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <Car className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <span className="font-bold text-foreground">DriveFlow Ads</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              © 2024 DriveFlow Ads. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
