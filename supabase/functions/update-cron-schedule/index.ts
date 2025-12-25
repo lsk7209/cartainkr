@@ -40,11 +40,16 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     // Try to unschedule existing job first (ignore errors if not found)
-    await supabase.rpc("exec_sql", {
-      sql: `SELECT cron.unschedule('generate-blog-post-job');`
-    }).catch(() => {
-      console.log("No existing job to unschedule");
-    });
+    try {
+      const { error: unscheduleError } = await supabase.rpc("exec_sql", {
+        sql: `SELECT cron.unschedule('generate-blog-post-job');`
+      });
+      if (unscheduleError) {
+        console.log("No existing job to unschedule or error:", unscheduleError.message);
+      }
+    } catch (e) {
+      console.log("Unschedule attempt completed");
+    }
 
     // Schedule new cron job
     const { error: scheduleError } = await supabase.rpc("exec_sql", {
@@ -84,10 +89,11 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: errorMessage }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
