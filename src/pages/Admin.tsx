@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck } from "lucide-react";
-import { format } from "date-fns";
+import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, eachWeekOfInterval, subWeeks, isWithinInterval } from "date-fns";
 import { ko } from "date-fns/locale";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 
 interface PostQueue {
   id: string;
@@ -32,6 +33,16 @@ interface Stats {
   pendingQueue: number;
   completedQueue: number;
   thisWeekPosts: number;
+}
+
+interface DailyStats {
+  date: string;
+  count: number;
+}
+
+interface WeeklyStats {
+  week: string;
+  count: number;
 }
 
 const Admin = () => {
@@ -105,6 +116,58 @@ const Admin = () => {
       thisWeekPosts,
     });
   };
+
+  // Calculate daily stats for the last 14 days
+  const dailyStats = useMemo<DailyStats[]>(() => {
+    const today = new Date();
+    const days = eachDayOfInterval({
+      start: subDays(today, 13),
+      end: today,
+    });
+
+    return days.map((day) => {
+      const dayStart = new Date(day);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(day);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const count = posts.filter((post) => {
+        const publishedDate = new Date(post.published_at);
+        return isWithinInterval(publishedDate, { start: dayStart, end: dayEnd });
+      }).length;
+
+      return {
+        date: format(day, "MM/dd", { locale: ko }),
+        count,
+      };
+    });
+  }, [posts]);
+
+  // Calculate weekly stats for the last 8 weeks
+  const weeklyStats = useMemo<WeeklyStats[]>(() => {
+    const today = new Date();
+    const weeks = eachWeekOfInterval(
+      {
+        start: subWeeks(today, 7),
+        end: today,
+      },
+      { weekStartsOn: 1 }
+    );
+
+    return weeks.map((weekStart) => {
+      const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+
+      const count = posts.filter((post) => {
+        const publishedDate = new Date(post.published_at);
+        return isWithinInterval(publishedDate, { start: weekStart, end: weekEnd });
+      }).length;
+
+      return {
+        week: format(weekStart, "MM/dd", { locale: ko }),
+        count,
+      };
+    });
+  }, [posts]);
 
   const fetchSettings = async () => {
     const { data, error } = await supabase
@@ -328,6 +391,92 @@ const Admin = () => {
                   <span className="text-muted-foreground text-sm">처리 완료</span>
                 </div>
                 <p className="text-3xl font-bold text-foreground">{stats.completedQueue}</p>
+              </div>
+            </div>
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Daily Chart */}
+              <div className="bg-card rounded-lg border border-border p-6">
+                <h2 className="text-lg font-semibold mb-4 text-card-foreground">일별 발행 추이 (14일)</h2>
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dailyStats}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis 
+                        dataKey="date" 
+                        tick={{ fontSize: 11 }} 
+                        className="text-muted-foreground"
+                        tickLine={false}
+                      />
+                      <YAxis 
+                        allowDecimals={false}
+                        tick={{ fontSize: 11 }}
+                        className="text-muted-foreground"
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          color: 'hsl(var(--foreground))'
+                        }}
+                        labelFormatter={(label) => `날짜: ${label}`}
+                        formatter={(value) => [`${value}건`, '발행']}
+                      />
+                      <Bar 
+                        dataKey="count" 
+                        fill="hsl(var(--primary))" 
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Weekly Chart */}
+              <div className="bg-card rounded-lg border border-border p-6">
+                <h2 className="text-lg font-semibold mb-4 text-card-foreground">주별 발행 추이 (8주)</h2>
+                <div className="h-[250px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={weeklyStats}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis 
+                        dataKey="week" 
+                        tick={{ fontSize: 11 }} 
+                        className="text-muted-foreground"
+                        tickLine={false}
+                      />
+                      <YAxis 
+                        allowDecimals={false}
+                        tick={{ fontSize: 11 }}
+                        className="text-muted-foreground"
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          color: 'hsl(var(--foreground))'
+                        }}
+                        labelFormatter={(label) => `주간 시작: ${label}`}
+                        formatter={(value) => [`${value}건`, '발행']}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="count" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={2}
+                        dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
 
