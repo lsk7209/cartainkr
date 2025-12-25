@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Calendar, Clock, User, Lightbulb } from "lucide-react";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import TableOfContents from "@/components/TableOfContents";
 
 interface TOCItem {
@@ -29,10 +30,10 @@ const Magazine = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-magazine-bg">
+    <div className="min-h-screen bg-magazine-bg flex flex-col">
       <Header />
       
-      <main className="py-12 px-4">
+      <main className="flex-1 py-12 px-4">
         <article className="max-w-magazine mx-auto magazine-body">
           {/* Article Header */}
           <header className="mb-10">
@@ -245,12 +246,7 @@ const Magazine = () => {
         </article>
       </main>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 border-t border-border bg-card">
-        <div className="max-w-magazine mx-auto text-center text-sm text-muted-foreground">
-          <p>© 2024 DriveFlow Ads. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
