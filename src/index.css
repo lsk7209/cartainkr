@@ -2,87 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* DriveFlow Color System */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 15% 94%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 217 91% 95%;
+    --accent-foreground: 217 91% 40%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 217 91% 50%;
 
     --radius: 0.5rem;
 
+    /* Magazine Colors */
+    --magazine-bg: 210 20% 98%;
+    --magazine-text: 222 30% 20%;
+    --magazine-muted: 215 16% 47%;
+    --magazine-accent: 217 91% 50%;
+    --magazine-info-bg: 199 89% 95%;
+    --magazine-info-border: 199 89% 70%;
+    --magazine-quote-border: 217 91% 50%;
+    --magazine-table-header: 217 91% 50%;
+
+    /* Calculator/Receipt Colors */
+    --receipt-bg: 40 33% 96%;
+    --receipt-paper: 40 30% 98%;
+    --receipt-text: 222 30% 15%;
+    --receipt-muted: 220 10% 50%;
+    --receipt-border: 220 10% 85%;
+    --receipt-accent: 142 70% 45%;
+
+    /* Sidebar */
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 6%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 217 33% 17%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 212 27% 84%;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -100,6 +110,195 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'IBM Plex Sans KR', sans-serif;
+  }
+
+  /* Magazine Typography */
+  .magazine-body {
+    font-family: 'Noto Serif KR', serif;
+    @apply text-magazine-text leading-relaxed;
+  }
+
+  .magazine-heading {
+    font-family: 'IBM Plex Sans KR', sans-serif;
+    @apply font-bold text-foreground;
+  }
+
+  /* Receipt Typography */
+  .receipt-mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+}
+
+@layer components {
+  /* Magazine Styled Components */
+  .styled-table {
+    @apply w-full border-collapse my-8 text-sm;
+  }
+
+  .styled-table thead {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .styled-table th {
+    @apply px-4 py-3 text-left font-semibold;
+  }
+
+  .styled-table td {
+    @apply px-4 py-3 border-b border-border;
+  }
+
+  .styled-table tbody tr:hover {
+    @apply bg-muted/50 transition-colors;
+  }
+
+  .info-box {
+    @apply my-8 p-5 rounded-lg border-l-4;
+    background: hsl(var(--magazine-info-bg));
+    border-left-color: hsl(var(--magazine-info-border));
+  }
+
+  .info-box-title {
+    @apply font-bold text-accent-foreground mb-2 flex items-center gap-2;
+  }
+
+  .info-box p {
+    @apply text-foreground/90 leading-relaxed;
+  }
+
+  .blockquote-style {
+    @apply my-8 pl-5 py-2 italic text-muted-foreground border-l-4;
+    border-left-color: hsl(var(--magazine-quote-border));
+  }
+
+  /* Receipt Components */
+  .receipt-container {
+    background: hsl(var(--receipt-paper));
+    @apply relative overflow-hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .receipt-container::before {
+    content: '';
+    @apply absolute top-0 left-0 right-0 h-4;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 8px,
+      hsl(var(--receipt-border)) 8px,
+      hsl(var(--receipt-border)) 16px
+    );
+  }
+
+  .receipt-container::after {
+    content: '';
+    @apply absolute bottom-0 left-0 right-0 h-4;
+    background: linear-gradient(180deg, transparent 0%, hsl(var(--receipt-paper)) 50%),
+      repeating-linear-gradient(
+        135deg,
+        transparent,
+        transparent 4px,
+        hsl(var(--receipt-border)) 4px,
+        hsl(var(--receipt-border)) 8px
+      );
+  }
+
+  .receipt-divider {
+    @apply my-4 border-0 h-px;
+    background: repeating-linear-gradient(
+      90deg,
+      hsl(var(--receipt-border)),
+      hsl(var(--receipt-border)) 4px,
+      transparent 4px,
+      transparent 8px
+    );
+  }
+
+  .receipt-double-divider {
+    @apply my-4 h-1;
+    background: repeating-linear-gradient(
+      90deg,
+      hsl(var(--receipt-border)),
+      hsl(var(--receipt-border)) 4px,
+      transparent 4px,
+      transparent 8px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      hsl(var(--receipt-border)),
+      hsl(var(--receipt-border)) 4px,
+      transparent 4px,
+      transparent 8px
+    );
+    background-position: 0 0, 0 4px;
+    background-size: 100% 1px;
+    background-repeat: repeat-x;
+  }
+
+  /* Table of Contents */
+  .toc-box {
+    @apply bg-muted/50 rounded-lg p-5 my-8 border border-border;
+  }
+
+  .toc-title {
+    @apply font-bold text-foreground mb-3 flex items-center gap-2;
+  }
+
+  .toc-list {
+    @apply space-y-2;
+  }
+
+  .toc-list a {
+    @apply text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2;
+  }
+
+  .toc-list a::before {
+    content: '•';
+    @apply text-primary;
+  }
+}
+
+@layer utilities {
+  /* Loading Animation */
+  @keyframes fade-up {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    20% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    80% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.8s ease-in-out;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  .animate-pulse-dot {
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+
+  /* Smooth scroll */
+  html {
+    scroll-behavior: smooth;
   }
 }
