@@ -21,7 +21,7 @@ const Admin = () => {
   const [bulkText, setBulkText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [queue, setQueue] = useState<PostQueue[]>([]);
-  const [intervalHours, setIntervalHours] = useState("13");
+  const [postsPerDay, setPostsPerDay] = useState("2");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -47,7 +47,7 @@ const Admin = () => {
     const { data, error } = await supabase
       .from("settings")
       .select("*")
-      .eq("key", "interval_hours")
+      .eq("key", "posts_per_day")
       .maybeSingle();
 
     if (error) {
@@ -55,7 +55,7 @@ const Admin = () => {
       return;
     }
     if (data) {
-      setIntervalHours(data.value);
+      setPostsPerDay(data.value);
     }
   };
 
@@ -126,16 +126,27 @@ const Admin = () => {
 
   const handleSaveSettings = async () => {
     setIsSavingSettings(true);
-    const { error } = await supabase
-      .from("settings")
-      .upsert({ key: "interval_hours", value: intervalHours });
+    
+    try {
+      const response = await supabase.functions.invoke("update-cron-schedule", {
+        body: { postsPerDay: parseInt(postsPerDay) },
+      });
 
-    if (error) {
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      if (response.data.success) {
+        toast.success(response.data.message);
+      } else {
+        toast.error(response.data.error || "스케줄 업데이트에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Settings error:", error);
       toast.error("설정 저장에 실패했습니다.");
-    } else {
-      toast.success("설정이 저장되었습니다.");
+    } finally {
+      setIsSavingSettings(false);
     }
-    setIsSavingSettings(false);
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -356,38 +367,50 @@ const Admin = () => {
           <TabsContent value="settings" className="space-y-6">
             <div className="bg-card rounded-lg border border-border p-6">
               <h2 className="text-xl font-semibold mb-4 text-card-foreground">
-                발행 설정
+                자동 발행 스케줄
               </h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    발행 주기 (시간)
+                  <label className="block text-sm font-medium text-foreground mb-3">
+                    일일 포스팅 횟수
                   </label>
-                  <div className="flex gap-3">
-                    <Input
-                      type="number"
-                      value={intervalHours}
-                      onChange={(e) => setIntervalHours(e.target.value)}
-                      className="max-w-[120px]"
-                      min="1"
-                    />
-                    <span className="text-muted-foreground self-center">시간마다 발행</span>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { value: "1", label: "1회/일", desc: "24시간 간격" },
+                      { value: "2", label: "2회/일", desc: "12시간 간격" },
+                      { value: "3", label: "3회/일", desc: "8시간 간격" },
+                      { value: "4", label: "4회/일", desc: "6시간 간격" },
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setPostsPerDay(option.value)}
+                        className={`p-4 rounded-lg border-2 transition-all ${
+                          postsPerDay === option.value
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="font-semibold text-lg">{option.label}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{option.desc}</div>
+                      </button>
+                    ))}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    자동 발행 간격을 설정합니다. (기본값: 13시간)
+                  <p className="text-xs text-muted-foreground mt-4">
+                    선택한 빈도에 따라 자동으로 블로그 글이 발행됩니다. 발행 시간은 UTC 기준입니다.
                   </p>
                 </div>
                 <Button
                   onClick={handleSaveSettings}
                   disabled={isSavingSettings}
+                  className="w-full md:w-auto"
                 >
                   {isSavingSettings ? (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      저장 중...
+                      스케줄 업데이트 중...
                     </>
                   ) : (
-                    "설정 저장"
+                    "스케줄 저장"
                   )}
                 </Button>
               </div>
