@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Settings, Upload, List } from "lucide-react";
+import { Trash2, RefreshCw, Settings, Upload, List, Play, Zap } from "lucide-react";
 
 interface PostQueue {
   id: string;
@@ -23,6 +23,7 @@ const Admin = () => {
   const [queue, setQueue] = useState<PostQueue[]>([]);
   const [intervalHours, setIntervalHours] = useState("13");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     fetchQueue();
@@ -141,12 +142,47 @@ const Admin = () => {
     switch (status) {
       case "pending":
         return "bg-yellow-100 text-yellow-800";
+      case "processing":
+        return "bg-blue-100 text-blue-800";
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "failed":
+        return "bg-red-100 text-red-800";
       case "published":
         return "bg-green-100 text-green-800";
       case "draft":
         return "bg-gray-100 text-gray-800";
       default:
         return "bg-blue-100 text-blue-800";
+    }
+  };
+
+  const handleManualGenerate = async () => {
+    setIsGenerating(true);
+    toast.info("AI 글 생성을 시작합니다...");
+
+    try {
+      const response = await supabase.functions.invoke("generate-blog-post", {
+        body: {},
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+      
+      if (data.success) {
+        toast.success(data.message || "글이 성공적으로 생성되었습니다!");
+        fetchQueue();
+      } else {
+        toast.error(data.error || "글 생성에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Generation error:", error);
+      toast.error("글 생성 중 오류가 발생했습니다.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -214,10 +250,30 @@ const Admin = () => {
                 <h2 className="text-xl font-semibold text-card-foreground">
                   대기 중인 글 목록
                 </h2>
-                <Button variant="outline" size="sm" onClick={fetchQueue}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  새로고침
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleManualGenerate}
+                    disabled={isGenerating || queue.filter(q => q.status === "pending").length === 0}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        생성 중...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 mr-2" />
+                        수동 생성
+                      </>
+                    )}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={fetchQueue}>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    새로고침
+                  </Button>
+                </div>
               </div>
 
               {queue.length === 0 ? (
@@ -272,8 +328,10 @@ const Admin = () => {
                               )}`}
                             >
                               <option value="pending">대기중</option>
+                              <option value="processing">처리중</option>
+                              <option value="completed">완료됨</option>
+                              <option value="failed">실패</option>
                               <option value="draft">초안</option>
-                              <option value="published">발행됨</option>
                             </select>
                           </td>
                           <td className="py-3 px-2">
