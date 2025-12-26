@@ -50,6 +50,7 @@ const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
   
   // Auth form state
   const [email, setEmail] = useState("");
@@ -129,36 +130,78 @@ const Admin = () => {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        setAuthError(error.message);
-        setIsLoading(false);
-        return;
-      }
-      
-      if (data.user) {
-        // Check if user has admin role
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", data.user.id)
-          .eq("role", "admin")
-          .maybeSingle();
+      if (isSignUp) {
+        // Sign up flow
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/admin`,
+          },
+        });
         
-        if (!roleData) {
-          await supabase.auth.signOut();
-          setAuthError("관리자 권한이 없습니다.");
+        if (error) {
+          setAuthError(error.message);
           setIsLoading(false);
           return;
         }
         
-        setIsAuthenticated(true);
-        setIsAdmin(true);
-        toast.success("로그인되었습니다.");
+        if (data.user) {
+          // Wait a moment for trigger to execute
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Check if user has admin role
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", data.user.id)
+            .eq("role", "admin")
+            .maybeSingle();
+          
+          if (!roleData) {
+            setAuthError("관리자 권한이 부여되지 않았습니다. 승인된 이메일로 가입해주세요.");
+            await supabase.auth.signOut();
+            setIsLoading(false);
+            return;
+          }
+          
+          setIsAuthenticated(true);
+          setIsAdmin(true);
+          toast.success("가입 및 로그인되었습니다.");
+        }
+      } else {
+        // Sign in flow
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) {
+          setAuthError(error.message);
+          setIsLoading(false);
+          return;
+        }
+        
+        if (data.user) {
+          // Check if user has admin role
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", data.user.id)
+            .eq("role", "admin")
+            .maybeSingle();
+          
+          if (!roleData) {
+            await supabase.auth.signOut();
+            setAuthError("관리자 권한이 없습니다.");
+            setIsLoading(false);
+            return;
+          }
+          
+          setIsAuthenticated(true);
+          setIsAdmin(true);
+          toast.success("로그인되었습니다.");
+        }
       }
     } catch (error) {
       setAuthError("로그인 중 오류가 발생했습니다.");
@@ -461,7 +504,7 @@ const Admin = () => {
               </div>
             </div>
             <h1 className="text-2xl font-bold text-center mb-6 text-foreground">
-              관리자 로그인
+              {isSignUp ? "관리자 가입" : "관리자 로그인"}
             </h1>
             <form onSubmit={handleAuth} className="space-y-4">
               <div>
@@ -491,9 +534,21 @@ const Admin = () => {
                 )}
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "로그인 중..." : "로그인"}
+                {isLoading ? "처리 중..." : isSignUp ? "가입하기" : "로그인"}
               </Button>
             </form>
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setAuthError("");
+                }}
+                className="text-sm text-primary hover:underline"
+              >
+                {isSignUp ? "이미 계정이 있으신가요? 로그인" : "계정이 없으신가요? 가입하기"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
