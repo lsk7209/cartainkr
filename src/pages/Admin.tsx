@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck, Lock } from "lucide-react";
+import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck, Lock, Mail } from "lucide-react";
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, eachWeekOfInterval, subWeeks, isWithinInterval } from "date-fns";
 import { ko } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import { User, Session } from "@supabase/supabase-js";
 
 interface PostQueue {
   id: string;
@@ -46,15 +47,20 @@ interface WeeklyStats {
   count: number;
 }
 
-const ADMIN_PASSWORD = "1234";
-
 const Admin = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
+  
+  // Auth form state
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
   
   const [bulkText, setBulkText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [queue, setQueue] = useState<PostQueue[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [stats, setStats] = useState<Stats>({
@@ -67,38 +73,127 @@ const Admin = () => {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Auth state management
   useEffect(() => {
-    // Check if already authenticated in session
-    const storedAuth = sessionStorage.getItem("admin_authenticated");
-    if (storedAuth === "true") {
-      setIsAuthenticated(true);
-    }
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Check admin role after auth state change
+        if (session?.user) {
+          setTimeout(() => {
+            checkAdminRole(session.user.id);
+          }, 0);
+        } else {
+          setIsAdmin(false);
+          setIsLoading(false);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        checkAdminRole(session.user.id);
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
+  const checkAdminRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      
+      if (error) {
+        console.error("Role check error:", error);
+        setIsAdmin(false);
+      } else {
+        setIsAdmin(!!data);
+      }
+    } catch (e) {
+      console.error("Role check exception:", e);
+      setIsAdmin(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (isAuthenticated) {
+    if (user && isAdmin) {
       fetchQueue();
       fetchSettings();
       fetchPosts();
       fetchStats();
     }
-  }, [isAuthenticated]);
+  }, [user, isAdmin]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      sessionStorage.setItem("admin_authenticated", "true");
-      setAuthError("");
-      toast.success("로그인되었습니다.");
-    } else {
-      setAuthError("비밀번호가 올바르지 않습니다.");
+    setAuthError("");
+    setAuthLoading(true);
+    
+    try {
+      if (isSignUp) {
+        const redirectUrl = `${window.location.origin}/admin`;
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: redirectUrl
+          }
+        });
+        
+        if (error) {
+          if (error.message.includes("User already registered")) {
+            setAuthError("이미 등록된 이메일입니다. 로그인해주세요.");
+          } else {
+            setAuthError(error.message);
+          }
+        } else {
+          toast.success("회원가입이 완료되었습니다. 관리자 권한이 필요합니다.");
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) {
+          if (error.message.includes("Invalid login credentials")) {
+            setAuthError("이메일 또는 비밀번호가 올바르지 않습니다.");
+          } else {
+            setAuthError(error.message);
+          }
+        } else {
+          toast.success("로그인되었습니다.");
+        }
+      }
+    } catch (e) {
+      setAuthError("인증 중 오류가 발생했습니다.");
+    } finally {
+      setAuthLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem("admin_authenticated");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setIsAdmin(false);
+    setEmail("");
     setPassword("");
     toast.success("로그아웃되었습니다.");
   };
@@ -291,18 +386,21 @@ const Admin = () => {
     setIsSavingSettings(true);
     
     try {
-      const response = await supabase.functions.invoke("update-cron-schedule", {
-        body: { postsPerDay: parseInt(postsPerDay) },
+      // Use the new safe RPC function
+      const { data, error } = await supabase.rpc("update_blog_schedule", {
+        posts_per_day: parseInt(postsPerDay)
       });
 
-      if (response.error) {
-        throw new Error(response.error.message);
+      if (error) {
+        throw new Error(error.message);
       }
 
-      if (response.data.success) {
-        toast.success(response.data.message);
+      const result = data as { success: boolean; message?: string; error?: string };
+      
+      if (result.success) {
+        toast.success(result.message || "스케줄이 업데이트되었습니다.");
       } else {
-        toast.error(response.data.error || "스케줄 업데이트에 실패했습니다.");
+        toast.error(result.error || "스케줄 업데이트에 실패했습니다.");
       }
     } catch (error) {
       console.error("Settings error:", error);
@@ -349,6 +447,8 @@ const Admin = () => {
       if (data.success) {
         toast.success(data.message || "글이 성공적으로 생성되었습니다!");
         fetchQueue();
+        fetchPosts();
+        fetchStats();
       } else {
         toast.error(data.error || "글 생성에 실패했습니다.");
       }
@@ -360,8 +460,20 @@ const Admin = () => {
     }
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Login Screen
-  if (!isAuthenticated) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-full max-w-sm">
@@ -371,25 +483,86 @@ const Admin = () => {
                 <Lock className="w-8 h-8 text-primary" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-center mb-6 text-foreground">관리자 로그인</h1>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <h1 className="text-2xl font-bold text-center mb-6 text-foreground">
+              {isSignUp ? "관리자 회원가입" : "관리자 로그인"}
+            </h1>
+            <form onSubmit={handleAuth} className="space-y-4">
               <div>
-                <Input
-                  type="password"
-                  placeholder="비밀번호를 입력하세요"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full"
-                  autoFocus
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="이메일을 입력하세요"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full pl-10"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="password"
+                    placeholder="비밀번호를 입력하세요"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10"
+                    required
+                    minLength={6}
+                  />
+                </div>
                 {authError && (
                   <p className="text-destructive text-sm mt-2">{authError}</p>
                 )}
               </div>
-              <Button type="submit" className="w-full">
-                로그인
+              <Button type="submit" className="w-full" disabled={authLoading}>
+                {authLoading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                {isSignUp ? "회원가입" : "로그인"}
               </Button>
             </form>
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setAuthError("");
+                }}
+                className="text-sm text-primary hover:underline"
+              >
+                {isSignUp ? "이미 계정이 있으신가요? 로그인" : "계정이 없으신가요? 회원가입"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Not admin screen
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-full max-w-sm">
+          <div className="bg-card rounded-lg border border-border p-8 shadow-lg text-center">
+            <div className="flex justify-center mb-6">
+              <div className="p-3 bg-destructive/10 rounded-full">
+                <Lock className="w-8 h-8 text-destructive" />
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold mb-4 text-foreground">접근 권한 없음</h1>
+            <p className="text-muted-foreground mb-6">
+              관리자 권한이 없습니다. 관리자에게 문의하세요.
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              로그인된 계정: {user.email}
+            </p>
+            <Button variant="outline" onClick={handleLogout} className="w-full">
+              로그아웃
+            </Button>
           </div>
         </div>
       </div>
@@ -401,7 +574,10 @@ const Admin = () => {
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-foreground">관리자 페이지</h1>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">관리자 페이지</h1>
+            <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
+          </div>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             로그아웃
           </Button>
@@ -498,17 +674,11 @@ const Admin = () => {
                         contentStyle={{ 
                           backgroundColor: 'hsl(var(--card))', 
                           border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                          color: 'hsl(var(--foreground))'
+                          borderRadius: '8px'
                         }}
-                        labelFormatter={(label) => `날짜: ${label}`}
-                        formatter={(value) => [`${value}건`, '발행']}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
                       />
-                      <Bar 
-                        dataKey="count" 
-                        fill="hsl(var(--primary))" 
-                        radius={[4, 4, 0, 0]}
-                      />
+                      <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -538,11 +708,9 @@ const Admin = () => {
                         contentStyle={{ 
                           backgroundColor: 'hsl(var(--card))', 
                           border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px',
-                          color: 'hsl(var(--foreground))'
+                          borderRadius: '8px'
                         }}
-                        labelFormatter={(label) => `주간 시작: ${label}`}
-                        formatter={(value) => [`${value}건`, '발행']}
+                        labelStyle={{ color: 'hsl(var(--foreground))' }}
                       />
                       <Line 
                         type="monotone" 
@@ -550,7 +718,6 @@ const Admin = () => {
                         stroke="hsl(var(--primary))" 
                         strokeWidth={2}
                         dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
-                        activeDot={{ r: 6 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -558,111 +725,82 @@ const Admin = () => {
               </div>
             </div>
 
+            {/* Recent Posts */}
             <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-xl font-semibold mb-4 text-card-foreground">최근 발행 글</h2>
-              {posts.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">발행된 글이 없습니다.</p>
-              ) : (
-                <div className="space-y-3">
-                  {posts.slice(0, 5).map((post) => (
-                    <div
-                      key={post.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-foreground truncate">{post.title}</h3>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(post.published_at), "yyyy.MM.dd HH:mm", { locale: ko })}
-                        </p>
-                      </div>
-                      <a
-                        href={`/magazine/${post.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-2 p-2 hover:bg-muted rounded-lg transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                      </a>
+              <h2 className="text-lg font-semibold mb-4 text-card-foreground">최근 발행된 글</h2>
+              <div className="space-y-3">
+                {posts.slice(0, 5).map((post) => (
+                  <div key={post.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-foreground truncate">{post.title}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(post.published_at), "yyyy년 MM월 dd일 HH:mm", { locale: ko })}
+                      </p>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <a
+                      href={`/magazine/${post.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-4 p-2 hover:bg-muted rounded-lg transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                    </a>
+                  </div>
+                ))}
+                {posts.length === 0 && (
+                  <p className="text-muted-foreground text-center py-4">발행된 글이 없습니다.</p>
+                )}
+              </div>
             </div>
           </TabsContent>
 
           {/* Posts Tab */}
           <TabsContent value="posts" className="space-y-6">
-            <div className="bg-card rounded-lg border border-border p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-card-foreground">발행된 글 목록</h2>
-                <Button variant="outline" size="sm" onClick={fetchPosts}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  새로고침
-                </Button>
+            <div className="bg-card rounded-lg border border-border">
+              <div className="p-6 border-b border-border">
+                <h2 className="text-lg font-semibold text-card-foreground">발행된 글 목록</h2>
+                <p className="text-sm text-muted-foreground mt-1">총 {posts.length}개의 글</p>
               </div>
-
-              {posts.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">발행된 글이 없습니다.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-2 font-semibold text-foreground">제목</th>
-                        <th className="text-left py-3 px-2 font-semibold text-foreground">발행일</th>
-                        <th className="text-left py-3 px-2 font-semibold text-foreground">링크</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {posts.map((post) => (
-                        <tr key={post.id} className="border-b border-border/50 hover:bg-muted/50">
-                          <td className="py-3 px-2">
-                            <div className="flex items-center gap-3">
-                              {post.thumbnail_url && (
-                                <img
-                                  src={post.thumbnail_url}
-                                  alt=""
-                                  className="w-12 h-12 object-cover rounded"
-                                />
-                              )}
-                              <div className="min-w-0">
-                                <p className="font-medium text-foreground truncate max-w-[300px]">
-                                  {post.title}
-                                </p>
-                                {post.excerpt && (
-                                  <p className="text-xs text-muted-foreground truncate max-w-[300px]">
-                                    {post.excerpt}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 text-muted-foreground whitespace-nowrap">
-                            {format(new Date(post.published_at), "yyyy.MM.dd HH:mm", { locale: ko })}
-                          </td>
-                          <td className="py-3 px-2">
-                            <a
-                              href={`/magazine/${post.slug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-primary hover:underline"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                              보기
-                            </a>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <div className="divide-y divide-border">
+                {posts.map((post) => (
+                  <div key={post.id} className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      {post.thumbnail_url && (
+                        <img
+                          src={post.thumbnail_url}
+                          alt={post.title}
+                          className="w-16 h-12 object-cover rounded"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-foreground truncate">{post.title}</h3>
+                        <p className="text-sm text-muted-foreground truncate">{post.excerpt}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {format(new Date(post.published_at), "yyyy년 MM월 dd일 HH:mm", { locale: ko })}
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href={`/magazine/${post.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-4 p-2 hover:bg-muted rounded-lg transition-colors"
+                    >
+                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                    </a>
+                  </div>
+                ))}
+                {posts.length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">발행된 글이 없습니다.</p>
+                )}
+              </div>
             </div>
           </TabsContent>
 
+          {/* Ingester Tab */}
           <TabsContent value="ingester" className="space-y-6">
             <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-xl font-semibold mb-4 text-card-foreground">
+              <h2 className="text-xl font-semibold mb-2 text-card-foreground">
                 글감 대량 등록
               </h2>
               <p className="text-muted-foreground text-sm mb-4">
@@ -680,177 +818,136 @@ const Admin = () => {
                 className="w-full"
               >
                 {isLoading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    등록 중...
-                  </>
+                  <RefreshCw className="w-4 h-4 animate-spin mr-2" />
                 ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    대량 등록
-                  </>
+                  <Upload className="w-4 h-4 mr-2" />
                 )}
+                대량 등록
               </Button>
             </div>
           </TabsContent>
 
+          {/* Queue Tab */}
           <TabsContent value="queue" className="space-y-6">
-            <div className="bg-card rounded-lg border border-border p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-card-foreground">
-                  대기 중인 글 목록
-                </h2>
-                <div className="flex gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={handleManualGenerate}
-                    disabled={isGenerating || queue.filter(q => q.status === "pending").length === 0}
-                  >
-                    {isGenerating ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        생성 중...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="w-4 h-4 mr-2" />
-                        수동 생성
-                      </>
-                    )}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={fetchQueue}>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    새로고침
-                  </Button>
-                </div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-foreground">글 생성 대기열</h2>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchQueue}
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  새로고침
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleManualGenerate}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <Zap className="w-4 h-4 mr-2" />
+                  )}
+                  수동 생성
+                </Button>
               </div>
+            </div>
 
-              {queue.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">
-                  등록된 글감이 없습니다.
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-2 font-semibold text-foreground">
-                          제목
-                        </th>
-                        <th className="text-left py-3 px-2 font-semibold text-foreground">
-                          키워드
-                        </th>
-                        <th className="text-left py-3 px-2 font-semibold text-foreground">
-                          카테고리
-                        </th>
-                        <th className="text-left py-3 px-2 font-semibold text-foreground">
-                          상태
-                        </th>
-                        <th className="text-left py-3 px-2 font-semibold text-foreground">
-                          작업
-                        </th>
+            <div className="bg-card rounded-lg border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left p-4 font-medium text-muted-foreground">제목</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">카테고리</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">상태</th>
+                      <th className="text-left p-4 font-medium text-muted-foreground">등록일</th>
+                      <th className="text-right p-4 font-medium text-muted-foreground">작업</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {queue.map((item) => (
+                      <tr key={item.id} className="hover:bg-muted/50 transition-colors">
+                        <td className="p-4">
+                          <div className="max-w-xs">
+                            <p className="font-medium text-foreground truncate">{item.title}</p>
+                            <p className="text-sm text-muted-foreground truncate">{item.target_keywords}</p>
+                          </div>
+                        </td>
+                        <td className="p-4 text-muted-foreground">{item.category}</td>
+                        <td className="p-4">
+                          <select
+                            value={item.status}
+                            onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                            className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadgeClass(item.status)} border-0 cursor-pointer`}
+                          >
+                            <option value="pending">pending</option>
+                            <option value="processing">processing</option>
+                            <option value="completed">completed</option>
+                            <option value="failed">failed</option>
+                          </select>
+                        </td>
+                        <td className="p-4 text-muted-foreground text-sm">
+                          {format(new Date(item.created_at), "MM/dd HH:mm")}
+                        </td>
+                        <td className="p-4 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(item.id)}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {queue.map((item) => (
-                        <tr
-                          key={item.id}
-                          className="border-b border-border/50 hover:bg-muted/50"
-                        >
-                          <td className="py-3 px-2 text-foreground">
-                            {item.title}
-                          </td>
-                          <td className="py-3 px-2 text-muted-foreground text-xs">
-                            {item.target_keywords}
-                          </td>
-                          <td className="py-3 px-2 text-muted-foreground">
-                            {item.category}
-                          </td>
-                          <td className="py-3 px-2">
-                            <select
-                              value={item.status}
-                              onChange={(e) =>
-                                handleStatusChange(item.id, e.target.value)
-                              }
-                              className={`text-xs px-2 py-1 rounded border-none cursor-pointer ${getStatusBadgeClass(
-                                item.status
-                              )}`}
-                            >
-                              <option value="pending">대기중</option>
-                              <option value="processing">처리중</option>
-                              <option value="completed">완료됨</option>
-                              <option value="failed">실패</option>
-                              <option value="draft">초안</option>
-                            </select>
-                          </td>
-                          <td className="py-3 px-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(item.id)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                    ))}
+                    {queue.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                          대기열이 비어있습니다.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </TabsContent>
 
+          {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-xl font-semibold mb-4 text-card-foreground">
-                자동 발행 스케줄
-              </h2>
+              <h2 className="text-xl font-semibold mb-4 text-card-foreground">자동 발행 설정</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-3">
-                    일일 포스팅 횟수
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    하루 발행 횟수
                   </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {[
-                      { value: "1", label: "1회/일", desc: "24시간 간격" },
-                      { value: "2", label: "2회/일", desc: "12시간 간격" },
-                      { value: "3", label: "3회/일", desc: "8시간 간격" },
-                      { value: "4", label: "4회/일", desc: "6시간 간격" },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setPostsPerDay(option.value)}
-                        className={`p-4 rounded-lg border-2 transition-all ${
-                          postsPerDay === option.value
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                      >
-                        <div className="font-semibold text-lg">{option.label}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{option.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-4">
-                    선택한 빈도에 따라 자동으로 블로그 글이 발행됩니다. 발행 시간은 UTC 기준입니다.
-                  </p>
+                  <select
+                    value={postsPerDay}
+                    onChange={(e) => setPostsPerDay(e.target.value)}
+                    className="w-full p-2 rounded-md border border-border bg-background text-foreground"
+                  >
+                    <option value="1">1회 (오전 9시)</option>
+                    <option value="2">2회 (12시간 간격)</option>
+                    <option value="3">3회 (8시간 간격)</option>
+                    <option value="4">4회 (6시간 간격)</option>
+                  </select>
                 </div>
                 <Button
                   onClick={handleSaveSettings}
                   disabled={isSavingSettings}
-                  className="w-full md:w-auto"
+                  className="w-full"
                 >
                   {isSavingSettings ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                      스케줄 업데이트 중...
-                    </>
+                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
                   ) : (
-                    "스케줄 저장"
+                    <Settings className="w-4 h-4 mr-2" />
                   )}
+                  설정 저장
                 </Button>
               </div>
             </div>
