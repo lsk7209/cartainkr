@@ -228,23 +228,23 @@ const Admin = () => {
     }
 
     setIsLoading(true);
-    const lines = bulkText.trim().split("\n");
+    const lines = bulkText.trim().split("\n").filter(line => line.trim());
     const items: { title: string; target_keywords: string; category: string; status: string }[] = [];
 
     for (const line of lines) {
-      const parts = line.split("|").map((p) => p.trim());
-      if (parts.length >= 3) {
+      const title = line.trim();
+      if (title) {
         items.push({
-          title: parts[0],
-          target_keywords: parts[1],
-          category: parts[2],
+          title,
+          target_keywords: "자동 생성",
+          category: "자동차",
           status: "pending",
         });
       }
     }
 
     if (items.length === 0) {
-      toast.error("유효한 형식의 데이터가 없습니다. (제목 | 키워드 | 카테고리)");
+      toast.error("입력 내용이 없습니다.");
       setIsLoading(false);
       return;
     }
@@ -257,6 +257,7 @@ const Admin = () => {
       toast.success(`${items.length}개 항목이 등록되었습니다.`);
       setBulkText("");
       fetchQueue();
+      fetchStats();
     }
     setIsLoading(false);
   };
@@ -665,14 +666,12 @@ const Admin = () => {
                 글감 대량 등록
               </h2>
               <p className="text-muted-foreground text-sm mb-4">
-                형식: <code className="bg-muted px-2 py-1 rounded">제목 | 타겟키워드 | 카테고리</code>
-                <br />
-                한 줄에 하나씩 입력하세요.
+                한 줄에 제목 하나씩 입력하세요. 키워드와 카테고리는 자동으로 처리됩니다.
               </p>
               <Textarea
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
-                placeholder={`2024년 인기 SUV 추천 TOP 10 | SUV 추천, 가성비 SUV | 자동차 리뷰\n전기차 충전 비용 완벽 가이드 | 전기차 충전, 전기차 비용 | 전기차\n자동차 보험료 절약하는 7가지 방법 | 자동차 보험, 보험료 절약 | 보험`}
+                placeholder={`2024년 인기 SUV 추천 TOP 10\n전기차 충전 비용 완벽 가이드\n자동차 보험료 절약하는 7가지 방법`}
                 className="min-h-[200px] font-mono text-sm mb-4"
               />
               <Button
