@@ -6,11 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck, Lock, Mail } from "lucide-react";
-import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, eachWeekOfInterval, subWeeks, isWithinInterval } from "date-fns";
+import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck, Lock } from "lucide-react";
+import { format, subDays, eachDayOfInterval, eachWeekOfInterval, subWeeks, endOfWeek, isWithinInterval } from "date-fns";
 import { ko } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
-import { User, Session } from "@supabase/supabase-js";
 
 interface PostQueue {
   id: string;
@@ -47,18 +46,15 @@ interface WeeklyStats {
   count: number;
 }
 
+const ADMIN_PASSWORD = "1234";
+
 const Admin = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [authLoading, setAuthLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Auth form state
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
   
   const [bulkText, setBulkText] = useState("");
   const [queue, setQueue] = useState<PostQueue[]>([]);
@@ -73,127 +69,30 @@ const Admin = () => {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Auth state management
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Check admin role after auth state change
-        if (session?.user) {
-          setTimeout(() => {
-            checkAdminRole(session.user.id);
-          }, 0);
-        } else {
-          setIsAdmin(false);
-          setIsLoading(false);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        checkAdminRole(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkAdminRole = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .eq("role", "admin")
-        .maybeSingle();
-      
-      if (error) {
-        if (import.meta.env.DEV) console.error("Role check error:", error);
-        setIsAdmin(false);
-      } else {
-        setIsAdmin(!!data);
-      }
-    } catch (e) {
-      if (import.meta.env.DEV) console.error("Role check exception:", e);
-      setIsAdmin(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user && isAdmin) {
+    if (isAuthenticated) {
       fetchQueue();
       fetchSettings();
       fetchPosts();
       fetchStats();
     }
-  }, [user, isAdmin]);
+  }, [isAuthenticated]);
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
-    setAuthLoading(true);
     
-    try {
-      if (isSignUp) {
-        const redirectUrl = `${window.location.origin}/admin`;
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: redirectUrl
-          }
-        });
-        
-        if (error) {
-          if (error.message.includes("User already registered")) {
-            setAuthError("이미 등록된 이메일입니다. 로그인해주세요.");
-          } else {
-            setAuthError(error.message);
-          }
-        } else {
-          toast.success("회원가입이 완료되었습니다. 관리자 권한이 필요합니다.");
-        }
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (error) {
-          if (error.message.includes("Invalid login credentials")) {
-            setAuthError("이메일 또는 비밀번호가 올바르지 않습니다.");
-          } else {
-            setAuthError(error.message);
-          }
-        } else {
-          toast.success("로그인되었습니다.");
-        }
-      }
-    } catch (e) {
-      setAuthError("인증 중 오류가 발생했습니다.");
-    } finally {
-      setAuthLoading(false);
+    if (password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      setPassword("");
+      toast.success("로그인되었습니다.");
+    } else {
+      setAuthError("비밀번호가 올바르지 않습니다.");
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setIsAdmin(false);
-    setEmail("");
+  const handleLogout = () => {
+    setIsAuthenticated(false);
     setPassword("");
     toast.success("로그아웃되었습니다.");
   };
@@ -473,7 +372,7 @@ const Admin = () => {
   }
 
   // Login Screen
-  if (!user) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-full max-w-sm">
@@ -484,22 +383,9 @@ const Admin = () => {
               </div>
             </div>
             <h1 className="text-2xl font-bold text-center mb-6 text-foreground">
-              {isSignUp ? "관리자 회원가입" : "관리자 로그인"}
+              관리자 로그인
             </h1>
             <form onSubmit={handleAuth} className="space-y-4">
-              <div>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="email"
-                    placeholder="이메일을 입력하세요"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10"
-                    required
-                  />
-                </div>
-              </div>
               <div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -510,59 +396,16 @@ const Admin = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-10"
                     required
-                    minLength={6}
                   />
                 </div>
                 {authError && (
                   <p className="text-destructive text-sm mt-2">{authError}</p>
                 )}
               </div>
-              <Button type="submit" className="w-full" disabled={authLoading}>
-                {authLoading ? (
-                  <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                ) : null}
-                {isSignUp ? "회원가입" : "로그인"}
+              <Button type="submit" className="w-full">
+                로그인
               </Button>
             </form>
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignUp(!isSignUp);
-                  setAuthError("");
-                }}
-                className="text-sm text-primary hover:underline"
-              >
-                {isSignUp ? "이미 계정이 있으신가요? 로그인" : "계정이 없으신가요? 회원가입"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Not admin screen
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-full max-w-sm">
-          <div className="bg-card rounded-lg border border-border p-8 shadow-lg text-center">
-            <div className="flex justify-center mb-6">
-              <div className="p-3 bg-destructive/10 rounded-full">
-                <Lock className="w-8 h-8 text-destructive" />
-              </div>
-            </div>
-            <h1 className="text-2xl font-bold mb-4 text-foreground">접근 권한 없음</h1>
-            <p className="text-muted-foreground mb-6">
-              관리자 권한이 없습니다. 관리자에게 문의하세요.
-            </p>
-            <p className="text-sm text-muted-foreground mb-4">
-              로그인된 계정: {user.email}
-            </p>
-            <Button variant="outline" onClick={handleLogout} className="w-full">
-              로그아웃
-            </Button>
           </div>
         </div>
       </div>
@@ -576,7 +419,6 @@ const Admin = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">관리자 페이지</h1>
-            <p className="text-sm text-muted-foreground mt-1">{user.email}</p>
           </div>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             로그아웃
