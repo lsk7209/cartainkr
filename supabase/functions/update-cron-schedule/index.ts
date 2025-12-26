@@ -19,6 +19,45 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Verify authentication
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+
+    // Create client with user's auth to verify they're authenticated
+    const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userClient = createClient(supabaseUrl, supabaseAnon, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+
+    // Check if user has admin role
+    const { data: roleData, error: roleError } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (roleError || !roleData) {
+      console.log("User is not admin:", user.id);
+      return new Response(
+        JSON.stringify({ success: false, error: "Forbidden - Admin access required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+      );
+    }
+
     const { postsPerDay } = (await req.json()) as ScheduleRequest;
 
     if (!postsPerDay || postsPerDay < 1 || postsPerDay > 4) {
@@ -28,65 +67,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Define cron schedules for different posting frequencies
-    const schedules: Record<number, { cron: string; description: string }> = {
-      1: { cron: "0 9 * * *", description: "매일 1회 (오전 9시 UTC)" },
-      2: { cron: "0 0,12 * * *", description: "매일 2회 (12시간 간격)" },
-      3: { cron: "0 0,8,16 * * *", description: "매일 3회 (8시간 간격)" },
-      4: { cron: "0 0,6,12,18 * * *", description: "매일 4회 (6시간 간격)" },
-    };
-
-    const schedule = schedules[postsPerDay];
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-    // Try to unschedule existing job first (ignore errors if not found)
-    try {
-      const { error: unscheduleError } = await supabase.rpc("exec_sql", {
-        sql: `SELECT cron.unschedule('generate-blog-post-job');`
-      });
-      if (unscheduleError) {
-        console.log("No existing job to unschedule or error:", unscheduleError.message);
-      }
-    } catch (e) {
-      console.log("Unschedule attempt completed");
-    }
-
-    // Schedule new cron job
-    const { error: scheduleError } = await supabase.rpc("exec_sql", {
-      sql: `
-        SELECT cron.schedule(
-          'generate-blog-post-job',
-          '${schedule.cron}',
-          $$
-          SELECT net.http_post(
-            url:='${supabaseUrl}/functions/v1/generate-blog-post',
-            headers:='{"Content-Type": "application/json", "Authorization": "Bearer ${anonKey}"}'::jsonb,
-            body:='{}'::jsonb
-          ) as request_id;
-          $$
-        );
-      `
+    // Use the safe RPC function to update the schedule
+    const { data, error } = await supabase.rpc("update_blog_schedule", {
+      posts_per_day: postsPerDay
     });
 
-    if (scheduleError) {
-      console.error("Schedule error:", scheduleError);
+    if (error) {
+      console.error("Schedule update error:", error);
       return new Response(
-        JSON.stringify({ success: false, error: scheduleError.message }),
+        JSON.stringify({ success: false, error: error.message }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
 
-    // Save the setting to database
-    await supabase
-      .from("settings")
-      .upsert({ key: "posts_per_day", value: postsPerDay.toString() });
-
+    console.log("Schedule updated successfully by user:", user.id);
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `스케줄이 업데이트되었습니다: ${schedule.description}`,
-        schedule: schedule.cron
-      }),
+      JSON.stringify(data),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {

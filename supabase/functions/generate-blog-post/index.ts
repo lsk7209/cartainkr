@@ -9,6 +9,7 @@ const corsHeaders = {
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
 // Retry logic helper
 async function retryWithBackoff<T>(
@@ -276,11 +277,22 @@ async function uploadImageToStorage(
   const imageType = base64Match[1];
   const base64Data = base64Match[2];
   
+  // Validate image type
+  const allowedTypes = ['jpeg', 'jpg', 'png', 'webp', 'gif'];
+  if (!allowedTypes.includes(imageType.toLowerCase())) {
+    throw new Error(`Invalid image type: ${imageType}`);
+  }
+  
   // Convert base64 to Uint8Array
   const binaryString = atob(base64Data);
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) {
     bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // Validate file size (max 5MB)
+  if (bytes.length > 5 * 1024 * 1024) {
+    throw new Error("Image too large (max 5MB)");
   }
 
   const filePath = `${filename}.${imageType}`;
@@ -306,6 +318,60 @@ async function uploadImageToStorage(
   return urlData.publicUrl;
 }
 
+// Check if request is from cron job (has anon key in Authorization)
+function isCronRequest(authHeader: string | null): boolean {
+  if (!authHeader) return false;
+  // Cron jobs use the anon key
+  return authHeader.includes(SUPABASE_ANON_KEY || "");
+}
+
+// Verify user authentication and admin role
+async function verifyAdminAccess(req: Request): Promise<{ authorized: boolean; error?: string }> {
+  const authHeader = req.headers.get("Authorization");
+  
+  // Allow cron job requests (they use anon key)
+  if (isCronRequest(authHeader)) {
+    console.log("Cron job request detected - allowing access");
+    return { authorized: true };
+  }
+  
+  // For user requests, verify authentication and admin role
+  if (!authHeader) {
+    return { authorized: false, error: "No authorization header" };
+  }
+
+  try {
+    const userClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return { authorized: false, error: "Invalid authentication" };
+    }
+
+    // Check admin role using service role client
+    const serviceClient = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    const { data: roleData, error: roleError } = await serviceClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (roleError || !roleData) {
+      console.log("User is not admin:", user.id);
+      return { authorized: false, error: "Admin access required" };
+    }
+
+    console.log("Admin user verified:", user.id);
+    return { authorized: true };
+  } catch (e) {
+    console.error("Auth verification error:", e);
+    return { authorized: false, error: "Authentication verification failed" };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -321,6 +387,16 @@ serve(async (req) => {
     }
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
       throw new Error("Supabase configuration missing");
+    }
+
+    // Verify authorization
+    const authResult = await verifyAdminAccess(req);
+    if (!authResult.authorized) {
+      console.log("Unauthorized request:", authResult.error);
+      return new Response(
+        JSON.stringify({ success: false, error: authResult.error || "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Initialize Supabase client with service role
