@@ -1,12 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Calendar, Clock, User, ArrowLeft, Share2 } from "lucide-react";
+import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+
+// Safe HTML tags and attributes for blog content (defense-in-depth)
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: [
+    'article', 'section', 'header', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'p', 'div', 'span', 'strong', 'em', 'b', 'i', 'u', 'ul', 'ol', 'li',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'blockquote', 'details', 'summary', 'a', 'br', 'hr', 'img'
+  ],
+  ALLOWED_ATTR: ['class', 'id', 'href', 'target', 'rel', 'src', 'alt'],
+  ALLOW_DATA_ATTR: false,
+  FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'style'],
+  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
+};
 
 interface Post {
   id: string;
@@ -51,6 +66,12 @@ const MagazineDetail = () => {
 
     fetchPost();
   }, [slug]);
+
+  // Sanitize HTML content on the client-side as defense-in-depth
+  const sanitizedContent = useMemo(() => {
+    if (!post?.content_html) return '';
+    return DOMPurify.sanitize(post.content_html, SANITIZE_CONFIG);
+  }, [post?.content_html]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -194,10 +215,10 @@ const MagazineDetail = () => {
             </div>
           )}
 
-          {/* Article Content */}
+          {/* Article Content - sanitized client-side for defense-in-depth */}
           <div
             className="magazine-body max-w-none"
-            dangerouslySetInnerHTML={{ __html: post.content_html }}
+            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
           />
 
           {/* Article Footer */}
