@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck } from "lucide-react";
+import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck, Lock } from "lucide-react";
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, eachWeekOfInterval, subWeeks, isWithinInterval } from "date-fns";
 import { ko } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
@@ -45,7 +46,13 @@ interface WeeklyStats {
   count: number;
 }
 
+const ADMIN_PASSWORD = "1234";
+
 const Admin = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
+  const [authError, setAuthError] = useState("");
+  
   const [bulkText, setBulkText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [queue, setQueue] = useState<PostQueue[]>([]);
@@ -61,11 +68,40 @@ const Admin = () => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    fetchQueue();
-    fetchSettings();
-    fetchPosts();
-    fetchStats();
+    // Check if already authenticated in session
+    const storedAuth = sessionStorage.getItem("admin_authenticated");
+    if (storedAuth === "true") {
+      setIsAuthenticated(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchQueue();
+      fetchSettings();
+      fetchPosts();
+      fetchStats();
+    }
+  }, [isAuthenticated]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      sessionStorage.setItem("admin_authenticated", "true");
+      setAuthError("");
+      toast.success("로그인되었습니다.");
+    } else {
+      setAuthError("비밀번호가 올바르지 않습니다.");
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem("admin_authenticated");
+    setPassword("");
+    toast.success("로그아웃되었습니다.");
+  };
 
   const fetchQueue = async () => {
     const { data, error } = await supabase
@@ -323,11 +359,52 @@ const Admin = () => {
     }
   };
 
+  // Login Screen
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-full max-w-sm">
+          <div className="bg-card rounded-lg border border-border p-8 shadow-lg">
+            <div className="flex justify-center mb-6">
+              <div className="p-3 bg-primary/10 rounded-full">
+                <Lock className="w-8 h-8 text-primary" />
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold text-center mb-6 text-foreground">관리자 로그인</h1>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <Input
+                  type="password"
+                  placeholder="비밀번호를 입력하세요"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full"
+                  autoFocus
+                />
+                {authError && (
+                  <p className="text-destructive text-sm mt-2">{authError}</p>
+                )}
+              </div>
+              <Button type="submit" className="w-full">
+                로그인
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-5xl">
-        <h1 className="text-3xl font-bold mb-8 text-foreground">관리자 페이지</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-foreground">관리자 페이지</h1>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            로그아웃
+          </Button>
+        </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
           <TabsList className="grid w-full grid-cols-5 mb-8">
