@@ -46,13 +46,13 @@ interface WeeklyStats {
   count: number;
 }
 
-const ADMIN_PASSWORD = "1234";
-
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Auth form state
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   
@@ -69,30 +69,108 @@ const Admin = () => {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Check auth state on mount
   useEffect(() => {
-    if (isAuthenticated) {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Check if user has admin role
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        
+        if (roleData) {
+          setIsAuthenticated(true);
+          setIsAdmin(true);
+        }
+      }
+      setIsLoading(false);
+    };
+    
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT") {
+        setIsAuthenticated(false);
+        setIsAdmin(false);
+      } else if (session?.user) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        
+        if (roleData) {
+          setIsAuthenticated(true);
+          setIsAdmin(true);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && isAdmin) {
       fetchQueue();
       fetchSettings();
       fetchPosts();
       fetchStats();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isAdmin]);
 
-  const handleAuth = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
+    setIsLoading(true);
     
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      setPassword("");
-      toast.success("로그인되었습니다.");
-    } else {
-      setAuthError("비밀번호가 올바르지 않습니다.");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        setAuthError(error.message);
+        setIsLoading(false);
+        return;
+      }
+      
+      if (data.user) {
+        // Check if user has admin role
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        
+        if (!roleData) {
+          await supabase.auth.signOut();
+          setAuthError("관리자 권한이 없습니다.");
+          setIsLoading(false);
+          return;
+        }
+        
+        setIsAuthenticated(true);
+        setIsAdmin(true);
+        toast.success("로그인되었습니다.");
+      }
+    } catch (error) {
+      setAuthError("로그인 중 오류가 발생했습니다.");
     }
+    setIsLoading(false);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setIsAuthenticated(false);
+    setIsAdmin(false);
+    setEmail("");
     setPassword("");
     toast.success("로그아웃되었습니다.");
   };
@@ -372,7 +450,7 @@ const Admin = () => {
   }
 
   // Login Screen
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !isAdmin) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-full max-w-sm">
@@ -387,11 +465,21 @@ const Admin = () => {
             </h1>
             <form onSubmit={handleAuth} className="space-y-4">
               <div>
+                <Input
+                  type="email"
+                  placeholder="이메일"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full"
+                  required
+                />
+              </div>
+              <div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="password"
-                    placeholder="비밀번호를 입력하세요"
+                    placeholder="비밀번호"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full pl-10"
@@ -402,8 +490,8 @@ const Admin = () => {
                   <p className="text-destructive text-sm mt-2">{authError}</p>
                 )}
               </div>
-              <Button type="submit" className="w-full">
-                로그인
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "로그인 중..." : "로그인"}
               </Button>
             </form>
           </div>
