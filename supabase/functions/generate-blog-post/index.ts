@@ -12,6 +12,20 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
+// Production log filtering - only log essential operational info in production
+const IS_PRODUCTION = Deno.env.get("ENVIRONMENT") !== "development";
+
+function debugLog(...args: unknown[]): void {
+  if (!IS_PRODUCTION) {
+    console.log(...args);
+  }
+}
+
+function operationalLog(message: string): void {
+  // Operational logs that are safe and useful in production (no sensitive data)
+  console.log(message);
+}
+
 // Retry logic helper
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
@@ -25,11 +39,11 @@ async function retryWithBackoff<T>(
       return await fn();
     } catch (error) {
       lastError = error as Error;
-      console.error(`Attempt ${i + 1} failed:`, error);
+      debugLog(`Attempt ${i + 1} failed:`, error);
       
       if (i < maxRetries - 1) {
         const delay = baseDelay * Math.pow(2, i);
-        console.log(`Retrying in ${delay}ms...`);
+        debugLog(`Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -57,7 +71,7 @@ function generateSlug(title: string): string {
 
 // Step 1: Generate blog content using Gemini 2.5 Flash
 async function generateBlogContent(title: string, keywords: string, category: string): Promise<{ html: string; imagePrompt: string; excerpt: string }> {
-  console.log("Generating blog content for:", title);
+  debugLog("Generating blog content for:", title);
   
   const systemPrompt = `당신은 SEO 전문 자동차 에디터입니다. 한국어로 블로그 글을 작성합니다.`;
   
@@ -162,7 +176,7 @@ async function generateBlogContent(title: string, keywords: string, category: st
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Text generation error:", response.status, errorText);
+    debugLog("Text generation error:", response.status, errorText);
     throw new Error(`Text generation failed: ${response.status}`);
   }
 
@@ -173,7 +187,7 @@ async function generateBlogContent(title: string, keywords: string, category: st
     throw new Error("No content generated");
   }
 
-  console.log("Raw AI response:", content.substring(0, 500));
+  debugLog("Raw AI response:", content.substring(0, 500));
   
   // Parse JSON from the response
   let parsed;
@@ -186,7 +200,7 @@ async function generateBlogContent(title: string, keywords: string, category: st
       throw new Error("No JSON found in response");
     }
   } catch (e) {
-    console.error("JSON parsing error:", e);
+    debugLog("JSON parsing error:", e);
     // Fallback: use the content as HTML directly
     parsed = {
       html: `<article><section><h2>${title}</h2>${content}</section></article>`,
@@ -222,7 +236,7 @@ async function generateBlogContent(title: string, keywords: string, category: st
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
   });
 
-  console.log("HTML sanitized successfully");
+  debugLog("HTML sanitized successfully");
 
   return {
     html: sanitizedHtml,
@@ -233,7 +247,7 @@ async function generateBlogContent(title: string, keywords: string, category: st
 
 // Step 2: Generate image using Gemini Image model
 async function generateImage(imagePrompt: string): Promise<string> {
-  console.log("Generating image with prompt:", imagePrompt.substring(0, 100));
+  debugLog("Generating image with prompt:", imagePrompt.substring(0, 100));
   
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
@@ -255,17 +269,17 @@ async function generateImage(imagePrompt: string): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Image generation error:", response.status, errorText);
+    debugLog("Image generation error:", response.status, errorText);
     throw new Error(`Image generation failed: ${response.status}`);
   }
 
   const data = await response.json();
-  console.log("Image generation response keys:", Object.keys(data));
+  debugLog("Image generation response keys:", Object.keys(data));
   
   // Extract base64 image from response
   const images = data.choices?.[0]?.message?.images;
   if (!images || images.length === 0) {
-    console.error("No images in response:", JSON.stringify(data).substring(0, 500));
+    debugLog("No images in response:", JSON.stringify(data).substring(0, 500));
     throw new Error("No image generated");
   }
 
@@ -283,7 +297,7 @@ async function uploadImageToStorage(
   base64DataUrl: string,
   filename: string
 ): Promise<string> {
-  console.log("Uploading image to storage:", filename);
+  debugLog("Uploading image to storage:", filename);
   
   // Extract base64 data from data URL
   const base64Match = base64DataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
@@ -322,7 +336,7 @@ async function uploadImageToStorage(
     });
 
   if (error) {
-    console.error("Storage upload error:", error);
+    debugLog("Storage upload error:", error);
     throw new Error(`Storage upload failed: ${error.message}`);
   }
 
@@ -331,7 +345,7 @@ async function uploadImageToStorage(
     .from("blog-images")
     .getPublicUrl(filePath);
 
-  console.log("Image uploaded successfully:", urlData.publicUrl);
+  debugLog("Image uploaded successfully:", urlData.publicUrl);
   return urlData.publicUrl;
 }
 
@@ -351,7 +365,7 @@ async function verifyAdminAccess(req: Request): Promise<{ authorized: boolean; e
   
   // Allow cron job requests (they use anon key)
   if (isCronRequest(authHeader)) {
-    console.log("Cron job request detected - allowing access");
+    operationalLog("Cron job request - authorized");
     return { authorized: true };
   }
   
@@ -380,14 +394,14 @@ async function verifyAdminAccess(req: Request): Promise<{ authorized: boolean; e
       .maybeSingle();
 
     if (roleError || !roleData) {
-      console.log("User is not admin:", user.id);
+      debugLog("User authorization failed");
       return { authorized: false, error: "Admin access required" };
     }
 
-    console.log("Admin user verified:", user.id);
+    debugLog("Admin user verified");
     return { authorized: true };
   } catch (e) {
-    console.error("Auth verification error:", e);
+    debugLog("Auth verification error:", e);
     return { authorized: false, error: "Authentication verification failed" };
   }
 }
@@ -398,7 +412,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log("=== Generate Blog Post Function Started ===");
+  operationalLog("=== Generate Blog Post Function Started ===");
 
   try {
     // Validate environment variables
@@ -412,7 +426,7 @@ serve(async (req) => {
     // Verify authorization
     const authResult = await verifyAdminAccess(req);
     if (!authResult.authorized) {
-      console.log("Unauthorized request:", authResult.error);
+      debugLog("Unauthorized request");
       return new Response(
         JSON.stringify({ success: false, error: authResult.error || "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -432,19 +446,19 @@ serve(async (req) => {
       .maybeSingle();
 
     if (queueError) {
-      console.error("Queue fetch error:", queueError);
+      debugLog("Queue fetch error:", queueError);
       throw new Error(`Queue fetch failed: ${queueError.message}`);
     }
 
     if (!queueItem) {
-      console.log("No pending posts in queue");
+      operationalLog("No pending posts in queue");
       return new Response(
         JSON.stringify({ success: true, message: "No pending posts in queue" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Processing queue item:", queueItem.id, queueItem.title);
+    debugLog("Processing queue item:", queueItem.id);
 
     // Update status to processing
     await supabase
@@ -459,8 +473,8 @@ serve(async (req) => {
       2000
     );
 
-    console.log("Content generated, excerpt:", excerpt.substring(0, 50));
-    console.log("Image prompt:", imagePrompt.substring(0, 100));
+    debugLog("Content generated, excerpt length:", excerpt.length);
+    debugLog("Image prompt length:", imagePrompt.length);
 
     // Step 2: Generate image with retry
     let thumbnailUrl = "";
@@ -475,7 +489,7 @@ serve(async (req) => {
       const filename = `thumbnail-${Date.now()}-${Math.random().toString(36).substring(7)}`;
       thumbnailUrl = await uploadImageToStorage(supabase, base64Image, filename);
     } catch (imageError) {
-      console.error("Image generation/upload failed, continuing without thumbnail:", imageError);
+      debugLog("Image generation/upload failed, continuing without thumbnail");
       // Continue without thumbnail
     }
 
@@ -496,11 +510,11 @@ serve(async (req) => {
       .single();
 
     if (postError) {
-      console.error("Post creation error:", postError);
+      debugLog("Post creation error:", postError);
       throw new Error(`Post creation failed: ${postError.message}`);
     }
 
-    console.log("Post created:", post.id);
+    operationalLog("Post created successfully");
 
     // Update queue item status to completed
     await supabase
@@ -508,7 +522,7 @@ serve(async (req) => {
       .update({ status: "completed" })
       .eq("id", queueItem.id);
 
-    console.log("=== Generate Blog Post Function Completed ===");
+    operationalLog("=== Generate Blog Post Function Completed ===");
 
     return new Response(
       JSON.stringify({
@@ -524,7 +538,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Function error:", error);
+    debugLog("Function error:", error);
     
     // Try to reset status if we have the queue item
     try {
@@ -534,7 +548,7 @@ serve(async (req) => {
         .update({ status: "failed" })
         .eq("status", "processing");
     } catch (resetError) {
-      console.error("Failed to reset status:", resetError);
+      debugLog("Failed to reset status:", resetError);
     }
 
     return new Response(

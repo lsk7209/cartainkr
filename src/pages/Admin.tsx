@@ -118,13 +118,13 @@ const Admin = () => {
         .maybeSingle();
       
       if (error) {
-        console.error("Role check error:", error);
+        if (import.meta.env.DEV) console.error("Role check error:", error);
         setIsAdmin(false);
       } else {
         setIsAdmin(!!data);
       }
     } catch (e) {
-      console.error("Role check exception:", e);
+      if (import.meta.env.DEV) console.error("Role check exception:", e);
       setIsAdmin(false);
     } finally {
       setIsLoading(false);
@@ -218,7 +218,7 @@ const Admin = () => {
       .order("published_at", { ascending: false });
 
     if (error) {
-      console.error("Posts fetch error:", error);
+      if (import.meta.env.DEV) console.error("Posts fetch error:", error);
       return;
     }
     setPosts(data || []);
@@ -308,7 +308,7 @@ const Admin = () => {
       .maybeSingle();
 
     if (error) {
-      console.error("Settings fetch error:", error);
+      if (import.meta.env.DEV) console.error("Settings fetch error:", error);
       return;
     }
     if (data) {
@@ -403,7 +403,7 @@ const Admin = () => {
         toast.error(result.error || "스케줄 업데이트에 실패했습니다.");
       }
     } catch (error) {
-      console.error("Settings error:", error);
+      if (import.meta.env.DEV) console.error("Settings error:", error);
       toast.error("설정 저장에 실패했습니다.");
     } finally {
       setIsSavingSettings(false);
@@ -453,7 +453,7 @@ const Admin = () => {
         toast.error(data.error || "글 생성에 실패했습니다.");
       }
     } catch (error) {
-      console.error("Generation error:", error);
+      if (import.meta.env.DEV) console.error("Generation error:", error);
       toast.error("글 생성 중 오류가 발생했습니다.");
     } finally {
       setIsGenerating(false);
