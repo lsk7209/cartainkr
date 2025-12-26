@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import DOMPurify from "https://esm.sh/isomorphic-dompurify@2.19.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -207,8 +208,24 @@ async function generateBlogContent(title: string, keywords: string, category: st
     cleanHtml = `<article>${cleanHtml}</article>`;
   }
 
+  // Sanitize HTML to prevent XSS attacks (defense in depth)
+  const sanitizedHtml = DOMPurify.sanitize(cleanHtml, {
+    ALLOWED_TAGS: [
+      'article', 'section', 'header', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'p', 'div', 'span', 'strong', 'em', 'b', 'i', 'u', 'ul', 'ol', 'li',
+      'table', 'thead', 'tbody', 'tr', 'th', 'td',
+      'blockquote', 'details', 'summary', 'a', 'br', 'hr'
+    ],
+    ALLOWED_ATTR: ['class', 'id', 'href', 'target', 'rel'],
+    ALLOW_DATA_ATTR: false,
+    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'style'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
+  });
+
+  console.log("HTML sanitized successfully");
+
   return {
-    html: cleanHtml,
+    html: sanitizedHtml,
     imagePrompt: parsed.image_prompt || parsed.imagePrompt || "",
     excerpt: (parsed.excerpt || "").replace(/\\n/g, " ").trim(),
   };
