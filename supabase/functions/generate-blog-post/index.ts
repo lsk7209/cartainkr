@@ -335,11 +335,14 @@ async function uploadImageToStorage(
   return urlData.publicUrl;
 }
 
-// Check if request is from cron job (has anon key in Authorization)
+// Dedicated cron secret for secure cron job authentication
+const CRON_SECRET = Deno.env.get("CRON_SECRET");
+
+// Check if request is from cron job (uses dedicated cron secret)
 function isCronRequest(authHeader: string | null): boolean {
-  if (!authHeader) return false;
-  // Cron jobs use the anon key
-  return authHeader.includes(SUPABASE_ANON_KEY || "");
+  if (!authHeader || !CRON_SECRET) return false;
+  // Exact match required - no partial matching allowed
+  return authHeader === `Bearer ${CRON_SECRET}`;
 }
 
 // Verify user authentication and admin role
