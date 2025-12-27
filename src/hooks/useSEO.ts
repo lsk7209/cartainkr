@@ -1,0 +1,167 @@
+import { useEffect } from 'react';
+
+interface SEOProps {
+  title: string;
+  description: string;
+  canonicalUrl?: string;
+  ogImage?: string;
+  ogType?: 'website' | 'article';
+  publishedAt?: string;
+  modifiedAt?: string;
+  author?: string;
+  keywords?: string[];
+}
+
+export const useSEO = ({
+  title,
+  description,
+  canonicalUrl,
+  ogImage,
+  ogType = 'website',
+  publishedAt,
+  modifiedAt,
+  author,
+  keywords,
+}: SEOProps) => {
+  useEffect(() => {
+    // Update title
+    document.title = title;
+
+    // Helper to update or create meta tag
+    const setMeta = (name: string, content: string, isProperty = false) => {
+      const attr = isProperty ? 'property' : 'name';
+      let element = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement;
+      if (!element) {
+        element = document.createElement('meta');
+        element.setAttribute(attr, name);
+        document.head.appendChild(element);
+      }
+      element.content = content;
+    };
+
+    // Basic meta tags
+    setMeta('description', description);
+    if (keywords?.length) {
+      setMeta('keywords', keywords.join(', '));
+    }
+    if (author) {
+      setMeta('author', author);
+    }
+
+    // Open Graph tags
+    setMeta('og:title', title, true);
+    setMeta('og:description', description, true);
+    setMeta('og:type', ogType, true);
+    if (ogImage) {
+      setMeta('og:image', ogImage, true);
+    }
+    if (canonicalUrl) {
+      setMeta('og:url', canonicalUrl, true);
+    }
+
+    // Twitter Card tags
+    setMeta('twitter:card', 'summary_large_image');
+    setMeta('twitter:title', title);
+    setMeta('twitter:description', description);
+    if (ogImage) {
+      setMeta('twitter:image', ogImage);
+    }
+
+    // Article specific tags
+    if (ogType === 'article') {
+      if (publishedAt) {
+        setMeta('article:published_time', publishedAt, true);
+      }
+      if (modifiedAt) {
+        setMeta('article:modified_time', modifiedAt, true);
+      }
+      if (author) {
+        setMeta('article:author', author, true);
+      }
+    }
+
+    // Canonical URL
+    let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
+    if (canonicalUrl) {
+      if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.rel = 'canonical';
+        document.head.appendChild(canonical);
+      }
+      canonical.href = canonicalUrl;
+    }
+
+    // Cleanup function to reset to defaults
+    return () => {
+      document.title = 'DriveFlow Ads - 자동차 정보 플랫폼';
+    };
+  }, [title, description, canonicalUrl, ogImage, ogType, publishedAt, modifiedAt, author, keywords]);
+};
+
+// JSON-LD structured data helpers
+export const generateArticleSchema = (post: {
+  title: string;
+  excerpt: string | null;
+  thumbnail_url: string | null;
+  published_at: string;
+  slug: string;
+}) => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt || post.title,
+    image: post.thumbnail_url || `${baseUrl}/og-image.png`,
+    datePublished: post.published_at,
+    dateModified: post.published_at,
+    author: {
+      '@type': 'Organization',
+      name: 'DriveFlow',
+      url: baseUrl,
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'DriveFlow Ads',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${baseUrl}/favicon.ico`,
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${baseUrl}/magazine/${post.slug}`,
+    },
+  };
+};
+
+export const generateFAQSchema = (faqs: { question: string; answer: string }[]) => {
+  if (!faqs.length) return null;
+  
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+      },
+    })),
+  };
+};
+
+export const generateBreadcrumbSchema = (items: { name: string; url: string }[]) => {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+};
