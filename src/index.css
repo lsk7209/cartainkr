@@ -110,24 +110,24 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'IBM Plex Sans KR', sans-serif;
+    @apply bg-background text-foreground antialiased text-base;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   }
 
   /* Magazine Typography */
   .magazine-body {
-    font-family: 'Noto Serif KR', serif;
-    @apply text-magazine-text leading-relaxed;
+    font-family: 'Pretendard', sans-serif;
+    @apply text-magazine-text leading-relaxed text-lg;
   }
 
   .magazine-heading {
-    font-family: 'IBM Plex Sans KR', sans-serif;
+    font-family: 'Pretendard', sans-serif;
     @apply font-bold text-foreground;
   }
 
   /* Receipt Typography */
   .receipt-mono {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'Pretendard', monospace;
   }
 }
 

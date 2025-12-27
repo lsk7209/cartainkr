@@ -14,9 +14,13 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['IBM Plex Sans KR', 'sans-serif'],
-        serif: ['Noto Serif KR', 'serif'],
-        mono: ['IBM Plex Mono', 'monospace'],
+        sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+        serif: ['Pretendard', 'serif'],
+        mono: ['Pretendard', 'monospace'],
+      },
+      fontSize: {
+        base: ['1.0625rem', { lineHeight: '1.75' }],
+        lg: ['1.125rem', { lineHeight: '1.8' }],
       },
       colors: {
         border: "hsl(var(--border))",
