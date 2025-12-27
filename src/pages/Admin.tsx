@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -811,9 +812,11 @@ const Admin = () => {
                     <div className="flex items-center gap-4 flex-1 min-w-0">
                       {post.thumbnail_url && (
                         <img
-                          src={post.thumbnail_url}
+                          src={getOptimizedImageUrl(post.thumbnail_url, { width: 128 }) || post.thumbnail_url}
                           alt={post.title}
                           className="w-16 h-12 object-cover rounded"
+                          loading="lazy"
+                          decoding="async"
                         />
                       )}
                       <div className="flex-1 min-w-0">
