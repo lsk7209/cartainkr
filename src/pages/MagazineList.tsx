@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSEO, generateCollectionPageSchema, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import { getOptimizedImageUrl, getResponsiveSrcSet } from "@/lib/imageUtils";
 
 interface Post {
   id: string;
@@ -147,7 +148,9 @@ const MagazineList = () => {
                   <div className="aspect-video bg-muted overflow-hidden">
                     {post.thumbnail_url ? (
                       <img
-                        src={post.thumbnail_url}
+                        src={getOptimizedImageUrl(post.thumbnail_url, { width: 400 }) || post.thumbnail_url}
+                        srcSet={getResponsiveSrcSet(post.thumbnail_url, [320, 400, 640])}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading={index < 3 ? "eager" : "lazy"}
