@@ -6,9 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RelatedPosts from "@/components/RelatedPosts";
+import JsonLd from "@/components/JsonLd";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useSEO, generateArticleSchema, generateFAQSchema, generateBreadcrumbSchema } from "@/hooks/useSEO";
 
 // Safe HTML tags and attributes for blog content (defense-in-depth)
 const SANITIZE_CONFIG = {
@@ -33,6 +35,25 @@ interface Post {
   thumbnail_url: string | null;
   published_at: string;
 }
+
+// Extract FAQ from HTML content
+const extractFAQs = (html: string): { question: string; answer: string }[] => {
+  const faqs: { question: string; answer: string }[] = [];
+  
+  // Match <details><summary>question</summary>answer</details> pattern
+  const detailsRegex = /<details[^>]*>\s*<summary[^>]*>(.*?)<\/summary>\s*(?:<div[^>]*>)?([\s\S]*?)(?:<\/div>)?\s*<\/details>/gi;
+  let match;
+  
+  while ((match = detailsRegex.exec(html)) !== null) {
+    const question = match[1].replace(/<[^>]*>/g, '').trim();
+    const answer = match[2].replace(/<[^>]*>/g, '').trim();
+    if (question && answer) {
+      faqs.push({ question, answer });
+    }
+  }
+  
+  return faqs;
+};
 
 const MagazineDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -73,6 +94,56 @@ const MagazineDetail = () => {
     if (!post?.content_html) return '';
     return DOMPurify.sanitize(post.content_html, SANITIZE_CONFIG);
   }, [post?.content_html]);
+
+  // Extract FAQs for structured data
+  const faqs = useMemo(() => {
+    if (!post?.content_html) return [];
+    return extractFAQs(post.content_html);
+  }, [post?.content_html]);
+
+  // Generate canonical URL
+  const canonicalUrl = useMemo(() => {
+    if (!post?.slug) return undefined;
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+    return `${baseUrl}/magazine/${post.slug}`;
+  }, [post?.slug]);
+
+  // Apply SEO meta tags
+  useSEO({
+    title: post ? `${post.title} | DriveFlow Ads` : 'DriveFlow Ads - 자동차 정보 플랫폼',
+    description: post?.excerpt || post?.title || '자동차 정보, 비용 분석, 유지비 계산 등 스마트한 자동차 정보를 제공합니다.',
+    canonicalUrl,
+    ogImage: post?.thumbnail_url || undefined,
+    ogType: 'article',
+    publishedAt: post?.published_at,
+    author: 'DriveFlow',
+  });
+
+  // Generate structured data
+  const structuredData = useMemo(() => {
+    if (!post) return [];
+    
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+    const data: object[] = [];
+    
+    // Article schema
+    data.push(generateArticleSchema(post));
+    
+    // FAQ schema (if FAQs exist)
+    const faqSchema = generateFAQSchema(faqs);
+    if (faqSchema) {
+      data.push(faqSchema);
+    }
+    
+    // Breadcrumb schema
+    data.push(generateBreadcrumbSchema([
+      { name: '홈', url: baseUrl },
+      { name: '매거진', url: `${baseUrl}/magazine` },
+      { name: post.title, url: `${baseUrl}/magazine/${post.slug}` },
+    ]));
+    
+    return data;
+  }, [post, faqs]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -158,6 +229,9 @@ const MagazineDetail = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Structured Data for SEO */}
+      <JsonLd data={structuredData} />
+      
       <Header />
 
       <main className="flex-1 py-12 px-4">
@@ -185,7 +259,7 @@ const MagazineDetail = () => {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4" />
-                  <span>{formatDate(post.published_at)}</span>
+                  <time dateTime={post.published_at}>{formatDate(post.published_at)}</time>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-4 h-4" />
@@ -207,13 +281,14 @@ const MagazineDetail = () => {
 
           {/* Thumbnail */}
           {post.thumbnail_url && (
-            <div className="aspect-video rounded-xl overflow-hidden mb-8">
+            <figure className="aspect-video rounded-xl overflow-hidden mb-8">
               <img
                 src={post.thumbnail_url}
                 alt={post.title}
                 className="w-full h-full object-cover"
+                loading="eager"
               />
-            </div>
+            </figure>
           )}
 
           {/* Article Content - sanitized client-side for defense-in-depth */}
@@ -223,7 +298,7 @@ const MagazineDetail = () => {
           />
 
           {/* Article Footer */}
-          <div className="mt-12 pt-8 border-t border-border">
+          <footer className="mt-12 pt-8 border-t border-border">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <Link
                 to="/magazine"
@@ -241,7 +316,7 @@ const MagazineDetail = () => {
                 이 글 공유하기
               </Button>
             </div>
-          </div>
+          </footer>
 
           {/* Related Posts */}
           <RelatedPosts currentPostId={post.id} limit={4} />
