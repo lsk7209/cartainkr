@@ -102,90 +102,132 @@ function generateSlug(title: string): string {
 async function generateBlogContent(title: string, keywords: string, category: string): Promise<{ html: string; imagePrompt: string; excerpt: string }> {
   debugLog("Generating blog content for:", title);
   
-  const systemPrompt = `당신은 SEO 전문 자동차 에디터입니다. 한국어로 블로그 글을 작성합니다.`;
+  // Generate unique seed for content variation
+  const uniqueSeed = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
   
-  const userPrompt = `다음 주제에 대해 매우 상세하고 전문적인 블로그 글을 작성해주세요. 가독성과 시각적 매력을 최우선으로 고려하세요.
+  const systemPrompt = `당신은 SEO/GEO/AEO 전문 자동차 에디터입니다. 한국어로 100% 독창적인 블로그 글을 작성합니다.
 
-제목: ${title}
+=== 핵심 원칙 ===
+1. **독창성**: 매번 완전히 새로운 관점, 구조, 표현으로 작성
+2. **SEO 최적화**: 키워드 자연스럽게 분산 (밀도 1-2%), 시맨틱 HTML 구조
+3. **GEO 최적화**: AI 검색엔진이 이해하기 쉬운 명확한 정보 구조
+4. **AEO 최적화**: 질문-답변 형식으로 Featured Snippet 노출 최적화`;
+  
+  const userPrompt = `[고유 시드: ${uniqueSeed}] - 이 시드를 기반으로 완전히 독창적인 콘텐츠를 생성하세요.
+
+주제: ${title}
 키워드: ${keywords}
 카테고리: ${category}
+작성 시점: ${currentYear}년 ${currentMonth}월 최신 정보 기준
 
-=== 필수 HTML 구조 ===
+=== 중복 콘텐츠 방지 (필수) ===
+1. 도입부: 매번 다른 시작 방식 선택
+   - 질문으로 시작 / 통계로 시작 / 상황 묘사 / 독자 공감 / 최신 트렌드 언급
+2. 구조: 섹션 순서와 개수를 유동적으로 조정
+3. 표현: 동일한 정보도 매번 다른 문장 구조와 어휘 사용
+4. 예시: 구체적인 수치, 시나리오, 사례를 매번 새롭게 생성
+5. 관점: 초보자/전문가/비용절약/성능중시 등 다양한 관점 중 하나 선택
+
+=== SEO 최적화 (필수) ===
+1. 메인 키워드: 제목(H1), 첫 단락, H2 1-2개, 결론에 자연스럽게 포함
+2. LSI 키워드: 관련 용어들을 본문 전체에 분산 배치
+3. 시맨틱 HTML: article, section, header 태그로 논리적 구조화
+4. 내부 연결성: 주제 간 자연스러운 흐름과 연결
+
+=== GEO 최적화 (AI 검색엔진용) ===
+1. 명확한 정의: 핵심 개념을 첫 문장에서 간결하게 정의
+2. 구조화된 데이터: 표, 목록, 단계별 설명 적극 활용
+3. 수치 정보: 구체적인 숫자, 범위, 비율 제공
+4. 비교 분석: 대안들과의 명확한 비교 정보 포함
+
+=== AEO 최적화 (Featured Snippet용) ===
+1. FAQ: 실제 사용자가 검색할 질문 7개 이상 포함
+2. How-to: 단계별 가이드 형식 (1단계, 2단계...) 포함
+3. 정의형 답변: "~란?" 질문에 40-60자로 답변하는 구조
+4. 목록형 답변: "~방법", "~종류" 질문에 번호 목록으로 답변
+
+=== HTML 구조 (유동적으로 조합) ===
 <article>
   <header>
-    <h1>제목</h1>
-    <p>부제목/요약</p>
+    <h1>SEO 최적화된 제목 (메인 키워드 포함)</h1>
+    <p class="lead">핵심 가치를 담은 부제목 (50-70자)</p>
   </header>
   
   <section class="introduction">
-    <p>도입부 (첫 글자가 크게 표시됨)</p>
+    <p>독자의 관심을 끄는 도입부 (질문/통계/상황 중 택1)</p>
+    <p>이 글에서 다룰 내용 요약 (GEO용 명확한 개요)</p>
   </section>
   
-  <section class="specs">
-    <h2>📊 핵심 정보</h2>
+  <!-- 아래 섹션들을 주제에 맞게 선택적으로 조합 -->
+  
+  <section class="definition">
+    <h2>🔍 [주제]란? (정의)</h2>
+    <p><strong>[키워드]</strong>란 [40-60자 명확한 정의]입니다.</p>
+    <div class="info-box"><h3>💡 핵심 개념</h3><ul>...</ul></div>
+  </section>
+  
+  <section class="comparison">
+    <h2>📊 비교 분석</h2>
     <table class="styled-table">...</table>
+    <p>비교 분석 요약...</p>
   </section>
   
-  <section class="pros-cons">
-    <h2>💡 장단점/팁</h2>
-    <div class="info-box">
-      <h3>💡 핵심 포인트</h3>
-      <ul><li>항목들...</li></ul>
-    </div>
-    <blockquote class="blockquote-style">인용구...</blockquote>
+  <section class="how-to">
+    <h2>📝 [주제] 방법 (단계별 가이드)</h2>
+    <ol>
+      <li><strong>1단계:</strong> 설명...</li>
+      <li><strong>2단계:</strong> 설명...</li>
+    </ol>
   </section>
   
-  <section class="cost">
-    <h2>💰 비용 정보</h2>
+  <section class="tips">
+    <h2>💡 전문가 팁</h2>
+    <div class="info-box"><h3>⚡ 실전 노하우</h3><ul>...</ul></div>
+    <div class="warning-box"><h3>⚠️ 주의사항</h3><ul>...</ul></div>
+  </section>
+  
+  <section class="cost-analysis">
+    <h2>💰 비용 분석</h2>
     <table class="styled-table">...</table>
-  </section>
-  
-  <section class="details">
-    <h2>📝 상세 설명</h2>
-    <h3>소제목들...</h3>
-    <p>본문...</p>
-    <ol><li>순서 있는 목록...</li></ol>
+    <blockquote class="blockquote-style">비용 관련 인사이트...</blockquote>
   </section>
   
   <section class="conclusion">
     <h2>✅ 결론</h2>
-    <div class="success-box"><h3>✅ 핵심 요약</h3><p>...</p></div>
+    <div class="success-box">
+      <h3>✅ 핵심 요약</h3>
+      <p>3-4문장으로 핵심 정리 (Featured Snippet 최적화)</p>
+    </div>
   </section>
   
   <section class="faq">
     <h2>❓ 자주 묻는 질문 (FAQ)</h2>
-    <details><summary>질문?</summary><div>답변...</div></details>
+    <details><summary>[실제 검색 질문 형태]?</summary><div>[40-100자 명확한 답변]</div></details>
+    <!-- 최소 7개 이상, 다양한 질문 유형 포함 -->
   </section>
 </article>
 
-=== 필수 CSS 클래스 (반드시 사용) ===
-- styled-table: 모든 표에 적용 (그라디언트 헤더, 호버 효과)
-- info-box: 팁/정보 박스 (아이콘, 체크리스트 스타일)
-- success-box: 성공/결론 박스 (초록색 테마)
-- warning-box: 주의사항 박스 (빨간색 테마)
-- blockquote-style: 인용구 (큰따옴표 장식)
-- highlight: 강조 텍스트 (<span class="highlight">중요</span>)
+=== CSS 클래스 ===
+- styled-table, info-box, success-box, warning-box, blockquote-style, highlight, lead
 
-=== 스타일 가이드 ===
-1. 총 3,000자 이상의 풍부한 콘텐츠 작성
-2. h2에는 이모지 사용 (예: "📊 비용 분석", "✅ 결론")
-3. info-box의 h3에 이모지 필수 (💡, 📌, ⚡, 🔑 등)
-4. 순서가 있는 내용은 <ol> 사용 (번호 배지 자동 적용)
-5. 중요한 단어는 <strong> 또는 <span class="highlight"> 사용
-6. FAQ는 최소 5개 이상의 질문 포함
-7. 표는 최소 5행 이상으로 충분한 정보 제공
-8. 각 섹션 사이 충분한 간격 (section 태그로 구분)
+=== 콘텐츠 품질 ===
+1. 총 3,500자 이상 작성
+2. 표는 5행 이상, FAQ는 7개 이상
+3. 구체적인 수치와 예시 필수
+4. ${currentYear}년 최신 정보 반영
 
 === 금지사항 ===
-- 광고 배너 영역 절대 포함 금지
-- 외부 링크 금지
-- 이미지 태그 금지 (썸네일은 별도 생성)
+- 광고/외부링크/이미지태그 금지
+- 뻔한 표현, 상투적 문구 사용 금지
+- 다른 글과 유사한 구조/표현 금지
 
-응답은 반드시 아래 JSON 형식으로만 반환해주세요:
+JSON 형식으로 반환:
 {
-  "html": "<article>...(전체 HTML 본문)...</article>",
-  "image_prompt": "A high-quality 16:9 automotive photography of...(영어 이미지 생성 프롬프트)",
-  "excerpt": "이 글의 요약 (100자 이내)"
+  "html": "<article>...</article>",
+  "image_prompt": "A unique, high-quality 16:9 automotive photography of [구체적 장면 묘사], ${currentYear} style, professional lighting, cinematic composition",
+  "excerpt": "[100자 이내 SEO 최적화 요약, 메인 키워드 포함]"
 }`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
