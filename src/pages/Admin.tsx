@@ -449,6 +449,9 @@ const Admin = () => {
     }
   };
 
+  const [generatingCount, setGeneratingCount] = useState(0);
+  const [totalToGenerate, setTotalToGenerate] = useState(0);
+
   const handleManualGenerate = async () => {
     setIsGenerating(true);
     toast.info("AI 글 생성을 시작합니다...");
@@ -478,6 +481,55 @@ const Admin = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleBulkGenerate = async (count: number) => {
+    setIsGenerating(true);
+    setGeneratingCount(0);
+    setTotalToGenerate(count);
+    
+    let successCount = 0;
+    let failCount = 0;
+
+    for (let i = 0; i < count; i++) {
+      setGeneratingCount(i + 1);
+      toast.info(`글 생성 중... (${i + 1}/${count})`);
+
+      try {
+        const response = await supabase.functions.invoke("generate-blog-post", {
+          body: {},
+        });
+
+        if (response.error) {
+          failCount++;
+          continue;
+        }
+
+        const data = response.data;
+        
+        if (data.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) console.error("Generation error:", error);
+        failCount++;
+      }
+
+      // 다음 요청 전 잠시 대기 (API 부하 방지)
+      if (i < count - 1) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+
+    toast.success(`생성 완료! 성공: ${successCount}개, 실패: ${failCount}개`);
+    fetchQueue();
+    fetchPosts();
+    fetchStats();
+    setIsGenerating(false);
+    setGeneratingCount(0);
+    setTotalToGenerate(0);
   };
 
   // Loading state
@@ -835,7 +887,25 @@ const Admin = () => {
                   ) : (
                     <Zap className="w-4 h-4 mr-2" />
                   )}
-                  수동 생성
+                  1개 생성
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  onClick={() => handleBulkGenerate(5)}
+                  disabled={isGenerating || stats.pendingQueue < 1}
+                >
+                  {isGenerating && totalToGenerate > 0 ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                      {generatingCount}/{totalToGenerate}
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      5개 일괄 생성
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
