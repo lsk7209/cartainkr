@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import JsonLd from "@/components/JsonLd";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSEO, generateCollectionPageSchema, generateBreadcrumbSchema } from "@/hooks/useSEO";
 
 interface Post {
   id: string;
@@ -18,6 +20,16 @@ interface Post {
 const MagazineList = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Apply SEO meta tags
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  
+  useSEO({
+    title: '매거진 | DriveFlow Ads - 자동차 정보 플랫폼',
+    description: '자동차 구매, 유지비, 보험 등 알아두면 유용한 정보를 전문가의 시선으로 전해드립니다. 최신 자동차 뉴스와 가이드를 확인하세요.',
+    canonicalUrl: `${baseUrl}/magazine`,
+    ogType: 'website',
+  });
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -37,6 +49,34 @@ const MagazineList = () => {
     fetchPosts();
   }, []);
 
+  // Generate structured data
+  const structuredData = useMemo(() => {
+    const data: object[] = [];
+    
+    // CollectionPage + ItemList schema
+    const collectionSchema = generateCollectionPageSchema(
+      '매거진 - DriveFlow Ads',
+      '자동차 구매, 유지비, 보험 등 알아두면 유용한 정보를 전문가의 시선으로 전해드립니다.',
+      `${baseUrl}/magazine`,
+      posts.map(post => ({
+        title: post.title,
+        url: `${baseUrl}/magazine/${post.slug}`,
+        image: post.thumbnail_url,
+        description: post.excerpt,
+        datePublished: post.published_at,
+      }))
+    );
+    data.push(collectionSchema);
+    
+    // Breadcrumb schema
+    data.push(generateBreadcrumbSchema([
+      { name: '홈', url: baseUrl },
+      { name: '매거진', url: `${baseUrl}/magazine` },
+    ]));
+    
+    return data;
+  }, [posts, baseUrl]);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("ko-KR", {
@@ -48,6 +88,9 @@ const MagazineList = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Structured Data for SEO */}
+      {!isLoading && <JsonLd data={structuredData} />}
+      
       <Header />
 
       <main className="flex-1 py-12 px-4">
@@ -97,7 +140,7 @@ const MagazineList = () => {
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {posts.map((post) => (
+              {posts.map((post, index) => (
                 <Link
                   key={post.id}
                   to={`/magazine/${post.slug}`}
@@ -110,6 +153,7 @@ const MagazineList = () => {
                         src={post.thumbnail_url}
                         alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading={index < 6 ? "eager" : "lazy"}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent">
@@ -130,7 +174,7 @@ const MagazineList = () => {
                     )}
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Calendar className="w-3.5 h-3.5" />
-                      <span>{formatDate(post.published_at)}</span>
+                      <time dateTime={post.published_at}>{formatDate(post.published_at)}</time>
                     </div>
                   </div>
                 </Link>

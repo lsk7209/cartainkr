@@ -165,3 +165,66 @@ export const generateBreadcrumbSchema = (items: { name: string; url: string }[])
     })),
   };
 };
+
+// CollectionPage schema for list pages
+export const generateCollectionPageSchema = (
+  name: string,
+  description: string,
+  url: string,
+  items: {
+    title: string;
+    url: string;
+    image?: string | null;
+    description?: string | null;
+    datePublished?: string;
+  }[]
+) => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name,
+    description,
+    url,
+    publisher: {
+      '@type': 'Organization',
+      name: 'DriveFlow Ads',
+      url: baseUrl,
+    },
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: items.length,
+      itemListElement: items.map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'Article',
+          name: item.title,
+          url: item.url,
+          ...(item.image && { image: item.image }),
+          ...(item.description && { description: item.description }),
+          ...(item.datePublished && { datePublished: item.datePublished }),
+        },
+      })),
+    },
+  };
+};
+
+// WebSite schema for homepage
+export const generateWebSiteSchema = () => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'DriveFlow Ads',
+    url: baseUrl,
+    description: '자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공합니다.',
+    publisher: {
+      '@type': 'Organization',
+      name: 'DriveFlow Ads',
+      url: baseUrl,
+    },
+  };
+};
