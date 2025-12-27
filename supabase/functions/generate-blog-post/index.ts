@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import DOMPurify from "https://esm.sh/isomorphic-dompurify@2.19.0";
+import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,6 +50,35 @@ async function retryWithBackoff<T>(
   }
   
   throw lastError;
+}
+
+// Simple HTML sanitizer for Deno environment
+function sanitizeHtml(html: string): string {
+  // Remove dangerous tags
+  const forbiddenTags = ['script', 'iframe', 'object', 'embed', 'form', 'input', 'style', 'link', 'meta'];
+  let sanitized = html;
+  
+  for (const tag of forbiddenTags) {
+    // Remove opening and closing tags and their content for script/style
+    if (tag === 'script' || tag === 'style') {
+      sanitized = sanitized.replace(new RegExp(`<${tag}[^>]*>.*?</${tag}>`, 'gis'), '');
+    }
+    // Remove self-closing and opening tags for others
+    sanitized = sanitized.replace(new RegExp(`<${tag}[^>]*>`, 'gi'), '');
+    sanitized = sanitized.replace(new RegExp(`</${tag}>`, 'gi'), '');
+  }
+  
+  // Remove dangerous attributes (event handlers)
+  const dangerousAttrs = ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onsubmit', 'onchange'];
+  for (const attr of dangerousAttrs) {
+    sanitized = sanitized.replace(new RegExp(`${attr}\\s*=\\s*["'][^"']*["']`, 'gi'), '');
+    sanitized = sanitized.replace(new RegExp(`${attr}\\s*=\\s*[^\\s>]+`, 'gi'), '');
+  }
+  
+  // Remove javascript: URLs
+  sanitized = sanitized.replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href="#"');
+  
+  return sanitized;
 }
 
 // Generate slug from title with unique timestamp
@@ -222,19 +251,8 @@ async function generateBlogContent(title: string, keywords: string, category: st
     cleanHtml = `<article>${cleanHtml}</article>`;
   }
 
-  // Sanitize HTML to prevent XSS attacks (defense in depth)
-  const sanitizedHtml = DOMPurify.sanitize(cleanHtml, {
-    ALLOWED_TAGS: [
-      'article', 'section', 'header', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'p', 'div', 'span', 'strong', 'em', 'b', 'i', 'u', 'ul', 'ol', 'li',
-      'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      'blockquote', 'details', 'summary', 'a', 'br', 'hr'
-    ],
-    ALLOWED_ATTR: ['class', 'id', 'href', 'target', 'rel'],
-    ALLOW_DATA_ATTR: false,
-    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'style'],
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
-  });
+  // Sanitize HTML by removing dangerous tags and attributes
+  const sanitizedHtml = sanitizeHtml(cleanHtml);
 
   debugLog("HTML sanitized successfully");
 
