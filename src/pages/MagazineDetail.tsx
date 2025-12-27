@@ -5,6 +5,7 @@ import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import RelatedPosts from "@/components/RelatedPosts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -241,6 +242,9 @@ const MagazineDetail = () => {
               </Button>
             </div>
           </div>
+
+          {/* Related Posts */}
+          <RelatedPosts currentPostId={post.id} limit={4} />
         </article>
       </main>
 
