@@ -12,7 +12,7 @@ const Footer = () => {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Car className="w-4 h-4 text-primary-foreground" />
               </div>
-              <span className="font-bold text-foreground">DriveFlow</span>
+              <span className="font-bold text-foreground">카테인</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               자동차 구매와 유지비에 관한<br />
@@ -94,9 +94,9 @@ const Footer = () => {
         <div className="pt-6 border-t border-border">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-sm text-muted-foreground text-center md:text-left">
-              <p>© 2024 DriveFlow. All rights reserved.</p>
+              <p>© 2024 카테인. All rights reserved.</p>
               <p className="mt-1">
-                사업자: DriveFlow | 이메일: contact@driveflow.kr
+                사업자: 카테인 | 이메일: contact@catein.kr
               </p>
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">

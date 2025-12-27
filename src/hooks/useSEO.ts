@@ -93,7 +93,7 @@ export const useSEO = ({
 
     // Cleanup function to reset to defaults
     return () => {
-      document.title = 'DriveFlow Ads - 자동차 정보 플랫폼';
+      document.title = '카테인 - 자동차 정보 플랫폼';
     };
   }, [title, description, canonicalUrl, ogImage, ogType, publishedAt, modifiedAt, author, keywords]);
 };
@@ -106,7 +106,7 @@ export const generateArticleSchema = (post: {
   published_at: string;
   slug: string;
 }) => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
   
   return {
     '@context': 'https://schema.org',
@@ -118,12 +118,12 @@ export const generateArticleSchema = (post: {
     dateModified: post.published_at,
     author: {
       '@type': 'Organization',
-      name: 'DriveFlow',
+      name: '카테인',
       url: baseUrl,
     },
     publisher: {
       '@type': 'Organization',
-      name: 'DriveFlow Ads',
+      name: '카테인',
       logo: {
         '@type': 'ImageObject',
         url: `${baseUrl}/favicon.ico`,
@@ -179,7 +179,7 @@ export const generateCollectionPageSchema = (
     datePublished?: string;
   }[]
 ) => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
   
   return {
     '@context': 'https://schema.org',
@@ -189,7 +189,7 @@ export const generateCollectionPageSchema = (
     url,
     publisher: {
       '@type': 'Organization',
-      name: 'DriveFlow Ads',
+      name: '카테인',
       url: baseUrl,
     },
     mainEntity: {
@@ -213,12 +213,12 @@ export const generateCollectionPageSchema = (
 
 // WebSite schema for homepage
 export const generateWebSiteSchema = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
   
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'DriveFlow Ads',
+    name: '카테인',
     url: baseUrl,
     description: '자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공합니다.',
     potentialAction: {
@@ -231,7 +231,7 @@ export const generateWebSiteSchema = () => {
     },
     publisher: {
       '@type': 'Organization',
-      name: 'DriveFlow Ads',
+      name: '카테인',
       url: baseUrl,
     },
   };
@@ -239,12 +239,12 @@ export const generateWebSiteSchema = () => {
 
 // Organization schema
 export const generateOrganizationSchema = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
   
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'DriveFlow Ads',
+    name: '카테인',
     url: baseUrl,
     logo: `${baseUrl}/favicon.ico`,
     description: '자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공하는 전문 플랫폼입니다.',
@@ -263,7 +263,7 @@ export const generateSoftwareApplicationSchema = (
   description: string,
   url: string
 ) => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
   
   return {
     '@context': 'https://schema.org',
@@ -280,7 +280,7 @@ export const generateSoftwareApplicationSchema = (
     },
     provider: {
       '@type': 'Organization',
-      name: 'DriveFlow Ads',
+      name: '카테인',
       url: baseUrl,
     },
     featureList: [
