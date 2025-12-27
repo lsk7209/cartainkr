@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import html2canvas from "html2canvas";
-import { Download, Car, Fuel, Shield, Percent, ArrowRight, Sparkles, Zap, TrendingUp, ChevronDown } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { Download, Car, Fuel, Shield, Percent, ArrowRight, Sparkles, Zap, TrendingUp, ChevronDown, BarChart3, X, Plus, Check } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import Header from "@/components/Header";
 import LoadingScreen from "@/components/LoadingScreen";
 import ReceiptFooter from "@/components/ReceiptFooter";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 
 type CalculatorStep = "input" | "loading" | "result";
+type CalculatorMode = "single" | "compare";
 
 interface FormData {
   carPrice: number;
@@ -41,6 +42,11 @@ interface CarPreset {
   fuelEfficiency: number;
   insuranceMonthly: number;
   monthlyTax: number;
+}
+
+interface CompareResult {
+  preset: CarPreset;
+  result: CalculationResult;
 }
 
 const carPresets: CarPreset[] = [
@@ -94,18 +100,21 @@ const carPresets: CarPreset[] = [
     emoji: "⚡",
     description: "아이오닉, EV6 등",
     carPrice: 55000000,
-    fuelEfficiency: 6, // km per kWh equivalent
+    fuelEfficiency: 6,
     insuranceMonthly: 75000,
     monthlyTax: 13000,
   },
 ];
 
-const CHART_COLORS = ["#3B82F6", "#F59E0B", "#10B981", "#8B5CF6"];
+const CHART_COLORS = ["#3B82F6", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4"];
+const COMPARE_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"];
 
 const Calculator = () => {
   const [step, setStep] = useState<CalculatorStep>("input");
+  const [mode, setMode] = useState<CalculatorMode>("single");
   const [activeSection, setActiveSection] = useState<number>(0);
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
+  const [comparePresets, setComparePresets] = useState<number[]>([]);
   const [showPresets, setShowPresets] = useState(true);
   const [formData, setFormData] = useState<FormData>({
     carPrice: 35000000,
@@ -118,20 +127,29 @@ const Calculator = () => {
     insuranceMonthly: 85000,
   });
   const [result, setResult] = useState<CalculationResult | null>(null);
+  const [compareResults, setCompareResults] = useState<CompareResult[]>([]);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const handlePresetSelect = (index: number) => {
-    const preset = carPresets[index];
-    setSelectedPreset(index);
-    setFormData((prev) => ({
-      ...prev,
-      carPrice: preset.carPrice,
-      downPayment: Math.round(preset.carPrice * 0.3),
-      fuelEfficiency: preset.fuelEfficiency,
-      insuranceMonthly: preset.insuranceMonthly,
-    }));
-    setShowPresets(false);
-    setActiveSection(0);
+    if (mode === "compare") {
+      if (comparePresets.includes(index)) {
+        setComparePresets(comparePresets.filter(i => i !== index));
+      } else if (comparePresets.length < 4) {
+        setComparePresets([...comparePresets, index]);
+      }
+    } else {
+      const preset = carPresets[index];
+      setSelectedPreset(index);
+      setFormData((prev) => ({
+        ...prev,
+        carPrice: preset.carPrice,
+        downPayment: Math.round(preset.carPrice * 0.3),
+        fuelEfficiency: preset.fuelEfficiency,
+        insuranceMonthly: preset.insuranceMonthly,
+      }));
+      setShowPresets(false);
+      setActiveSection(0);
+    }
   };
 
   const handleInputChange = (field: keyof FormData, value: string) => {
@@ -139,8 +157,10 @@ const Calculator = () => {
     setFormData((prev) => ({ ...prev, [field]: numValue }));
   };
 
-  const calculateResult = useCallback(() => {
-    const loanAmount = formData.carPrice - formData.downPayment;
+  const calculateForPreset = useCallback((preset: CarPreset): CalculationResult => {
+    const carPrice = preset.carPrice;
+    const downPayment = Math.round(carPrice * 0.3);
+    const loanAmount = carPrice - downPayment;
     const monthlyRate = formData.interestRate / 100 / 12;
     const numPayments = formData.loanTerm;
 
@@ -149,23 +169,68 @@ const Calculator = () => {
       (Math.pow(1 + monthlyRate, numPayments) - 1);
 
     const totalInterest = monthlyPayment * numPayments - loanAmount;
-    const monthlyFuel = (formData.monthlyMileage / formData.fuelEfficiency) * formData.fuelPrice;
-    const monthlyTax = selectedPreset !== null ? carPresets[selectedPreset].monthlyTax : 520000 / 12;
-    const totalMonthly = monthlyPayment + monthlyFuel + formData.insuranceMonthly + monthlyTax;
+    const monthlyFuel = (formData.monthlyMileage / preset.fuelEfficiency) * formData.fuelPrice;
+    const monthlyTax = preset.monthlyTax;
+    const totalMonthly = monthlyPayment + monthlyFuel + preset.insuranceMonthly + monthlyTax;
 
-    setResult({
+    return {
       monthlyPayment: Math.round(monthlyPayment),
       totalInterest: Math.round(totalInterest),
       monthlyFuel: Math.round(monthlyFuel),
-      monthlyInsurance: formData.insuranceMonthly,
+      monthlyInsurance: preset.insuranceMonthly,
       monthlyTax: Math.round(monthlyTax),
       totalMonthly: Math.round(totalMonthly),
       yearlyTotal: Math.round(totalMonthly * 12),
-    });
-  }, [formData, selectedPreset]);
+    };
+  }, [formData]);
+
+  const calculateResult = useCallback(() => {
+    if (mode === "compare") {
+      const results = comparePresets.map(index => ({
+        preset: carPresets[index],
+        result: calculateForPreset(carPresets[index]),
+      }));
+      setCompareResults(results);
+    } else {
+      const loanAmount = formData.carPrice - formData.downPayment;
+      const monthlyRate = formData.interestRate / 100 / 12;
+      const numPayments = formData.loanTerm;
+
+      const monthlyPayment =
+        (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
+        (Math.pow(1 + monthlyRate, numPayments) - 1);
+
+      const totalInterest = monthlyPayment * numPayments - loanAmount;
+      const monthlyFuel = (formData.monthlyMileage / formData.fuelEfficiency) * formData.fuelPrice;
+      const monthlyTax = selectedPreset !== null ? carPresets[selectedPreset].monthlyTax : 520000 / 12;
+      const totalMonthly = monthlyPayment + monthlyFuel + formData.insuranceMonthly + monthlyTax;
+
+      setResult({
+        monthlyPayment: Math.round(monthlyPayment),
+        totalInterest: Math.round(totalInterest),
+        monthlyFuel: Math.round(monthlyFuel),
+        monthlyInsurance: formData.insuranceMonthly,
+        monthlyTax: Math.round(monthlyTax),
+        totalMonthly: Math.round(totalMonthly),
+        yearlyTotal: Math.round(totalMonthly * 12),
+      });
+    }
+  }, [formData, selectedPreset, mode, comparePresets, calculateForPreset]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setStep("loading");
+  };
+
+  const handleCompareSubmit = () => {
+    if (comparePresets.length < 2) {
+      toast({
+        title: "차종을 선택해주세요",
+        description: "비교하려면 최소 2개 이상의 차종을 선택해야 합니다.",
+        variant: "destructive",
+      });
+      return;
+    }
     setStep("loading");
   };
 
@@ -184,13 +249,13 @@ const Calculator = () => {
       });
       
       const link = document.createElement("a");
-      link.download = `DriveFlow_유지비_계산결과_${new Date().toISOString().slice(0, 10)}.png`;
+      link.download = `DriveFlow_유지비_${mode === "compare" ? "비교" : "계산"}결과_${new Date().toISOString().slice(0, 10)}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
       
       toast({
         title: "저장 완료",
-        description: "영수증 이미지가 저장되었습니다.",
+        description: "이미지가 저장되었습니다.",
       });
     } catch (error) {
       toast({
@@ -204,9 +269,18 @@ const Calculator = () => {
   const handleReset = () => {
     setStep("input");
     setResult(null);
+    setCompareResults([]);
     setActiveSection(0);
     setShowPresets(true);
     setSelectedPreset(null);
+    setComparePresets([]);
+  };
+
+  const handleModeChange = (newMode: CalculatorMode) => {
+    setMode(newMode);
+    setSelectedPreset(null);
+    setComparePresets([]);
+    setShowPresets(true);
   };
 
   const formatNumber = (num: number) => {
@@ -227,12 +301,23 @@ const Calculator = () => {
     { name: "자동차세", value: result.monthlyTax, color: CHART_COLORS[3] },
   ] : [];
 
+  const compareChartData = compareResults.map((item, index) => ({
+    name: item.preset.name,
+    emoji: item.preset.emoji,
+    할부금: item.result.monthlyPayment,
+    유류비: item.result.monthlyFuel,
+    보험료: item.result.monthlyInsurance,
+    자동차세: item.result.monthlyTax,
+    총비용: item.result.totalMonthly,
+    color: COMPARE_COLORS[index],
+  }));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-violet-50/20">
       <Header />
       
       <main className="py-8 px-4">
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-2xl mx-auto">
           {step === "input" && (
             <div className="space-y-8">
               {/* Hero Section */}
@@ -256,8 +341,184 @@ const Calculator = () => {
                 </p>
               </div>
 
-              {/* Car Type Presets */}
-              {showPresets && (
+              {/* Mode Selector */}
+              <div className="flex justify-center gap-2 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+                <button
+                  onClick={() => handleModeChange("single")}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 ${
+                    mode === "single"
+                      ? "bg-gradient-to-r from-primary to-violet-500 text-white shadow-lg shadow-primary/25"
+                      : "bg-white/80 text-muted-foreground hover:bg-white hover:shadow-md"
+                  }`}
+                >
+                  <Car className="w-4 h-4" />
+                  단일 계산
+                </button>
+                <button
+                  onClick={() => handleModeChange("compare")}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-medium transition-all duration-300 ${
+                    mode === "compare"
+                      ? "bg-gradient-to-r from-primary to-violet-500 text-white shadow-lg shadow-primary/25"
+                      : "bg-white/80 text-muted-foreground hover:bg-white hover:shadow-md"
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  차종 비교
+                </button>
+              </div>
+
+              {/* Compare Mode */}
+              {mode === "compare" && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="text-center">
+                    <h2 className="text-lg font-semibold text-foreground mb-1">비교할 차종을 선택하세요</h2>
+                    <p className="text-sm text-muted-foreground">최대 4개까지 선택 가능합니다 ({comparePresets.length}/4)</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {carPresets.map((preset, index) => {
+                      const isSelected = comparePresets.includes(index);
+                      const isDisabled = !isSelected && comparePresets.length >= 4;
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => !isDisabled && handlePresetSelect(index)}
+                          disabled={isDisabled}
+                          className={`group relative p-4 rounded-2xl border-2 transition-all duration-300 text-left overflow-hidden ${
+                            isSelected
+                              ? "bg-gradient-to-br from-primary/10 to-violet-500/10 border-primary shadow-lg scale-105"
+                              : isDisabled
+                              ? "bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed"
+                              : "bg-white/80 backdrop-blur-sm border-white/50 shadow-lg hover:shadow-xl hover:scale-105"
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                              <Check className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                          <div className="relative">
+                            <span className="text-3xl mb-2 block">{preset.emoji}</span>
+                            <h3 className="font-semibold text-foreground">{preset.name}</h3>
+                            <p className="text-xs text-muted-foreground">{preset.description}</p>
+                            <p className="text-xs font-medium text-primary mt-1">
+                              ~{formatNumber(preset.carPrice / 10000)}만원
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Selected Presets */}
+                  {comparePresets.length > 0 && (
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/50 shadow-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <BarChart3 className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-medium">선택된 차종</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {comparePresets.map((index) => (
+                          <div
+                            key={index}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary/10 to-violet-500/10 rounded-full"
+                          >
+                            <span>{carPresets[index].emoji}</span>
+                            <span className="text-sm font-medium">{carPresets[index].name}</span>
+                            <button
+                              onClick={() => setComparePresets(comparePresets.filter(i => i !== index))}
+                              className="w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Compare Settings */}
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-xl space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center shadow-lg">
+                        <Zap className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">공통 조건 설정</h3>
+                        <p className="text-xs text-muted-foreground">모든 차종에 동일하게 적용됩니다</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="compareLoanTerm" className="text-sm font-medium">할부 기간</Label>
+                        <div className="relative mt-1.5">
+                          <Input
+                            id="compareLoanTerm"
+                            type="number"
+                            value={formData.loanTerm}
+                            onChange={(e) => handleInputChange("loanTerm", e.target.value)}
+                            className="h-11 pr-12 font-medium border-2 border-transparent focus:border-primary/50 transition-colors bg-slate-50/50"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">개월</span>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="compareInterestRate" className="text-sm font-medium">할부 금리</Label>
+                        <div className="relative mt-1.5">
+                          <Input
+                            id="compareInterestRate"
+                            type="number"
+                            step="0.1"
+                            value={formData.interestRate}
+                            onChange={(e) => handleInputChange("interestRate", e.target.value)}
+                            className="h-11 pr-8 font-medium border-2 border-transparent focus:border-primary/50 transition-colors bg-slate-50/50"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">%</span>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="compareMonthlyMileage" className="text-sm font-medium">월 주행거리</Label>
+                        <div className="relative mt-1.5">
+                          <Input
+                            id="compareMonthlyMileage"
+                            type="number"
+                            value={formData.monthlyMileage}
+                            onChange={(e) => handleInputChange("monthlyMileage", e.target.value)}
+                            className="h-11 pr-10 font-medium border-2 border-transparent focus:border-primary/50 transition-colors bg-slate-50/50"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">km</span>
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="compareFuelPrice" className="text-sm font-medium">유가</Label>
+                        <div className="relative mt-1.5">
+                          <Input
+                            id="compareFuelPrice"
+                            type="number"
+                            value={formData.fuelPrice}
+                            onChange={(e) => handleInputChange("fuelPrice", e.target.value)}
+                            className="h-11 pr-12 font-medium border-2 border-transparent focus:border-primary/50 transition-colors bg-slate-50/50"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">원/L</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={handleCompareSubmit}
+                      disabled={comparePresets.length < 2}
+                      className="w-full h-12 bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 shadow-lg shadow-primary/25 text-base font-semibold disabled:opacity-50"
+                    >
+                      <BarChart3 className="w-5 h-5 mr-2" />
+                      {comparePresets.length < 2 ? `${2 - comparePresets.length}개 더 선택하세요` : "비교 분석하기"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Single Mode - Car Type Presets */}
+              {mode === "single" && showPresets && (
                 <div className="space-y-4 animate-fade-in">
                   <div className="text-center">
                     <h2 className="text-lg font-semibold text-foreground mb-1">차종을 선택하세요</h2>
@@ -294,12 +555,12 @@ const Calculator = () => {
                 </div>
               )}
 
-              {/* Form Section */}
-              {!showPresets && (
-                <>
+              {/* Single Mode Form Section */}
+              {mode === "single" && !showPresets && (
+                <div className="max-w-lg mx-auto">
                   {/* Selected Preset Badge */}
                   {selectedPreset !== null && (
-                    <div className="flex items-center justify-center gap-2 animate-fade-in">
+                    <div className="flex items-center justify-center gap-2 animate-fade-in mb-6">
                       <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-white/50 shadow-md">
                         <span className="text-xl">{carPresets[selectedPreset].emoji}</span>
                         <span className="font-medium text-foreground">{carPresets[selectedPreset].name}</span>
@@ -314,7 +575,7 @@ const Calculator = () => {
                   )}
 
                   {/* Progress Indicator */}
-                  <div className="flex items-center justify-center gap-2 px-4">
+                  <div className="flex items-center justify-center gap-2 px-4 mb-6">
                     {sections.map((section, index) => (
                       <button
                         key={index}
@@ -660,7 +921,7 @@ const Calculator = () => {
                       </div>
                     </div>
                   </form>
-                </>
+                </div>
               )}
             </div>
           )}
@@ -669,8 +930,185 @@ const Calculator = () => {
             <LoadingScreen onComplete={handleLoadingComplete} />
           )}
 
-          {step === "result" && result && (
+          {step === "result" && mode === "compare" && compareResults.length > 0 && (
             <div className="space-y-6">
+              {/* Result Hero */}
+              <div className="text-center animate-fade-in">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-full text-sm font-medium text-emerald-600 mb-4">
+                  <BarChart3 className="w-4 h-4" />
+                  비교 분석 완료
+                </div>
+                <h2 className="text-2xl font-bold text-foreground">
+                  차종별 유지비 비교
+                </h2>
+                <p className="text-muted-foreground mt-1">
+                  {compareResults.map(r => r.preset.emoji).join(" vs ")}
+                </p>
+              </div>
+
+              {/* Compare Chart */}
+              <div 
+                ref={receiptRef}
+                className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-xl animate-fade-in"
+                style={{ animationDelay: "0.1s" }}
+              >
+                <h3 className="font-semibold text-foreground mb-6 text-center">월 유지비 비교</h3>
+                
+                {/* Bar Chart */}
+                <div className="h-64 mb-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={compareChartData} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                      <XAxis type="number" tickFormatter={(value) => `${Math.round(value / 10000)}만`} />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        width={60}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip
+                        formatter={(value: number, name: string) => [`${formatNumber(value)}원`, name]}
+                        contentStyle={{
+                          backgroundColor: "rgba(255, 255, 255, 0.95)",
+                          borderRadius: "12px",
+                          border: "none",
+                          boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
+                        }}
+                      />
+                      <Bar dataKey="할부금" stackId="a" fill="#3B82F6" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="유류비" stackId="a" fill="#F59E0B" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="보험료" stackId="a" fill="#10B981" radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="자동차세" stackId="a" fill="#8B5CF6" radius={[4, 4, 4, 4]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Legend */}
+                <div className="flex flex-wrap justify-center gap-4 mb-6">
+                  {[
+                    { name: "할부금", color: "#3B82F6" },
+                    { name: "유류비", color: "#F59E0B" },
+                    { name: "보험료", color: "#10B981" },
+                    { name: "자동차세", color: "#8B5CF6" },
+                  ].map((item) => (
+                    <div key={item.name} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-sm text-muted-foreground">{item.name}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Comparison Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {compareResults.map((item, index) => {
+                    const isLowest = item.result.totalMonthly === Math.min(...compareResults.map(r => r.result.totalMonthly));
+                    return (
+                      <div
+                        key={index}
+                        className={`relative p-4 rounded-xl border-2 transition-all ${
+                          isLowest
+                            ? "bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-500"
+                            : "bg-slate-50 border-slate-200"
+                        }`}
+                      >
+                        {isLowest && (
+                          <div className="absolute -top-3 left-4 px-3 py-1 bg-emerald-500 text-white text-xs font-medium rounded-full">
+                            최저 유지비 👑
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 mb-4 mt-1">
+                          <span className="text-3xl">{item.preset.emoji}</span>
+                          <div>
+                            <h4 className="font-semibold text-foreground">{item.preset.name}</h4>
+                            <p className="text-xs text-muted-foreground">{item.preset.description}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">차량가격</span>
+                            <span className="font-medium">{formatNumber(item.preset.carPrice)}원</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">할부금</span>
+                            <span className="font-medium">{formatNumber(item.result.monthlyPayment)}원</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">유류비</span>
+                            <span className="font-medium">{formatNumber(item.result.monthlyFuel)}원</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">보험료</span>
+                            <span className="font-medium">{formatNumber(item.result.monthlyInsurance)}원</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">자동차세</span>
+                            <span className="font-medium">{formatNumber(item.result.monthlyTax)}원</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t border-slate-200">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-foreground">월 총 유지비</span>
+                            <span className={`text-xl font-bold ${isLowest ? "text-emerald-600" : "text-foreground"}`}>
+                              {formatNumber(item.result.totalMonthly)}원
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>연간 유지비</span>
+                            <span>{formatNumber(item.result.yearlyTotal)}원</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Summary */}
+                <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-violet-500/5 border border-primary/20">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground mb-1">분석 결과</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {(() => {
+                          const sorted = [...compareResults].sort((a, b) => a.result.totalMonthly - b.result.totalMonthly);
+                          const cheapest = sorted[0];
+                          const mostExpensive = sorted[sorted.length - 1];
+                          const difference = mostExpensive.result.totalMonthly - cheapest.result.totalMonthly;
+                          return `${cheapest.preset.name}이(가) 월 ${formatNumber(difference)}원 더 저렴합니다. 연간으로 환산하면 ${formatNumber(difference * 12)}원 절약 가능합니다.`;
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-3 animate-fade-in" style={{ animationDelay: "0.4s" }}>
+                <Button
+                  onClick={handleSaveReceipt}
+                  className="w-full h-12 bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 shadow-lg shadow-primary/25"
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  비교 결과 이미지로 저장
+                </Button>
+                
+                <Button
+                  onClick={handleReset}
+                  className="w-full h-12"
+                  variant="outline"
+                >
+                  다시 비교하기
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === "result" && mode === "single" && result && (
+            <div className="space-y-6 max-w-lg mx-auto">
               {/* Result Hero */}
               <div className="text-center animate-fade-in">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-full text-sm font-medium text-emerald-600 mb-4">
