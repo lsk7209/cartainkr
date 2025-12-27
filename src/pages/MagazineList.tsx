@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -17,9 +18,23 @@ interface Post {
   published_at: string;
 }
 
+const fetchPosts = async (): Promise<Post[]> => {
+  const { data, error } = await supabase
+    .from("posts")
+    .select("id, title, slug, excerpt, thumbnail_url, published_at")
+    .order("published_at", { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+};
+
 const MagazineList = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: posts = [], isLoading } = useQuery({
+    queryKey: ["posts-list"],
+    queryFn: fetchPosts,
+    staleTime: 5 * 60 * 1000, // 5분간 캐시 유지
+    gcTime: 10 * 60 * 1000, // 10분간 가비지 컬렉션 방지
+  });
 
   // Apply SEO meta tags
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
@@ -30,24 +45,6 @@ const MagazineList = () => {
     canonicalUrl: `${baseUrl}/magazine`,
     ogType: 'website',
   });
-
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("id, title, slug, excerpt, thumbnail_url, published_at")
-        .order("published_at", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching posts:", error);
-      } else {
-        setPosts(data || []);
-      }
-      setIsLoading(false);
-    };
-
-    fetchPosts();
-  }, []);
 
   // Generate structured data
   const structuredData = useMemo(() => {
@@ -153,11 +150,13 @@ const MagazineList = () => {
                         src={post.thumbnail_url}
                         alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading={index < 6 ? "eager" : "lazy"}
+                        loading={index < 3 ? "eager" : "lazy"}
+                        decoding="async"
+                        fetchPriority={index < 3 ? "high" : "low"}
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent">
-                        <span className="text-4xl font-bold text-primary/30">D</span>
+                        <span className="text-4xl font-bold text-primary/30">카</span>
                       </div>
                     )}
                   </div>
