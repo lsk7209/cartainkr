@@ -2,10 +2,31 @@ import { Link } from "react-router-dom";
 import { BookOpen, Calculator, ArrowRight, Car, TrendingUp, Shield } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import JsonLd from "@/components/JsonLd";
+import { useSEO, generateWebSiteSchema, generateOrganizationSchema } from "@/hooks/useSEO";
 
 const Index = () => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  
+  // Apply SEO meta tags
+  useSEO({
+    title: 'DriveFlow Ads - 자동차 정보 플랫폼',
+    description: '자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공합니다. 전문가 칼럼과 실용적인 계산기로 현명한 선택을 도와드립니다.',
+    canonicalUrl: baseUrl,
+    ogType: 'website',
+  });
+
+  // Generate structured data
+  const structuredData = [
+    generateWebSiteSchema(),
+    generateOrganizationSchema(),
+  ];
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      {/* Structured Data for SEO */}
+      <JsonLd data={structuredData} />
+      
       <Header />
       
       <main className="flex-1">
