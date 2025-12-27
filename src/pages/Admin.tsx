@@ -93,22 +93,29 @@ const Admin = () => {
     
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         setIsAuthenticated(false);
         setIsAdmin(false);
+        setIsLoading(false);
       } else if (session?.user) {
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .eq("role", "admin")
-          .maybeSingle();
-        
-        if (roleData) {
-          setIsAuthenticated(true);
-          setIsAdmin(true);
-        }
+        // Defer Supabase calls with setTimeout to prevent deadlock
+        setTimeout(async () => {
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", session.user.id)
+            .eq("role", "admin")
+            .maybeSingle();
+          
+          if (roleData) {
+            setIsAuthenticated(true);
+            setIsAdmin(true);
+          }
+          setIsLoading(false);
+        }, 0);
+      } else {
+        setIsLoading(false);
       }
     });
 
