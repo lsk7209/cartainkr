@@ -1,9 +1,26 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import JsonLd from "@/components/JsonLd";
 
 const Privacy = () => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  
+  useSEO({
+    title: '개인정보처리방침 | 카테인',
+    description: '카테인의 개인정보처리방침입니다. 이용자의 개인정보 수집, 이용, 보유 기간 등에 대해 안내합니다.',
+    canonicalUrl: `${baseUrl}/privacy`,
+    ogType: 'website',
+  });
+
+  const structuredData = generateBreadcrumbSchema([
+    { name: '홈', url: baseUrl },
+    { name: '개인정보처리방침', url: `${baseUrl}/privacy` },
+  ]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <JsonLd data={structuredData} />
       <Header />
       
       <main className="flex-1 py-12 px-4">
@@ -20,7 +37,7 @@ const Privacy = () => {
           <div className="prose prose-neutral max-w-none">
             <div className="bg-card rounded-xl border border-border p-6 mb-8">
               <p className="text-muted-foreground leading-relaxed">
-                DriveFlow(이하 '회사')는 이용자의 개인정보를 중요시하며, 
+                카테인(이하 '회사')는 이용자의 개인정보를 중요시하며, 
                 「개인정보 보호법」을 준수하고 있습니다. 
                 회사는 개인정보처리방침을 통하여 이용자가 제공하는 개인정보가 
                 어떠한 용도와 방식으로 이용되고 있으며, 
@@ -144,7 +161,7 @@ const Privacy = () => {
                 </p>
                 <div className="text-muted-foreground">
                   <p><strong className="text-foreground">개인정보 보호책임자</strong></p>
-                  <p>이메일: privacy@driveflow.kr</p>
+                  <p>이메일: privacy@catein.kr</p>
                 </div>
               </div>
             </section>

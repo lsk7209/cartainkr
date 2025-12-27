@@ -1,10 +1,11 @@
-# DriveFlow Ads - robots.txt
-# https://driveflow.co.kr
+# 카테인 - robots.txt
+# https://catein.kr
 
 User-agent: *
 Allow: /
 
 # Sitemap location
+Sitemap: https://catein.kr/sitemap.xml
 Sitemap: https://tczuttsjfttqvcmdawbo.supabase.co/functions/v1/sitemap
 
 # Disallow admin and private pages

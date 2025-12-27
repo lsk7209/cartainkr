@@ -28,7 +28,7 @@ serve(async (req) => {
       throw error;
     }
 
-    const baseUrl = "https://driveflow.co.kr";
+    const baseUrl = "https://catein.kr";
     const now = new Date().toISOString().split("T")[0];
 
     // Static pages

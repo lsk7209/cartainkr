@@ -1,10 +1,27 @@
 import { Mail, MessageSquare, Clock, MapPin } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import JsonLd from "@/components/JsonLd";
 
 const Contact = () => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  
+  useSEO({
+    title: '문의하기 - 광고, 제휴, 일반 문의 | 카테인',
+    description: '카테인에 대한 문의사항, 광고 및 제휴 문의는 이메일로 연락해 주세요. 영업일 기준 1-2일 이내 답변드립니다.',
+    canonicalUrl: `${baseUrl}/contact`,
+    ogType: 'website',
+  });
+
+  const structuredData = generateBreadcrumbSchema([
+    { name: '홈', url: baseUrl },
+    { name: '문의하기', url: `${baseUrl}/contact` },
+  ]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <JsonLd data={structuredData} />
       <Header />
       
       <main className="flex-1 py-12 px-4">
@@ -14,7 +31,7 @@ const Contact = () => {
               문의하기
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              DriveFlow에 대한 문의사항이 있으시면 아래 연락처로 문의해 주세요
+              카테인에 대한 문의사항이 있으시면 아래 연락처로 문의해 주세요
             </p>
           </header>
 
@@ -31,10 +48,10 @@ const Contact = () => {
                 </div>
               </div>
               <a 
-                href="mailto:contact@driveflow.kr" 
+                href="mailto:contact@catein.kr" 
                 className="text-primary hover:underline font-medium"
               >
-                contact@driveflow.kr
+                contact@catein.kr
               </a>
             </div>
 
@@ -49,10 +66,10 @@ const Contact = () => {
                 </div>
               </div>
               <a 
-                href="mailto:ads@driveflow.kr" 
+                href="mailto:ads@catein.kr" 
                 className="text-primary hover:underline font-medium"
               >
-                ads@driveflow.kr
+                ads@catein.kr
               </a>
             </div>
           </div>
@@ -110,7 +127,7 @@ const Contact = () => {
                   Q. 콘텐츠를 다른 곳에 사용해도 되나요?
                 </h3>
                 <p className="text-muted-foreground text-sm">
-                  A. DriveFlow의 콘텐츠는 저작권법에 의해 보호됩니다. 
+                  A. 카테인의 콘텐츠는 저작권법에 의해 보호됩니다. 
                   개인적인 참고 목적 외의 무단 복제, 배포, 상업적 이용은 금지되어 있습니다. 
                   콘텐츠 활용을 원하시면 사전에 문의해 주세요.
                 </p>
@@ -120,7 +137,7 @@ const Contact = () => {
                   Q. 광고 게재는 어떻게 신청하나요?
                 </h3>
                 <p className="text-muted-foreground text-sm">
-                  A. 광고 및 제휴 문의는 ads@driveflow.kr로 연락해 주시면 
+                  A. 광고 및 제휴 문의는 ads@catein.kr로 연락해 주시면 
                   담당자가 상세 안내를 드립니다.
                 </p>
               </div>

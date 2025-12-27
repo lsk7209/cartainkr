@@ -1,17 +1,34 @@
 import { Car, Users, Target, Award } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import JsonLd from "@/components/JsonLd";
 
 const About = () => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  
+  useSEO({
+    title: '카테인 소개 - 자동차 정보 전문 플랫폼 | 카테인',
+    description: '카테인은 자동차 구매, 유지비, 보험 정보를 쉽고 정확하게 제공하는 자동차 정보 전문 플랫폼입니다.',
+    canonicalUrl: `${baseUrl}/about`,
+    ogType: 'website',
+  });
+
+  const structuredData = generateBreadcrumbSchema([
+    { name: '홈', url: baseUrl },
+    { name: '소개', url: `${baseUrl}/about` },
+  ]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <JsonLd data={structuredData} />
       <Header />
       
       <main className="flex-1 py-12 px-4">
         <div className="container max-w-4xl mx-auto">
           <header className="text-center mb-12">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              DriveFlow 소개
+              카테인 소개
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               자동차 구매와 유지비에 관한 신뢰할 수 있는 정보를 제공하는 전문 플랫폼입니다
@@ -28,7 +45,7 @@ const About = () => {
                 <h2 className="text-2xl font-bold text-foreground">우리의 미션</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
-                DriveFlow는 자동차 구매를 계획하는 모든 분들이 올바른 결정을 내릴 수 있도록 
+                카테인은 자동차 구매를 계획하는 모든 분들이 올바른 결정을 내릴 수 있도록 
                 정확하고 투명한 정보를 제공합니다. 복잡한 세금, 보험, 유지비 정보를 
                 쉽고 명확하게 전달하여 소비자의 현명한 선택을 돕는 것이 우리의 목표입니다.
               </p>
@@ -112,14 +129,14 @@ const About = () => {
           {/* Company Info */}
           <section>
             <div className="bg-card rounded-xl border border-border p-8 text-center">
-              <h2 className="text-xl font-bold text-foreground mb-4">DriveFlow</h2>
+              <h2 className="text-xl font-bold text-foreground mb-4">카테인</h2>
               <p className="text-muted-foreground mb-4">
                 자동차 정보의 새로운 기준
               </p>
               <div className="text-sm text-muted-foreground space-y-1">
-                <p>사업자: DriveFlow</p>
-                <p>이메일: contact@driveflow.kr</p>
-                <p>© 2024 DriveFlow. All rights reserved.</p>
+                <p>사업자: 카테인</p>
+                <p>이메일: contact@catein.kr</p>
+                <p>© 2024 카테인. All rights reserved.</p>
               </div>
             </div>
           </section>
