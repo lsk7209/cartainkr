@@ -256,3 +256,39 @@ export const generateOrganizationSchema = () => {
     },
   };
 };
+
+// SoftwareApplication schema for calculator/tools
+export const generateSoftwareApplicationSchema = (
+  name: string,
+  description: string,
+  url: string
+) => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name,
+    description,
+    url,
+    applicationCategory: 'FinanceApplication',
+    operatingSystem: 'Web Browser',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'KRW',
+    },
+    provider: {
+      '@type': 'Organization',
+      name: 'DriveFlow Ads',
+      url: baseUrl,
+    },
+    featureList: [
+      '자동차 할부금 계산',
+      '월 유지비 분석',
+      '연간 비용 예측',
+      '차종별 비교 분석',
+    ],
+    inLanguage: 'ko-KR',
+  };
+};

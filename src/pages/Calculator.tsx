@@ -1,14 +1,16 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import html2canvas from "html2canvas";
 import { Download, Car, Fuel, Shield, Percent, ArrowRight, Sparkles, Zap, TrendingUp, ChevronDown, BarChart3, X, Plus, Check } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import Header from "@/components/Header";
 import LoadingScreen from "@/components/LoadingScreen";
 import ReceiptFooter from "@/components/ReceiptFooter";
+import JsonLd from "@/components/JsonLd";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { useSEO, generateSoftwareApplicationSchema, generateBreadcrumbSchema } from "@/hooks/useSEO";
 
 type CalculatorStep = "input" | "loading" | "result";
 type CalculatorMode = "single" | "compare";
@@ -110,6 +112,29 @@ const CHART_COLORS = ["#3B82F6", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#0
 const COMPARE_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"];
 
 const Calculator = () => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  
+  // Apply SEO meta tags
+  useSEO({
+    title: '자동차 유지비 계산기 | DriveFlow Ads',
+    description: '자동차 할부금, 유류비, 보험료, 자동차세까지 한 번에 계산하세요. 차종별 비교 분석으로 현명한 자동차 구매 결정을 도와드립니다.',
+    canonicalUrl: `${baseUrl}/calculator`,
+    ogType: 'website',
+  });
+
+  // Generate structured data
+  const structuredData = useMemo(() => [
+    generateSoftwareApplicationSchema(
+      '자동차 유지비 계산기',
+      '자동차 할부금, 유류비, 보험료, 자동차세를 계산하고 차종별 비용을 비교 분석하는 무료 온라인 도구입니다.',
+      `${baseUrl}/calculator`
+    ),
+    generateBreadcrumbSchema([
+      { name: '홈', url: baseUrl },
+      { name: '유지비 계산기', url: `${baseUrl}/calculator` },
+    ]),
+  ], [baseUrl]);
+
   const [step, setStep] = useState<CalculatorStep>("input");
   const [mode, setMode] = useState<CalculatorMode>("single");
   const [activeSection, setActiveSection] = useState<number>(0);
@@ -314,6 +339,9 @@ const Calculator = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-violet-50/20">
+      {/* Structured Data for SEO */}
+      <JsonLd data={structuredData} />
+      
       <Header />
       
       <main className="py-8 px-4">
