@@ -1,9 +1,26 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import JsonLd from "@/components/JsonLd";
 
 const Terms = () => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  
+  useSEO({
+    title: '이용약관 | 카테인',
+    description: '카테인 서비스 이용약관입니다. 서비스 이용조건, 이용자의 권리와 의무에 대해 안내합니다.',
+    canonicalUrl: `${baseUrl}/terms`,
+    ogType: 'website',
+  });
+
+  const structuredData = generateBreadcrumbSchema([
+    { name: '홈', url: baseUrl },
+    { name: '이용약관', url: `${baseUrl}/terms` },
+  ]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <JsonLd data={structuredData} />
       <Header />
       
       <main className="flex-1 py-12 px-4">
@@ -24,7 +41,7 @@ const Terms = () => {
               </h2>
               <div className="bg-muted/30 rounded-lg p-6">
                 <p className="text-muted-foreground leading-relaxed">
-                  이 약관은 DriveFlow(이하 '회사')가 제공하는 서비스의 이용조건 및 절차, 
+                  이 약관은 카테인(이하 '회사')가 제공하는 서비스의 이용조건 및 절차, 
                   회사와 이용자의 권리, 의무 및 책임사항과 기타 필요한 사항을 규정함을 목적으로 합니다.
                 </p>
               </div>

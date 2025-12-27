@@ -22,11 +22,11 @@ const MagazineList = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Apply SEO meta tags
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
   
   useSEO({
-    title: '매거진 | DriveFlow Ads - 자동차 정보 플랫폼',
-    description: '자동차 구매, 유지비, 보험 등 알아두면 유용한 정보를 전문가의 시선으로 전해드립니다. 최신 자동차 뉴스와 가이드를 확인하세요.',
+    title: '자동차 매거진 - 구매 가이드, 유지비 정보 | 카테인',
+    description: '자동차 구매 가이드, 유지비 절약 팁, 보험 정보까지. 전문가가 알려주는 실용적인 자동차 정보를 확인하세요.',
     canonicalUrl: `${baseUrl}/magazine`,
     ogType: 'website',
   });
@@ -55,8 +55,8 @@ const MagazineList = () => {
     
     // CollectionPage + ItemList schema
     const collectionSchema = generateCollectionPageSchema(
-      '매거진 - DriveFlow Ads',
-      '자동차 구매, 유지비, 보험 등 알아두면 유용한 정보를 전문가의 시선으로 전해드립니다.',
+      '자동차 매거진 - 카테인',
+      '자동차 구매 가이드, 유지비 절약 팁, 보험 정보까지. 전문가가 알려주는 실용적인 자동차 정보.',
       `${baseUrl}/magazine`,
       posts.map(post => ({
         title: post.title,
@@ -98,10 +98,10 @@ const MagazineList = () => {
           {/* Page Header */}
           <header className="text-center mb-12">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              매거진
+              자동차 매거진
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              자동차 구매, 유지비, 보험 등 알아두면 유용한 정보를 전문가의 시선으로 전해드립니다
+              자동차 구매 가이드, 유지비 절약 팁, 보험 정보까지 전문가가 알려드립니다
             </p>
           </header>
 

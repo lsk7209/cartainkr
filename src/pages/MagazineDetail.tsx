@@ -104,26 +104,26 @@ const MagazineDetail = () => {
   // Generate canonical URL
   const canonicalUrl = useMemo(() => {
     if (!post?.slug) return undefined;
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
     return `${baseUrl}/magazine/${post.slug}`;
   }, [post?.slug]);
 
   // Apply SEO meta tags
   useSEO({
-    title: post ? `${post.title} | DriveFlow Ads` : 'DriveFlow Ads - 자동차 정보 플랫폼',
+    title: post ? `${post.title} | 카테인` : '카테인 - 자동차 정보 플랫폼',
     description: post?.excerpt || post?.title || '자동차 정보, 비용 분석, 유지비 계산 등 스마트한 자동차 정보를 제공합니다.',
     canonicalUrl,
     ogImage: post?.thumbnail_url || undefined,
     ogType: 'article',
     publishedAt: post?.published_at,
-    author: 'DriveFlow',
+    author: '카테인',
   });
 
   // Generate structured data
   const structuredData = useMemo(() => {
     if (!post) return [];
     
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
     const data: object[] = [];
     
     // Article schema
@@ -255,7 +255,7 @@ const MagazineDetail = () => {
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <User className="w-4 h-4" />
-                  <span>DriveFlow 에디터</span>
+                  <span>카테인 에디터</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4" />

@@ -112,12 +112,12 @@ const CHART_COLORS = ["#3B82F6", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#0
 const COMPARE_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"];
 
 const Calculator = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
   
   // Apply SEO meta tags
   useSEO({
-    title: '자동차 유지비 계산기 | DriveFlow Ads',
-    description: '자동차 할부금, 유류비, 보험료, 자동차세까지 한 번에 계산하세요. 차종별 비교 분석으로 현명한 자동차 구매 결정을 도와드립니다.',
+    title: '자동차 유지비 계산기 - 할부금, 보험료, 유류비 계산 | 카테인',
+    description: '자동차 할부금, 유류비, 보험료, 자동차세를 한 번에 계산하세요. 차종별 비교 분석으로 현명한 구매 결정을 도와드립니다.',
     canonicalUrl: `${baseUrl}/calculator`,
     ogType: 'website',
   });
