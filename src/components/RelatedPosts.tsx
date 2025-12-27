@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 interface RelatedPost {
   id: string;
@@ -93,9 +94,11 @@ const RelatedPosts = ({ currentPostId, limit = 4 }: RelatedPostsProps) => {
             <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
               {relatedPost.thumbnail_url ? (
                 <img
-                  src={relatedPost.thumbnail_url}
+                  src={getOptimizedImageUrl(relatedPost.thumbnail_url, { width: 200 }) || relatedPost.thumbnail_url}
                   alt={relatedPost.title}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">

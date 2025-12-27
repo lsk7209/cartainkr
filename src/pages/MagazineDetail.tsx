@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSEO, generateArticleSchema, generateFAQSchema, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 // Safe HTML tags and attributes for blog content (defense-in-depth)
 const SANITIZE_CONFIG = {
@@ -283,10 +284,11 @@ const MagazineDetail = () => {
           {post.thumbnail_url && (
             <figure className="aspect-video rounded-xl overflow-hidden mb-8">
               <img
-                src={post.thumbnail_url}
+                src={getOptimizedImageUrl(post.thumbnail_url, { width: 800 }) || post.thumbnail_url}
                 alt={post.title}
                 className="w-full h-full object-cover"
                 loading="eager"
+                fetchPriority="high"
               />
             </figure>
           )}
