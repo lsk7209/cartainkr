@@ -493,8 +493,19 @@ serve(async (req) => {
       // Continue without thumbnail
     }
 
-    // Step 4: Create post entry
+    // Step 4: Create post entry with randomized publish date
     const slug = generateSlug(queueItem.title) || `post-${Date.now()}`;
+    
+    // Add random offset: 1-7 days ago, with random hours/minutes
+    const randomDaysAgo = Math.floor(Math.random() * 7) + 1; // 1-7 days
+    const randomHours = Math.floor(Math.random() * 12); // 0-11 hours
+    const randomMinutes = Math.floor(Math.random() * 60); // 0-59 minutes
+    
+    const publishDate = new Date();
+    publishDate.setDate(publishDate.getDate() - randomDaysAgo);
+    publishDate.setHours(9 + randomHours, randomMinutes, 0, 0); // Between 9:00-20:59
+    
+    debugLog(`Publishing with date offset: ${randomDaysAgo} days ago at ${publishDate.toISOString()}`);
     
     const { data: post, error: postError } = await supabase
       .from("posts")
@@ -504,7 +515,7 @@ serve(async (req) => {
         content_html: html,
         excerpt,
         thumbnail_url: thumbnailUrl || null,
-        published_at: new Date().toISOString(),
+        published_at: publishDate.toISOString(),
       })
       .select()
       .single();
