@@ -221,10 +221,38 @@ export const generateWebSiteSchema = () => {
     name: 'DriveFlow Ads',
     url: baseUrl,
     description: '자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공합니다.',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${baseUrl}/magazine?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
     publisher: {
       '@type': 'Organization',
       name: 'DriveFlow Ads',
       url: baseUrl,
+    },
+  };
+};
+
+// Organization schema
+export const generateOrganizationSchema = () => {
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'DriveFlow Ads',
+    url: baseUrl,
+    logo: `${baseUrl}/favicon.ico`,
+    description: '자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공하는 전문 플랫폼입니다.',
+    sameAs: [],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'customer service',
+      availableLanguage: ['Korean'],
     },
   };
 };
