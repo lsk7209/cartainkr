@@ -23,7 +23,7 @@ const Header = () => {
             <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
               <Car className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-lg text-foreground">DriveFlow</span>
+            <span className="font-bold text-lg text-foreground">카테인</span>
           </Link>
 
           {/* Desktop Navigation */}

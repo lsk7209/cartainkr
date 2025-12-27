@@ -10,7 +10,7 @@ const Index = () => {
   
   // Apply SEO meta tags
   useSEO({
-    title: 'DriveFlow Ads - 자동차 정보 플랫폼',
+    title: '카테인 - 자동차 정보 플랫폼',
     description: '자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공합니다. 전문가 칼럼과 실용적인 계산기로 현명한 선택을 도와드립니다.',
     canonicalUrl: baseUrl,
     ogType: 'website',
@@ -41,7 +41,7 @@ const Index = () => {
             <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 animate-slide-up">
               자동차 구매부터 유지비까지,
               <br />
-              <span className="text-primary">DriveFlow</span>와 함께
+              <span className="text-primary">카테인</span>과 함께
             </h1>
             
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 animate-slide-up" style={{ animationDelay: "0.1s" }}>
@@ -73,7 +73,7 @@ const Index = () => {
         <section className="py-16 px-4 bg-muted/30">
           <div className="container max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center mb-10">
-              DriveFlow가 제공하는 서비스
+              카테인이 제공하는 서비스
             </h2>
             <div className="grid md:grid-cols-3 gap-8">
               <div className="bg-card p-6 rounded-xl border border-border">
@@ -115,10 +115,10 @@ const Index = () => {
             <div className="bg-card rounded-2xl border border-border p-8 md:p-12">
               <div className="text-center mb-8">
                 <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
-                  DriveFlow 소개
+                  카테인 소개
                 </h2>
                 <p className="text-muted-foreground max-w-2xl mx-auto">
-                  DriveFlow는 자동차 구매를 계획하는 모든 분들이 올바른 결정을 내릴 수 있도록 
+                  카테인은 자동차 구매를 계획하는 모든 분들이 올바른 결정을 내릴 수 있도록 
                   정확하고 투명한 정보를 제공하는 자동차 정보 전문 플랫폼입니다.
                 </p>
               </div>
@@ -155,7 +155,7 @@ const Index = () => {
               지금 바로 시작하세요
             </h2>
             <p className="text-muted-foreground mb-8">
-              복잡한 자동차 정보, DriveFlow가 쉽게 정리해 드립니다
+              복잡한 자동차 정보, 카테인이 쉽게 정리해 드립니다
             </p>
             <Link
               to="/calculator"
