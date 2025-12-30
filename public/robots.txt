@@ -5,10 +5,10 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://cartain.kr/sitemap.xml
+Sitemap: https://tczuttsjfttqvcmdawbo.supabase.co/functions/v1/sitemap
 
 # RSS Feed
-Sitemap: https://cartain.kr/rss.xml
+Sitemap: https://tczuttsjfttqvcmdawbo.supabase.co/functions/v1/rss
 
 # Disallow admin and private pages
 Disallow: /admin
