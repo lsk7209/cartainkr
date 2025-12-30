@@ -28,7 +28,7 @@ serve(async (req) => {
       throw error;
     }
 
-    const baseUrl = "https://catein.kr";
+    const baseUrl = "https://cartain.kr";
     const now = new Date().toISOString().split("T")[0];
 
     // Static pages
