@@ -5,13 +5,14 @@ import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
 
 const About = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   useSEO({
-    title: '카테인 소개 - 자동차 정보 전문 플랫폼 | 카테인',
-    description: '카테인은 자동차 구매, 유지비, 보험 정보를 쉽고 정확하게 제공하는 자동차 정보 전문 플랫폼입니다.',
+    title: '자동차 정보 전문 플랫폼 소개 | 카테인',
+    description: '카테인은 자동차 구매 가이드, 유지비 계산, 보험 정보를 쉽고 정확하게 제공하는 무료 자동차 정보 서비스입니다.',
     canonicalUrl: `${baseUrl}/about`,
     ogType: 'website',
+    keywords: ['카테인', '자동차 정보', '자동차 플랫폼'],
   });
 
   const structuredData = generateBreadcrumbSchema([
@@ -135,7 +136,7 @@ const About = () => {
               </p>
               <div className="text-sm text-muted-foreground space-y-1">
                 <p>사업자: 카테인</p>
-                <p>이메일: contact@catein.kr</p>
+                <p>이메일: contact@cartain.kr</p>
                 <p>© 2024 카테인. All rights reserved.</p>
               </div>
             </div>

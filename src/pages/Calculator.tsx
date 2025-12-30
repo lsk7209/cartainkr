@@ -112,14 +112,15 @@ const CHART_COLORS = ["#3B82F6", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#0
 const COMPARE_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"];
 
 const Calculator = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   // Apply SEO meta tags
   useSEO({
-    title: '자동차 유지비 계산기 - 할부금, 보험료, 유류비 계산 | 카테인',
-    description: '자동차 할부금, 유류비, 보험료, 자동차세를 한 번에 계산하세요. 차종별 비교 분석으로 현명한 구매 결정을 도와드립니다.',
+    title: '자동차 유지비 계산기 - 할부금·보험료·유류비 무료 계산 | 카테인',
+    description: '2024년 자동차 할부금, 유류비, 보험료, 자동차세를 무료로 계산하세요. 경차부터 SUV까지 차종별 월 유지비 비교 분석 제공.',
     canonicalUrl: `${baseUrl}/calculator`,
     ogType: 'website',
+    keywords: ['자동차 유지비 계산기', '자동차 할부 계산기', '자동차 보험료 계산', '월 유지비', '차량 유지비'],
   });
 
   // Generate structured data

@@ -62,13 +62,14 @@ const MagazineList = () => {
   const totalPages = Math.ceil(totalCount / POSTS_PER_PAGE);
 
   // Apply SEO meta tags
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   useSEO({
-    title: '자동차 매거진 - 구매 가이드, 유지비 정보 | 카테인',
-    description: '자동차 구매 가이드, 유지비 절약 팁, 보험 정보까지. 전문가가 알려주는 실용적인 자동차 정보를 확인하세요.',
+    title: '자동차 구매 가이드 & 유지비 절약 팁 | 카테인 매거진',
+    description: '2024년 최신 자동차 구매 가이드, 유지비 절약 방법, 보험료 비교 정보. 전문가가 알려주는 실용적인 자동차 정보를 무료로 확인하세요.',
     canonicalUrl: `${baseUrl}/magazine`,
     ogType: 'website',
+    keywords: ['자동차 구매 가이드', '자동차 유지비', '자동차 보험', '중고차 구매', '신차 구매'],
   });
 
   // Generate structured data

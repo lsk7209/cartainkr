@@ -6,14 +6,15 @@ import JsonLd from "@/components/JsonLd";
 import { useSEO, generateWebSiteSchema, generateOrganizationSchema } from "@/hooks/useSEO";
 
 const Index = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://driveflow.co.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   // Apply SEO meta tags
   useSEO({
-    title: '카테인 - 자동차 정보 플랫폼',
-    description: '자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공합니다. 전문가 칼럼과 실용적인 계산기로 현명한 선택을 도와드립니다.',
+    title: '자동차 유지비 계산기 & 구매 가이드 | 카테인',
+    description: '자동차 할부금, 보험료, 유류비 계산부터 구매 가이드까지. 2024년 최신 자동차 정보와 전문가 칼럼을 무료로 제공합니다.',
     canonicalUrl: baseUrl,
     ogType: 'website',
+    keywords: ['자동차 유지비', '자동차 계산기', '자동차 구매 가이드', '자동차 보험', '자동차 할부'],
   });
 
   // Generate structured data

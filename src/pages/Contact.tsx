@@ -5,13 +5,14 @@ import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
 
 const Contact = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   useSEO({
-    title: '문의하기 - 광고, 제휴, 일반 문의 | 카테인',
-    description: '카테인에 대한 문의사항, 광고 및 제휴 문의는 이메일로 연락해 주세요. 영업일 기준 1-2일 이내 답변드립니다.',
+    title: '광고·제휴·일반 문의하기 | 카테인',
+    description: '카테인 광고 게재, 비즈니스 제휴, 일반 문의는 이메일로 연락해 주세요. 영업일 기준 1-2일 이내 답변드립니다.',
     canonicalUrl: `${baseUrl}/contact`,
     ogType: 'website',
+    keywords: ['카테인 문의', '광고 문의', '제휴 문의'],
   });
 
   const structuredData = generateBreadcrumbSchema([
@@ -48,10 +49,10 @@ const Contact = () => {
                 </div>
               </div>
               <a 
-                href="mailto:contact@catein.kr" 
+                href="mailto:contact@cartain.kr" 
                 className="text-primary hover:underline font-medium"
               >
-                contact@catein.kr
+                contact@cartain.kr
               </a>
             </div>
 
@@ -66,10 +67,10 @@ const Contact = () => {
                 </div>
               </div>
               <a 
-                href="mailto:ads@catein.kr" 
+                href="mailto:ads@cartain.kr" 
                 className="text-primary hover:underline font-medium"
               >
-                ads@catein.kr
+                ads@cartain.kr
               </a>
             </div>
           </div>
@@ -137,7 +138,7 @@ const Contact = () => {
                   Q. 광고 게재는 어떻게 신청하나요?
                 </h3>
                 <p className="text-muted-foreground text-sm">
-                  A. 광고 및 제휴 문의는 ads@catein.kr로 연락해 주시면 
+                  A. 광고 및 제휴 문의는 ads@cartain.kr로 연락해 주시면 
                   담당자가 상세 안내를 드립니다.
                 </p>
               </div>
