@@ -106,7 +106,7 @@ export const generateArticleSchema = (post: {
   published_at: string;
   slug: string;
 }) => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   return {
     '@context': 'https://schema.org',
@@ -179,7 +179,7 @@ export const generateCollectionPageSchema = (
     datePublished?: string;
   }[]
 ) => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   return {
     '@context': 'https://schema.org',
@@ -213,7 +213,7 @@ export const generateCollectionPageSchema = (
 
 // WebSite schema for homepage
 export const generateWebSiteSchema = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   return {
     '@context': 'https://schema.org',
@@ -239,7 +239,7 @@ export const generateWebSiteSchema = () => {
 
 // Organization schema
 export const generateOrganizationSchema = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   return {
     '@context': 'https://schema.org',
@@ -263,7 +263,7 @@ export const generateSoftwareApplicationSchema = (
   description: string,
   url: string
 ) => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   return {
     '@context': 'https://schema.org',

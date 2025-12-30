@@ -4,11 +4,11 @@ import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
 
 const Privacy = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   useSEO({
-    title: '개인정보처리방침 | 카테인',
-    description: '카테인의 개인정보처리방침입니다. 이용자의 개인정보 수집, 이용, 보유 기간 등에 대해 안내합니다.',
+    title: '개인정보처리방침 - 개인정보 수집 및 이용 안내 | 카테인',
+    description: '카테인 개인정보처리방침입니다. 이용자의 개인정보 수집 항목, 이용 목적, 보유 기간 등을 상세히 안내합니다.',
     canonicalUrl: `${baseUrl}/privacy`,
     ogType: 'website',
   });
@@ -161,7 +161,7 @@ const Privacy = () => {
                 </p>
                 <div className="text-muted-foreground">
                   <p><strong className="text-foreground">개인정보 보호책임자</strong></p>
-                  <p>이메일: privacy@catein.kr</p>
+                  <p>이메일: privacy@cartain.kr</p>
                 </div>
               </div>
             </section>

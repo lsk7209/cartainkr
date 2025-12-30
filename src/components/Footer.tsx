@@ -96,7 +96,7 @@ const Footer = () => {
             <div className="text-sm text-muted-foreground text-center md:text-left">
               <p>© 2024 카테인. All rights reserved.</p>
               <p className="mt-1">
-                사업자: 카테인 | 이메일: contact@catein.kr
+                사업자: 카테인 | 이메일: contact@cartain.kr
               </p>
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">

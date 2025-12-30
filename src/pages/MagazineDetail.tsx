@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Calendar, Clock, User, ArrowLeft, Share2 } from "lucide-react";
+import { Calendar, Clock, User, ArrowLeft, Share2, Calculator } from "lucide-react";
 import DOMPurify from "dompurify";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -105,26 +105,27 @@ const MagazineDetail = () => {
   // Generate canonical URL
   const canonicalUrl = useMemo(() => {
     if (!post?.slug) return undefined;
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
     return `${baseUrl}/magazine/${post.slug}`;
   }, [post?.slug]);
 
-  // Apply SEO meta tags
+  // Apply SEO meta tags - 키워드를 title 앞쪽에 배치
   useSEO({
-    title: post ? `${post.title} | 카테인` : '카테인 - 자동차 정보 플랫폼',
-    description: post?.excerpt || post?.title || '자동차 정보, 비용 분석, 유지비 계산 등 스마트한 자동차 정보를 제공합니다.',
+    title: post ? `${post.title} - 자동차 정보 | 카테인` : '자동차 정보 플랫폼 | 카테인',
+    description: post?.excerpt || post?.title || '자동차 구매 가이드, 유지비 계산, 보험 정보 등 실용적인 자동차 정보를 제공합니다.',
     canonicalUrl,
     ogImage: post?.thumbnail_url || undefined,
     ogType: 'article',
     publishedAt: post?.published_at,
     author: '카테인',
+    keywords: ['자동차', '자동차 정보', '자동차 유지비', '자동차 구매'],
   });
 
   // Generate structured data
   const structuredData = useMemo(() => {
     if (!post) return [];
     
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
     const data: object[] = [];
     
     // Article schema
@@ -298,6 +299,53 @@ const MagazineDetail = () => {
             className="magazine-body max-w-none"
             dangerouslySetInnerHTML={{ __html: sanitizedContent }}
           />
+
+          {/* CTA Section - 내부 링크 & 행동 유도 */}
+          <div className="my-10 p-6 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border border-primary/20">
+            <h3 className="text-lg font-bold text-foreground mb-3">
+              💡 이 글이 도움이 되셨나요?
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              카테인에서는 자동차 구매와 유지에 필요한 다양한 정보를 제공합니다.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to="/calculator"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+              >
+                <Calculator className="w-4 h-4" />
+                유지비 계산하기
+              </Link>
+              <Link
+                to="/magazine"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-secondary text-secondary-foreground rounded-lg font-medium hover:bg-secondary/80 transition-colors"
+              >
+                더 많은 글 보기
+              </Link>
+            </div>
+          </div>
+
+          {/* 관련 내부 링크 섹션 */}
+          <nav className="my-8 p-5 bg-muted/50 rounded-lg" aria-label="관련 콘텐츠">
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3">📚 함께 읽으면 좋은 콘텐츠</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/calculator" className="text-primary hover:underline">
+                  → 자동차 유지비 계산기로 월 비용 확인하기
+                </Link>
+              </li>
+              <li>
+                <Link to="/magazine" className="text-primary hover:underline">
+                  → 최신 자동차 구매 가이드 & 유지비 정보 보기
+                </Link>
+              </li>
+              <li>
+                <Link to="/about" className="text-primary hover:underline">
+                  → 카테인 소개 및 서비스 알아보기
+                </Link>
+              </li>
+            </ul>
+          </nav>
 
           {/* Article Footer */}
           <footer className="mt-12 pt-8 border-t border-border">

@@ -4,11 +4,11 @@ import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
 
 const Terms = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://catein.kr';
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   useSEO({
-    title: '이용약관 | 카테인',
-    description: '카테인 서비스 이용약관입니다. 서비스 이용조건, 이용자의 권리와 의무에 대해 안내합니다.',
+    title: '서비스 이용약관 - 이용조건 및 정책 안내 | 카테인',
+    description: '카테인 서비스 이용약관입니다. 서비스 이용조건, 이용자의 권리와 의무, 면책조항 등을 상세히 안내합니다.',
     canonicalUrl: `${baseUrl}/terms`,
     ogType: 'website',
   });
