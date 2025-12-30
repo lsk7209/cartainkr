@@ -1,0 +1,3 @@
+# Redirect sitemap and RSS to backend functions
+/sitemap.xml  https://tczuttsjfttqvcmdawbo.supabase.co/functions/v1/sitemap  301
+/rss.xml      https://tczuttsjfttqvcmdawbo.supabase.co/functions/v1/rss      301
