@@ -52,8 +52,11 @@ export const useSEO = ({
     setMeta('og:title', title, true);
     setMeta('og:description', description, true);
     setMeta('og:type', ogType, true);
+    setMeta('og:site_name', '카테인', true);
+    setMeta('og:locale', 'ko_KR', true);
     if (ogImage) {
       setMeta('og:image', ogImage, true);
+      setMeta('og:image:alt', title, true);
     }
     if (canonicalUrl) {
       setMeta('og:url', canonicalUrl, true);
@@ -61,10 +64,12 @@ export const useSEO = ({
 
     // Twitter Card tags
     setMeta('twitter:card', 'summary_large_image');
+    setMeta('twitter:site', '@cartain_kr');
     setMeta('twitter:title', title);
     setMeta('twitter:description', description);
     if (ogImage) {
       setMeta('twitter:image', ogImage);
+      setMeta('twitter:image:alt', title);
     }
 
     // Article specific tags
