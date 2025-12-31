@@ -17,16 +17,26 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch all published posts
+    // Fetch all published posts with thumbnail
     const { data: posts, error } = await supabase
       .from("posts")
-      .select("slug, published_at")
+      .select("slug, published_at, thumbnail_url, title")
       .order("published_at", { ascending: false });
 
     if (error) {
       console.error("Error fetching posts:", error);
       throw error;
     }
+
+    // Helper function to escape XML special characters
+    const escapeXml = (str: string): string => {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
 
     const baseUrl = "https://cartain.kr";
     const now = new Date().toISOString().split("T")[0];
@@ -60,7 +70,7 @@ serve(async (req) => {
 `;
     }
 
-    // Add blog posts with higher priority for recent posts
+    // Add blog posts with higher priority for recent posts and image tags
     if (posts && posts.length > 0) {
       for (let i = 0; i < posts.length; i++) {
         const post = posts[i];
@@ -73,7 +83,18 @@ serve(async (req) => {
     <loc>${baseUrl}/magazine/${post.slug}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>${changefreq}</changefreq>
-    <priority>${priority}</priority>
+    <priority>${priority}</priority>`;
+
+        // Add image tag if thumbnail exists
+        if (post.thumbnail_url) {
+          sitemap += `
+    <image:image>
+      <image:loc>${escapeXml(post.thumbnail_url)}</image:loc>
+      <image:title>${escapeXml(post.title)}</image:title>
+    </image:image>`;
+        }
+
+        sitemap += `
   </url>
 `;
       }
