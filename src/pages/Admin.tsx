@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck, Lock } from "lucide-react";
+import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck, Lock, Users, Eye, Clock, MousePointerClick, Globe, Monitor, Smartphone } from "lucide-react";
 import { format, subDays, eachDayOfInterval, eachWeekOfInterval, subWeeks, endOfWeek, isWithinInterval } from "date-fns";
 import { ko } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
@@ -47,6 +47,26 @@ interface WeeklyStats {
   count: number;
 }
 
+interface AnalyticsData {
+  summary: {
+    totalVisitors: number;
+    totalPageviews: number;
+    avgSessionDuration: number;
+    bounceRate: number;
+    pageviewsPerVisit: number;
+  };
+  timeSeries: {
+    visitors: { date: string; value: number }[];
+    pageviews: { date: string; value: number }[];
+    bounceRate: { date: string; value: number }[];
+    sessionDuration: { date: string; value: number }[];
+  };
+  topPages: { page: string; views: number }[];
+  topSources: { source: string; visits: number }[];
+  devices: { device: string; percentage: number }[];
+  countries: { country: string; visits: number }[];
+}
+
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,6 +90,11 @@ const Admin = () => {
   const [postsPerDay, setPostsPerDay] = useState("2");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Analytics state
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [analyticsDateRange, setAnalyticsDateRange] = useState<'7d' | '14d' | '30d'>('14d');
 
   // Check auth state on mount
   useEffect(() => {
@@ -129,8 +154,15 @@ const Admin = () => {
       fetchSettings();
       fetchPosts();
       fetchStats();
+      fetchAnalytics();
     }
   }, [isAuthenticated, isAdmin]);
+  
+  useEffect(() => {
+    if (isAuthenticated && isAdmin) {
+      fetchAnalytics();
+    }
+  }, [analyticsDateRange]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,7 +308,36 @@ const Admin = () => {
     });
   };
 
-  // Calculate daily stats for the last 14 days
+  // Fetch analytics data
+  const fetchAnalytics = async () => {
+    setIsLoadingAnalytics(true);
+    try {
+      const days = analyticsDateRange === '7d' ? 7 : analyticsDateRange === '14d' ? 14 : 30;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      const response = await supabase.functions.invoke("get-analytics", {
+        body: {
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: new Date().toISOString().split('T')[0],
+          granularity: "daily"
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      if (response.data?.success && response.data?.data) {
+        setAnalyticsData(response.data.data);
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) console.error("Analytics fetch error:", error);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
+
   const dailyStats = useMemo<DailyStats[]>(() => {
     const today = new Date();
     const days = eachDayOfInterval({
@@ -629,10 +690,14 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Analytics
             </TabsTrigger>
             <TabsTrigger value="posts" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
@@ -797,6 +862,275 @@ const Admin = () => {
                 )}
               </div>
             </div>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            {/* Date Range Selector */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-foreground">방문자 통계</h2>
+              <div className="flex gap-2">
+                <Button
+                  variant={analyticsDateRange === '7d' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAnalyticsDateRange('7d')}
+                >
+                  7일
+                </Button>
+                <Button
+                  variant={analyticsDateRange === '14d' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAnalyticsDateRange('14d')}
+                >
+                  14일
+                </Button>
+                <Button
+                  variant={analyticsDateRange === '30d' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setAnalyticsDateRange('30d')}
+                >
+                  30일
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchAnalytics}
+                  disabled={isLoadingAnalytics}
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoadingAnalytics ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+
+            {isLoadingAnalytics ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : analyticsData ? (
+              <>
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-primary/10 rounded-lg">
+                        <Users className="w-5 h-5 text-primary" />
+                      </div>
+                      <span className="text-muted-foreground text-sm">방문자</span>
+                    </div>
+                    <p className="text-3xl font-bold text-foreground">{analyticsData.summary.totalVisitors.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-blue-500/10 rounded-lg">
+                        <Eye className="w-5 h-5 text-blue-500" />
+                      </div>
+                      <span className="text-muted-foreground text-sm">페이지뷰</span>
+                    </div>
+                    <p className="text-3xl font-bold text-foreground">{analyticsData.summary.totalPageviews.toLocaleString()}</p>
+                  </div>
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-green-500/10 rounded-lg">
+                        <MousePointerClick className="w-5 h-5 text-green-500" />
+                      </div>
+                      <span className="text-muted-foreground text-sm">페이지/방문</span>
+                    </div>
+                    <p className="text-3xl font-bold text-foreground">{analyticsData.summary.pageviewsPerVisit.toFixed(1)}</p>
+                  </div>
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-yellow-500/10 rounded-lg">
+                        <Clock className="w-5 h-5 text-yellow-500" />
+                      </div>
+                      <span className="text-muted-foreground text-sm">평균 체류</span>
+                    </div>
+                    <p className="text-3xl font-bold text-foreground">{Math.round(analyticsData.summary.avgSessionDuration / 60)}분</p>
+                  </div>
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-red-500/10 rounded-lg">
+                        <TrendingUp className="w-5 h-5 text-red-500" />
+                      </div>
+                      <span className="text-muted-foreground text-sm">이탈률</span>
+                    </div>
+                    <p className="text-3xl font-bold text-foreground">{analyticsData.summary.bounceRate}%</p>
+                  </div>
+                </div>
+
+                {/* Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Visitors Chart */}
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-card-foreground">일별 방문자</h3>
+                    <div className="h-[250px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={analyticsData.timeSeries.visitors}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ fontSize: 10 }} 
+                            className="text-muted-foreground"
+                            tickLine={false}
+                            tickFormatter={(value) => {
+                              const date = new Date(value);
+                              return `${date.getMonth() + 1}/${date.getDate()}`;
+                            }}
+                          />
+                          <YAxis 
+                            allowDecimals={false}
+                            tick={{ fontSize: 11 }}
+                            className="text-muted-foreground"
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--card))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                            labelStyle={{ color: 'hsl(var(--foreground))' }}
+                            labelFormatter={(value) => {
+                              const date = new Date(value);
+                              return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+                            }}
+                          />
+                          <Bar dataKey="value" name="방문자" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Pageviews Chart */}
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-card-foreground">일별 페이지뷰</h3>
+                    <div className="h-[250px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={analyticsData.timeSeries.pageviews}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ fontSize: 10 }} 
+                            className="text-muted-foreground"
+                            tickLine={false}
+                            tickFormatter={(value) => {
+                              const date = new Date(value);
+                              return `${date.getMonth() + 1}/${date.getDate()}`;
+                            }}
+                          />
+                          <YAxis 
+                            allowDecimals={false}
+                            tick={{ fontSize: 11 }}
+                            className="text-muted-foreground"
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--card))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                            labelStyle={{ color: 'hsl(var(--foreground))' }}
+                            labelFormatter={(value) => {
+                              const date = new Date(value);
+                              return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+                            }}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="value" 
+                            name="페이지뷰"
+                            stroke="hsl(var(--primary))" 
+                            strokeWidth={2}
+                            dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Data Tables */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {/* Top Pages */}
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-card-foreground flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      인기 페이지
+                    </h3>
+                    <div className="space-y-3">
+                      {analyticsData.topPages.map((page, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground truncate max-w-[120px]">{page.page}</span>
+                          <span className="text-sm font-medium text-foreground">{page.views.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Top Sources */}
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-card-foreground flex items-center gap-2">
+                      <Globe className="w-5 h-5" />
+                      유입 소스
+                    </h3>
+                    <div className="space-y-3">
+                      {analyticsData.topSources.map((source, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">{source.source}</span>
+                          <span className="text-sm font-medium text-foreground">{source.visits.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Devices */}
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-card-foreground flex items-center gap-2">
+                      <Monitor className="w-5 h-5" />
+                      디바이스
+                    </h3>
+                    <div className="space-y-3">
+                      {analyticsData.devices.map((device, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {device.device === 'Mobile' ? (
+                              <Smartphone className="w-4 h-4 text-muted-foreground" />
+                            ) : (
+                              <Monitor className="w-4 h-4 text-muted-foreground" />
+                            )}
+                            <span className="text-sm text-muted-foreground">{device.device}</span>
+                          </div>
+                          <span className="text-sm font-medium text-foreground">{device.percentage}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Countries */}
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-card-foreground flex items-center gap-2">
+                      <Globe className="w-5 h-5" />
+                      국가별
+                    </h3>
+                    <div className="space-y-3">
+                      {analyticsData.countries.map((country, index) => (
+                        <div key={index} className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">{country.country}</span>
+                          <span className="text-sm font-medium text-foreground">{country.visits.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>통계 데이터를 불러오는 중...</p>
+              </div>
+            )}
           </TabsContent>
 
           {/* Posts Tab */}
