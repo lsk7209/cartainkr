@@ -49,6 +49,7 @@ const fetchPosts = async (page: number): Promise<PostsResponse> => {
 
 const MagazineList = () => {
   const [currentPage, setCurrentPage] = useState(1);
+  const currentYear = new Date().getFullYear();
 
   const { data, isLoading } = useQuery({
     queryKey: ["posts-list", currentPage],
@@ -66,7 +67,7 @@ const MagazineList = () => {
   
   useSEO({
     title: '자동차 구매 가이드 & 유지비 절약 팁 | 카테인 매거진',
-    description: '2024년 최신 자동차 구매 가이드, 유지비 절약 방법, 보험료 비교 정보. 전문가가 알려주는 실용적인 자동차 정보를 무료로 확인하세요.',
+    description: `${currentYear}년 최신 자동차 구매 가이드, 유지비 절약 방법, 보험료 비교 정보. 전문가가 알려주는 실용적인 자동차 정보를 무료로 확인하세요.`,
     canonicalUrl: `${baseUrl}/magazine`,
     ogType: 'website',
     keywords: ['자동차 구매 가이드', '자동차 유지비', '자동차 보험', '중고차 구매', '신차 구매'],

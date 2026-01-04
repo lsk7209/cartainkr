@@ -1,8 +1,9 @@
+import { forwardRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Car, BookOpen, Calculator, Menu, X, Info, Mail } from "lucide-react";
 import { useState } from "react";
 
-const Header = () => {
+const Header = forwardRef<HTMLElement>((_, ref) => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -16,7 +17,7 @@ const Header = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
+    <header ref={ref} className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
       <div className="container max-w-5xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2 group">
@@ -83,6 +84,8 @@ const Header = () => {
       </div>
     </header>
   );
-};
+});
+
+Header.displayName = "Header";
 
 export default Header;

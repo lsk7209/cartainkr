@@ -7,11 +7,12 @@ import { useSEO, generateWebSiteSchema, generateOrganizationSchema } from "@/hoo
 
 const Index = () => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
+  const currentYear = new Date().getFullYear();
   
   // Apply SEO meta tags
   useSEO({
     title: '자동차 유지비 계산기 & 구매 가이드 | 카테인',
-    description: '자동차 할부금, 보험료, 유류비 계산부터 구매 가이드까지. 2024년 최신 자동차 정보와 전문가 칼럼을 무료로 제공합니다.',
+    description: `자동차 할부금, 보험료, 유류비 계산부터 구매 가이드까지. ${currentYear}년 최신 자동차 정보와 전문가 칼럼을 무료로 제공합니다.`,
     canonicalUrl: baseUrl,
     ogType: 'website',
     keywords: ['자동차 유지비', '자동차 계산기', '자동차 구매 가이드', '자동차 보험', '자동차 할부'],
