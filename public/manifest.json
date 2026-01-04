@@ -1,0 +1,25 @@
+{
+  "name": "카테인 - 자동차 정보 플랫폼",
+  "short_name": "카테인",
+  "description": "자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공합니다.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["automotive", "utilities", "finance"],
+  "lang": "ko"
+}

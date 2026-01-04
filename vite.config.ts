@@ -4,14 +4,21 @@ import path from "path";
 import fs from "node:fs/promises";
 import { componentTagger } from "lovable-tagger";
 
-function generateSeoFilesPlugin(opts: { siteUrl: string; backendUrl?: string }): Plugin {
+interface SeoPluginOptions {
+  siteUrl: string;
+  backendUrl?: string;
+  supabaseAnonKey?: string;
+}
+
+function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
   return {
     name: "generate-seo-files",
     apply: "build",
     async buildStart() {
       const today = new Date().toISOString().split("T")[0];
 
-      const routes: Array<{ path: string; changefreq: string; priority: string }> = [
+      // Static routes
+      const staticRoutes: Array<{ path: string; changefreq: string; priority: string }> = [
         { path: "/", changefreq: "daily", priority: "1.0" },
         { path: "/magazine", changefreq: "daily", priority: "0.9" },
         { path: "/calculator", changefreq: "weekly", priority: "0.8" },
@@ -21,20 +28,62 @@ function generateSeoFilesPlugin(opts: { siteUrl: string; backendUrl?: string }):
         { path: "/terms", changefreq: "yearly", priority: "0.3" },
       ];
 
+      // Fetch dynamic posts from Supabase
+      let dynamicPosts: Array<{ slug: string; published_at: string }> = [];
+      if (opts.backendUrl && opts.supabaseAnonKey) {
+        try {
+          const res = await fetch(
+            `${opts.backendUrl}/rest/v1/posts?select=slug,published_at&order=published_at.desc`,
+            {
+              headers: {
+                apikey: opts.supabaseAnonKey,
+                Authorization: `Bearer ${opts.supabaseAnonKey}`,
+              },
+            }
+          );
+          if (res.ok) {
+            dynamicPosts = (await res.json()) as Array<{ slug: string; published_at: string }>;
+            console.log(`[generate-seo-files] Fetched ${dynamicPosts.length} posts for sitemap`);
+          } else {
+            console.warn(`[generate-seo-files] Failed to fetch posts: ${res.status}`);
+          }
+        } catch (err) {
+          console.warn("[generate-seo-files] Error fetching posts:", err);
+        }
+      }
+
+      // Build sitemap
+      const staticSitemapEntries = staticRoutes
+        .map(
+          (r) =>
+            `  <url>\n` +
+            `    <loc>${opts.siteUrl}${r.path}</loc>\n` +
+            `    <lastmod>${today}</lastmod>\n` +
+            `    <changefreq>${r.changefreq}</changefreq>\n` +
+            `    <priority>${r.priority}</priority>\n` +
+            `  </url>\n`
+        )
+        .join("");
+
+      const dynamicSitemapEntries = dynamicPosts
+        .map((post) => {
+          const lastmod = post.published_at ? post.published_at.split("T")[0] : today;
+          return (
+            `  <url>\n` +
+            `    <loc>${opts.siteUrl}/magazine/${post.slug}</loc>\n` +
+            `    <lastmod>${lastmod}</lastmod>\n` +
+            `    <changefreq>weekly</changefreq>\n` +
+            `    <priority>0.7</priority>\n` +
+            `  </url>\n`
+          );
+        })
+        .join("");
+
       const sitemapXml =
         `<?xml version="1.0" encoding="UTF-8"?>\n` +
         `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-        routes
-          .map(
-            (r) =>
-              `  <url>\n` +
-              `    <loc>${opts.siteUrl}${r.path}</loc>\n` +
-              `    <lastmod>${today}</lastmod>\n` +
-              `    <changefreq>${r.changefreq}</changefreq>\n` +
-              `    <priority>${r.priority}</priority>\n` +
-              `  </url>\n`,
-          )
-          .join("") +
+        staticSitemapEntries +
+        dynamicSitemapEntries +
         `</urlset>\n`;
 
       const robotsTxt =
@@ -45,9 +94,9 @@ function generateSeoFilesPlugin(opts: { siteUrl: string; backendUrl?: string }):
         `Disallow: /admin\n\n` +
         `Sitemap: ${opts.siteUrl}/sitemap.xml\n`;
 
-      // Generate rss.xml at build time so it exists as a real file in production.
-      // (Some hosts don't apply _redirects, which can cause /rss.xml to fall back to the SPA 404.)
-      const defaultRssXml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      // Generate rss.xml at build time
+      const defaultRssXml =
+        `<?xml version="1.0" encoding="UTF-8"?>\n` +
         `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n` +
         `  <channel>\n` +
         `    <title>카테인 - 자동차 정보 매거진</title>\n` +
@@ -85,6 +134,8 @@ function generateSeoFilesPlugin(opts: { siteUrl: string; backendUrl?: string }):
         fs.writeFile(path.join(publicDir, "robots.txt"), robotsTxt, "utf8"),
         fs.writeFile(path.join(publicDir, "rss.xml"), rssXml, "utf8"),
       ]);
+
+      console.log(`[generate-seo-files] Generated sitemap with ${staticRoutes.length + dynamicPosts.length} URLs`);
     },
   };
 }
@@ -93,6 +144,7 @@ function generateSeoFilesPlugin(opts: { siteUrl: string; backendUrl?: string }):
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const backendUrl = env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const siteUrl = env.VITE_SITE_URL || env.SITE_URL || "https://cartain.kr";
 
   return {
@@ -110,7 +162,7 @@ export default defineConfig(({ mode }) => {
         : undefined,
     },
     plugins: [
-      generateSeoFilesPlugin({ siteUrl, backendUrl }),
+      generateSeoFilesPlugin({ siteUrl, backendUrl, supabaseAnonKey }),
       react(),
       mode === "development" && componentTagger(),
     ].filter(Boolean),
@@ -121,4 +173,3 @@ export default defineConfig(({ mode }) => {
     },
   };
 });
-

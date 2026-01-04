@@ -1,9 +1,12 @@
+import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 import { Car } from "lucide-react";
 
-const Footer = () => {
+const Footer = forwardRef<HTMLElement>((_, ref) => {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="py-10 px-4 border-t border-border bg-card">
+    <footer ref={ref} className="py-10 px-4 border-t border-border bg-card">
       <div className="container max-w-5xl mx-auto">
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
@@ -94,7 +97,7 @@ const Footer = () => {
         <div className="pt-6 border-t border-border">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-sm text-muted-foreground text-center md:text-left">
-              <p>© 2024 카테인. All rights reserved.</p>
+              <p>© {currentYear} 카테인. All rights reserved.</p>
               <p className="mt-1">
                 사업자: 카테인 | 이메일: contact@cartain.kr
               </p>
@@ -119,6 +122,8 @@ const Footer = () => {
       </div>
     </footer>
   );
-};
+});
+
+Footer.displayName = "Footer";
 
 export default Footer;
