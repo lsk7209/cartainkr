@@ -506,6 +506,22 @@ serve(async (req) => {
     // Initialize Supabase client with service role
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Auto-recover stuck processing items (older than 30 minutes)
+    // This prevents items from being permanently stuck if the function crashes
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const { data: stuckItems, error: stuckError } = await supabase
+      .from("post_queue")
+      .update({ status: "pending" })
+      .eq("status", "processing")
+      .lt("created_at", thirtyMinutesAgo)
+      .select("id");
+    
+    if (stuckError) {
+      operationalLog(`Warning: Failed to recover stuck items: ${stuckError.message}`);
+    } else if (stuckItems && stuckItems.length > 0) {
+      operationalLog(`Recovered ${stuckItems.length} stuck processing items to pending`);
+    }
+
     // Get next pending post from queue
     const { data: queueItem, error: queueError } = await supabase
       .from("post_queue")
@@ -516,7 +532,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (queueError) {
-      debugLog("Queue fetch error:", queueError);
+      operationalLog(`Queue fetch error: ${queueError.message}`);
       throw new Error(`Queue fetch failed: ${queueError.message}`);
     }
 
@@ -528,7 +544,7 @@ serve(async (req) => {
       );
     }
 
-    debugLog("Processing queue item:", queueItem.id);
+    operationalLog(`Processing queue item: ${queueItem.id} - "${queueItem.title}"`);
 
     // Update status to processing
     await supabase
@@ -558,8 +574,9 @@ serve(async (req) => {
       // Step 3: Upload to storage
       const filename = `thumbnail-${Date.now()}-${Math.random().toString(36).substring(7)}`;
       thumbnailUrl = await uploadImageToStorage(supabase, base64Image, filename);
+      operationalLog("Image generated and uploaded successfully");
     } catch (imageError) {
-      debugLog("Image generation/upload failed, continuing without thumbnail");
+      operationalLog(`Image generation/upload failed: ${imageError instanceof Error ? imageError.message : "Unknown error"}, continuing without thumbnail`);
       // Continue without thumbnail
     }
 
@@ -619,17 +636,23 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    debugLog("Function error:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    operationalLog(`Function error: ${errorMessage}`);
     
     // Try to reset status if we have the queue item
     try {
       const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-      await supabase
+      const { data: failedItems } = await supabase
         .from("post_queue")
         .update({ status: "failed" })
-        .eq("status", "processing");
+        .eq("status", "processing")
+        .select("id");
+      
+      if (failedItems && failedItems.length > 0) {
+        operationalLog(`Marked ${failedItems.length} items as failed`);
+      }
     } catch (resetError) {
-      debugLog("Failed to reset status:", resetError);
+      operationalLog(`Failed to reset status: ${resetError instanceof Error ? resetError.message : "Unknown"}`);
     }
 
     return new Response(
