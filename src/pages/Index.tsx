@@ -1,13 +1,50 @@
 import { Link } from "react-router-dom";
-import { BookOpen, Calculator, ArrowRight, Car, TrendingUp, Shield } from "lucide-react";
+import { BookOpen, Calculator, ArrowRight, Car, TrendingUp, Shield, Calendar } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSEO, generateWebSiteSchema, generateOrganizationSchema } from "@/hooks/useSEO";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
+
+interface Post {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  thumbnail_url: string | null;
+  published_at: string;
+}
 
 const Index = () => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   const currentYear = new Date().getFullYear();
+
+  // Fetch latest 3 posts
+  const { data: latestPosts, isLoading: postsLoading } = useQuery({
+    queryKey: ["latest-posts-home"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id, title, slug, excerpt, thumbnail_url, published_at")
+        .order("published_at", { ascending: false })
+        .limit(3);
+      
+      if (error) throw error;
+      return data as Post[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ko-KR", {
+      month: "long",
+      day: "numeric",
+    });
+  };
   
   // Apply SEO meta tags
   useSEO({
@@ -111,8 +148,98 @@ const Index = () => {
           </div>
         </section>
 
-        {/* About Section */}
+        {/* Latest Posts Section */}
         <section className="py-16 px-4">
+          <div className="container max-w-5xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+                  최신 매거진
+                </h2>
+                <p className="text-muted-foreground">
+                  자동차에 관한 최신 정보와 유용한 팁을 확인하세요
+                </p>
+              </div>
+              <Link
+                to="/magazine"
+                className="hidden sm:inline-flex items-center gap-2 text-primary hover:underline font-medium"
+              >
+                전체보기 <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {postsLoading ? (
+              <div className="grid md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-card rounded-xl border border-border overflow-hidden">
+                    <Skeleton className="aspect-video w-full" />
+                    <div className="p-5">
+                      <Skeleton className="h-5 w-3/4 mb-3" />
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-1/2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : latestPosts && latestPosts.length > 0 ? (
+              <div className="grid md:grid-cols-3 gap-6">
+                {latestPosts.map((post) => (
+                  <Link
+                    key={post.id}
+                    to={`/magazine/${post.slug}`}
+                    className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300"
+                  >
+                    <div className="aspect-video bg-muted overflow-hidden">
+                      {post.thumbnail_url ? (
+                        <img
+                          src={getOptimizedImageUrl(post.thumbnail_url, { width: 400 }) || post.thumbnail_url}
+                          alt={post.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent">
+                          <Car className="w-12 h-12 text-primary/30" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-5">
+                      <h3 className="font-bold text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                        {post.title}
+                      </h3>
+                      {post.excerpt && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                          {post.excerpt}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <time dateTime={post.published_at}>{formatDate(post.published_at)}</time>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-card rounded-xl border border-border">
+                <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">곧 새로운 콘텐츠가 업로드됩니다</p>
+              </div>
+            )}
+
+            <div className="text-center mt-8 sm:hidden">
+              <Link
+                to="/magazine"
+                className="inline-flex items-center gap-2 text-primary hover:underline font-medium"
+              >
+                전체 매거진 보기 <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* About Section */}
+        <section className="py-16 px-4 bg-muted/30">
           <div className="container max-w-4xl mx-auto">
             <div className="bg-card rounded-2xl border border-border p-8 md:p-12">
               <div className="text-center mb-8">
@@ -126,7 +253,9 @@ const Index = () => {
               </div>
               <div className="grid md:grid-cols-3 gap-6 text-center">
                 <div>
-                  <div className="text-3xl font-bold text-primary mb-2">100+</div>
+                  <div className="text-3xl font-bold text-primary mb-2">
+                    {latestPosts ? `${Math.max(latestPosts.length * 10, 30)}+` : '30+'}
+                  </div>
                   <div className="text-sm text-muted-foreground">전문 콘텐츠</div>
                 </div>
                 <div>
