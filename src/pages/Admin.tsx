@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import Header from "@/components/Header";
+import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -712,42 +713,32 @@ const Admin = () => {
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-card rounded-lg border border-border p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <FileCheck className="w-5 h-5 text-primary" />
-                  </div>
-                  <span className="text-muted-foreground text-sm">전체 발행</span>
-                </div>
-                <p className="text-3xl font-bold text-foreground">{stats.totalPosts}</p>
-              </div>
-              <div className="bg-card rounded-lg border border-border p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-green-500/10 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-green-500" />
-                  </div>
-                  <span className="text-muted-foreground text-sm">이번 주</span>
-                </div>
-                <p className="text-3xl font-bold text-foreground">{stats.thisWeekPosts}</p>
-              </div>
-              <div className="bg-card rounded-lg border border-border p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-yellow-500/10 rounded-lg">
-                    <Calendar className="w-5 h-5 text-yellow-500" />
-                  </div>
-                  <span className="text-muted-foreground text-sm">대기 중</span>
-                </div>
-                <p className="text-3xl font-bold text-foreground">{stats.pendingQueue}</p>
-              </div>
-              <div className="bg-card rounded-lg border border-border p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-blue-500/10 rounded-lg">
-                    <FileCheck className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <span className="text-muted-foreground text-sm">처리 완료</span>
-                </div>
-                <p className="text-3xl font-bold text-foreground">{stats.completedQueue}</p>
-              </div>
+              <StatCard
+                icon={FileCheck}
+                label="전체 발행"
+                value={stats.totalPosts}
+              />
+              <StatCard
+                icon={TrendingUp}
+                label="이번 주"
+                value={stats.thisWeekPosts}
+                iconColor="text-green-500"
+                iconBgColor="bg-green-500/10"
+              />
+              <StatCard
+                icon={Calendar}
+                label="대기 중"
+                value={stats.pendingQueue}
+                iconColor="text-yellow-500"
+                iconBgColor="bg-yellow-500/10"
+              />
+              <StatCard
+                icon={FileCheck}
+                label="처리 완료"
+                value={stats.completedQueue}
+                iconColor="text-blue-500"
+                iconBgColor="bg-blue-500/10"
+              />
             </div>
 
             {/* Charts Section */}
@@ -902,51 +893,39 @@ const Admin = () => {
               <>
                 {/* Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <Users className="w-5 h-5 text-primary" />
-                      </div>
-                      <span className="text-muted-foreground text-sm">방문자</span>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground">{analyticsData.summary.totalVisitors.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-blue-500/10 rounded-lg">
-                        <Eye className="w-5 h-5 text-blue-500" />
-                      </div>
-                      <span className="text-muted-foreground text-sm">페이지뷰</span>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground">{analyticsData.summary.totalPageviews.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-green-500/10 rounded-lg">
-                        <MousePointerClick className="w-5 h-5 text-green-500" />
-                      </div>
-                      <span className="text-muted-foreground text-sm">페이지/방문</span>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground">{analyticsData.summary.pageviewsPerVisit.toFixed(1)}</p>
-                  </div>
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-yellow-500/10 rounded-lg">
-                        <Clock className="w-5 h-5 text-yellow-500" />
-                      </div>
-                      <span className="text-muted-foreground text-sm">평균 체류</span>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground">{Math.round(analyticsData.summary.avgSessionDuration / 60)}분</p>
-                  </div>
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-red-500/10 rounded-lg">
-                        <TrendingUp className="w-5 h-5 text-red-500" />
-                      </div>
-                      <span className="text-muted-foreground text-sm">이탈률</span>
-                    </div>
-                    <p className="text-3xl font-bold text-foreground">{analyticsData.summary.bounceRate}%</p>
-                  </div>
+                  <StatCard
+                    icon={Users}
+                    label="방문자"
+                    value={analyticsData.summary.totalVisitors}
+                  />
+                  <StatCard
+                    icon={Eye}
+                    label="페이지뷰"
+                    value={analyticsData.summary.totalPageviews}
+                    iconColor="text-blue-500"
+                    iconBgColor="bg-blue-500/10"
+                  />
+                  <StatCard
+                    icon={MousePointerClick}
+                    label="페이지/방문"
+                    value={analyticsData.summary.pageviewsPerVisit.toFixed(1)}
+                    iconColor="text-green-500"
+                    iconBgColor="bg-green-500/10"
+                  />
+                  <StatCard
+                    icon={Clock}
+                    label="평균 체류"
+                    value={`${Math.round(analyticsData.summary.avgSessionDuration / 60)}분`}
+                    iconColor="text-yellow-500"
+                    iconBgColor="bg-yellow-500/10"
+                  />
+                  <StatCard
+                    icon={TrendingUp}
+                    label="이탈률"
+                    value={`${analyticsData.summary.bounceRate}%`}
+                    iconColor="text-red-500"
+                    iconBgColor="bg-red-500/10"
+                  />
                 </div>
 
                 {/* Charts */}
