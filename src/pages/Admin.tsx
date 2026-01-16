@@ -11,6 +11,7 @@ import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, Ex
 import { format, subDays, eachDayOfInterval, eachWeekOfInterval, subWeeks, endOfWeek, isWithinInterval } from "date-fns";
 import { ko } from "date-fns/locale";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import type { PostSummary } from "@/types/post";
 
 interface PostQueue {
   id: string;
@@ -19,15 +20,6 @@ interface PostQueue {
   category: string;
   status: string;
   created_at: string;
-}
-
-interface Post {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  published_at: string;
-  thumbnail_url: string | null;
 }
 
 interface Stats {
@@ -80,7 +72,7 @@ const Admin = () => {
   
   const [bulkText, setBulkText] = useState("");
   const [queue, setQueue] = useState<PostQueue[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<PostSummary[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalPosts: 0,
     pendingQueue: 0,
