@@ -1,42 +1,18 @@
 import { useLocation, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 import { Home, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-
-interface RecommendedPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  thumbnail_url: string | null;
-}
+import { Skeleton } from "@/components/ui/skeleton";
+import { useLatestPosts } from "@/hooks/usePosts";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 const NotFound = () => {
   const location = useLocation();
-  const [posts, setPosts] = useState<RecommendedPost[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: posts = [], isLoading } = useLatestPosts(3);
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
-    
-    const fetchRecommendedPosts = async () => {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("id, title, slug, excerpt, thumbnail_url")
-        .order("published_at", { ascending: false })
-        .limit(3);
-
-      if (error) {
-        console.error("Error fetching posts:", error);
-      } else {
-        setPosts(data || []);
-      }
-      setIsLoading(false);
-    };
-
-    fetchRecommendedPosts();
   }, [location.pathname]);
 
   return (
@@ -60,13 +36,25 @@ const NotFound = () => {
         </div>
 
         {/* 추천 콘텐츠 */}
-        {!isLoading && posts.length > 0 && (
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center gap-2 mb-6">
-              <FileText className="h-5 w-5 text-primary" />
-              <h2 className="text-xl font-semibold">추천 콘텐츠</h2>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-2 mb-6">
+            <FileText className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold">추천 콘텐츠</h2>
+          </div>
+          
+          {isLoading ? (
+            <div className="grid gap-4 md:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="h-full">
+                  <Skeleton className="aspect-video w-full rounded-t-lg" />
+                  <CardContent className="p-4">
+                    <Skeleton className="h-5 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            
+          ) : posts.length > 0 ? (
             <div className="grid gap-4 md:grid-cols-3">
               {posts.map((post) => (
                 <Link key={post.id} to={`/magazine/${post.slug}`}>
@@ -74,9 +62,10 @@ const NotFound = () => {
                     {post.thumbnail_url && (
                       <div className="aspect-video overflow-hidden rounded-t-lg">
                         <img
-                          src={post.thumbnail_url}
+                          src={getOptimizedImageUrl(post.thumbnail_url, { width: 400 }) || post.thumbnail_url}
                           alt={post.title}
                           className="w-full h-full object-cover"
+                          loading="lazy"
                         />
                       </div>
                     )}
@@ -92,14 +81,14 @@ const NotFound = () => {
                 </Link>
               ))}
             </div>
+          ) : null}
 
-            <div className="text-center mt-8">
-              <Button variant="outline" asChild>
-                <Link to="/magazine">모든 글 보기</Link>
-              </Button>
-            </div>
+          <div className="text-center mt-8">
+            <Button variant="outline" asChild>
+              <Link to="/magazine">모든 글 보기</Link>
+            </Button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
