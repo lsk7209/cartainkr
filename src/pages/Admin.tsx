@@ -1,17 +1,17 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import Header from "@/components/Header";
 import { StatCard } from "@/components/StatCard";
+import { PostListItem } from "@/components/PostListItem";
+import { AdminChart } from "@/components/AdminChart";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck, Lock, Users, Eye, Clock, MousePointerClick, Globe, Monitor, Smartphone } from "lucide-react";
+import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, TrendingUp, Calendar, FileCheck, Lock, Users, Eye, Clock, MousePointerClick, Globe, Monitor, Smartphone } from "lucide-react";
 import { subDays, eachDayOfInterval, eachWeekOfInterval, subWeeks, endOfWeek, isWithinInterval } from "date-fns";
 import { formatDate } from "@/lib/dateUtils";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import type { PostSummary } from "@/types/post";
 
 interface PostQueue {
@@ -743,79 +743,20 @@ const Admin = () => {
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Daily Chart */}
-              <div className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-lg font-semibold mb-4 text-card-foreground">일별 발행 추이 (14일)</h2>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={dailyStats}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis 
-                        dataKey="date" 
-                        tick={{ fontSize: 11 }} 
-                        className="text-muted-foreground"
-                        tickLine={false}
-                      />
-                      <YAxis 
-                        allowDecimals={false}
-                        tick={{ fontSize: 11 }}
-                        className="text-muted-foreground"
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
-                        }}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      />
-                      <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Weekly Chart */}
-              <div className="bg-card rounded-lg border border-border p-6">
-                <h2 className="text-lg font-semibold mb-4 text-card-foreground">주별 발행 추이 (8주)</h2>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={weeklyStats}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                      <XAxis 
-                        dataKey="week" 
-                        tick={{ fontSize: 11 }} 
-                        className="text-muted-foreground"
-                        tickLine={false}
-                      />
-                      <YAxis 
-                        allowDecimals={false}
-                        tick={{ fontSize: 11 }}
-                        className="text-muted-foreground"
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
-                        }}
-                        labelStyle={{ color: 'hsl(var(--foreground))' }}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="count" 
-                        stroke="hsl(var(--primary))" 
-                        strokeWidth={2}
-                        dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
+              <AdminChart
+                title="일별 발행 추이 (14일)"
+                data={dailyStats}
+                dataKeyX="date"
+                dataKeyY="count"
+                type="bar"
+              />
+              <AdminChart
+                title="주별 발행 추이 (8주)"
+                data={weeklyStats}
+                dataKeyX="week"
+                dataKeyY="count"
+                type="line"
+              />
             </div>
 
             {/* Recent Posts */}
@@ -823,22 +764,7 @@ const Admin = () => {
               <h2 className="text-lg font-semibold mb-4 text-card-foreground">최근 발행된 글</h2>
               <div className="space-y-3">
                 {posts.slice(0, 5).map((post) => (
-                  <div key={post.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground truncate">{post.title}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(post.published_at, "datetime")}
-                      </p>
-                    </div>
-                    <a
-                      href={`/magazine/${post.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-4 p-2 hover:bg-muted rounded-lg transition-colors"
-                    >
-                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                    </a>
-                  </div>
+                  <PostListItem key={post.id} post={post} compact />
                 ))}
                 {posts.length === 0 && (
                   <p className="text-muted-foreground text-center py-4">발행된 글이 없습니다.</p>
@@ -930,96 +856,38 @@ const Admin = () => {
 
                 {/* Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Visitors Chart */}
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <h3 className="text-lg font-semibold mb-4 text-card-foreground">일별 방문자</h3>
-                    <div className="h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={analyticsData.timeSeries.visitors}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                          <XAxis 
-                            dataKey="date" 
-                            tick={{ fontSize: 10 }} 
-                            className="text-muted-foreground"
-                            tickLine={false}
-                            tickFormatter={(value) => {
-                              const date = new Date(value);
-                              return `${date.getMonth() + 1}/${date.getDate()}`;
-                            }}
-                          />
-                          <YAxis 
-                            allowDecimals={false}
-                            tick={{ fontSize: 11 }}
-                            className="text-muted-foreground"
-                            tickLine={false}
-                            axisLine={false}
-                          />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--card))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px'
-                            }}
-                            labelStyle={{ color: 'hsl(var(--foreground))' }}
-                            labelFormatter={(value) => {
-                              const date = new Date(value);
-                              return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-                            }}
-                          />
-                          <Bar dataKey="value" name="방문자" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Pageviews Chart */}
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <h3 className="text-lg font-semibold mb-4 text-card-foreground">일별 페이지뷰</h3>
-                    <div className="h-[250px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={analyticsData.timeSeries.pageviews}>
-                          <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                          <XAxis 
-                            dataKey="date" 
-                            tick={{ fontSize: 10 }} 
-                            className="text-muted-foreground"
-                            tickLine={false}
-                            tickFormatter={(value) => {
-                              const date = new Date(value);
-                              return `${date.getMonth() + 1}/${date.getDate()}`;
-                            }}
-                          />
-                          <YAxis 
-                            allowDecimals={false}
-                            tick={{ fontSize: 11 }}
-                            className="text-muted-foreground"
-                            tickLine={false}
-                            axisLine={false}
-                          />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'hsl(var(--card))', 
-                              border: '1px solid hsl(var(--border))',
-                              borderRadius: '8px'
-                            }}
-                            labelStyle={{ color: 'hsl(var(--foreground))' }}
-                            labelFormatter={(value) => {
-                              const date = new Date(value);
-                              return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
-                            }}
-                          />
-                          <Line 
-                            type="monotone" 
-                            dataKey="value" 
-                            name="페이지뷰"
-                            stroke="hsl(var(--primary))" 
-                            strokeWidth={2}
-                            dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
+                  <AdminChart
+                    title="일별 방문자"
+                    data={analyticsData.timeSeries.visitors}
+                    dataKeyX="date"
+                    dataKeyY="value"
+                    type="bar"
+                    dataName="방문자"
+                    xAxisFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getMonth() + 1}/${date.getDate()}`;
+                    }}
+                    tooltipLabelFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+                    }}
+                  />
+                  <AdminChart
+                    title="일별 페이지뷰"
+                    data={analyticsData.timeSeries.pageviews}
+                    dataKeyX="date"
+                    dataKeyY="value"
+                    type="line"
+                    dataName="페이지뷰"
+                    xAxisFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getMonth() + 1}/${date.getDate()}`;
+                    }}
+                    tooltipLabelFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+                    }}
+                  />
                 </div>
 
                 {/* Data Tables */}
@@ -1113,34 +981,12 @@ const Admin = () => {
               </div>
               <div className="divide-y divide-border">
                 {posts.map((post) => (
-                  <div key={post.id} className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      {post.thumbnail_url && (
-                        <img
-                          src={getOptimizedImageUrl(post.thumbnail_url, { width: 128 }) || post.thumbnail_url}
-                          alt={post.title}
-                          className="w-16 h-12 object-cover rounded"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-foreground truncate">{post.title}</h3>
-                        <p className="text-sm text-muted-foreground truncate">{post.excerpt}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatDate(post.published_at, "datetime")}
-                        </p>
-                      </div>
-                    </div>
-                    <a
-                      href={`/magazine/${post.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-4 p-2 hover:bg-muted rounded-lg transition-colors"
-                    >
-                      <ExternalLink className="w-4 h-4 text-muted-foreground" />
-                    </a>
-                  </div>
+                  <PostListItem
+                    key={post.id}
+                    post={post}
+                    showThumbnail
+                    showExcerpt
+                  />
                 ))}
                 {posts.length === 0 && (
                   <p className="text-muted-foreground text-center py-8">발행된 글이 없습니다.</p>
