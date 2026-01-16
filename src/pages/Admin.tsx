@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import { StatCard } from "@/components/StatCard";
 import { PostListItem } from "@/components/PostListItem";
 import { AdminChart } from "@/components/AdminChart";
+import DataTable from "@/components/DataTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -892,76 +893,92 @@ const Admin = () => {
 
                 {/* Data Tables */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {/* Top Pages */}
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <h3 className="text-lg font-semibold mb-4 text-card-foreground flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
-                      인기 페이지
-                    </h3>
-                    <div className="space-y-3">
-                      {analyticsData.topPages.map((page, index) => (
-                        <div key={index} className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground truncate max-w-[120px]">{page.page}</span>
-                          <span className="text-sm font-medium text-foreground">{page.views.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <DataTable
+                    title="인기 페이지"
+                    icon={FileText}
+                    data={analyticsData.topPages}
+                    columns={[
+                      {
+                        key: "page",
+                        render: (item) => (
+                          <span className="text-sm text-muted-foreground truncate max-w-[120px]">{item.page}</span>
+                        ),
+                      },
+                      {
+                        key: "views",
+                        render: (item) => (
+                          <span className="text-sm font-medium text-foreground">{item.views.toLocaleString()}</span>
+                        ),
+                      },
+                    ]}
+                  />
 
-                  {/* Top Sources */}
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <h3 className="text-lg font-semibold mb-4 text-card-foreground flex items-center gap-2">
-                      <Globe className="w-5 h-5" />
-                      유입 소스
-                    </h3>
-                    <div className="space-y-3">
-                      {analyticsData.topSources.map((source, index) => (
-                        <div key={index} className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">{source.source}</span>
-                          <span className="text-sm font-medium text-foreground">{source.visits.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <DataTable
+                    title="유입 소스"
+                    icon={Globe}
+                    data={analyticsData.topSources}
+                    columns={[
+                      {
+                        key: "source",
+                        render: (item) => (
+                          <span className="text-sm text-muted-foreground">{item.source}</span>
+                        ),
+                      },
+                      {
+                        key: "visits",
+                        render: (item) => (
+                          <span className="text-sm font-medium text-foreground">{item.visits.toLocaleString()}</span>
+                        ),
+                      },
+                    ]}
+                  />
 
-                  {/* Devices */}
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <h3 className="text-lg font-semibold mb-4 text-card-foreground flex items-center gap-2">
-                      <Monitor className="w-5 h-5" />
-                      디바이스
-                    </h3>
-                    <div className="space-y-3">
-                      {analyticsData.devices.map((device, index) => (
-                        <div key={index} className="flex items-center justify-between">
+                  <DataTable
+                    title="디바이스"
+                    icon={Monitor}
+                    data={analyticsData.devices}
+                    columns={[
+                      {
+                        key: "device",
+                        render: (item) => (
                           <div className="flex items-center gap-2">
-                            {device.device === 'Mobile' ? (
+                            {item.device === 'Mobile' ? (
                               <Smartphone className="w-4 h-4 text-muted-foreground" />
                             ) : (
                               <Monitor className="w-4 h-4 text-muted-foreground" />
                             )}
-                            <span className="text-sm text-muted-foreground">{device.device}</span>
+                            <span className="text-sm text-muted-foreground">{item.device}</span>
                           </div>
-                          <span className="text-sm font-medium text-foreground">{device.percentage}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                        ),
+                      },
+                      {
+                        key: "percentage",
+                        render: (item) => (
+                          <span className="text-sm font-medium text-foreground">{item.percentage}%</span>
+                        ),
+                      },
+                    ]}
+                  />
 
-                  {/* Countries */}
-                  <div className="bg-card rounded-lg border border-border p-6">
-                    <h3 className="text-lg font-semibold mb-4 text-card-foreground flex items-center gap-2">
-                      <Globe className="w-5 h-5" />
-                      국가별
-                    </h3>
-                    <div className="space-y-3">
-                      {analyticsData.countries.map((country, index) => (
-                        <div key={index} className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">{country.country}</span>
-                          <span className="text-sm font-medium text-foreground">{country.visits.toLocaleString()}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <DataTable
+                    title="국가별"
+                    icon={Globe}
+                    data={analyticsData.countries}
+                    columns={[
+                      {
+                        key: "country",
+                        render: (item) => (
+                          <span className="text-sm text-muted-foreground">{item.country}</span>
+                        ),
+                      },
+                      {
+                        key: "visits",
+                        render: (item) => (
+                          <span className="text-sm font-medium text-foreground">{item.visits.toLocaleString()}</span>
+                        ),
+                      },
+                    ]}
+                  />
                 </div>
               </>
             ) : (
