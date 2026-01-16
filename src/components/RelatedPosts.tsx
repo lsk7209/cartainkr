@@ -1,18 +1,9 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
-
-interface RelatedPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  thumbnail_url: string | null;
-  published_at: string;
-}
+import { useRelatedPosts } from "@/hooks/usePosts";
+import { formatDate } from "@/lib/dateUtils";
 
 interface RelatedPostsProps {
   currentPostId: string;
@@ -20,37 +11,7 @@ interface RelatedPostsProps {
 }
 
 const RelatedPosts = ({ currentPostId, limit = 4 }: RelatedPostsProps) => {
-  const [posts, setPosts] = useState<RelatedPost[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchRelatedPosts = async () => {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("id, title, slug, excerpt, thumbnail_url, published_at")
-        .neq("id", currentPostId)
-        .order("published_at", { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        console.error("Error fetching related posts:", error);
-      } else {
-        setPosts(data || []);
-      }
-      setIsLoading(false);
-    };
-
-    fetchRelatedPosts();
-  }, [currentPostId, limit]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  };
+  const { data: posts = [], isLoading } = useRelatedPosts(currentPostId, limit);
 
   if (isLoading) {
     return (
@@ -121,7 +82,7 @@ const RelatedPosts = ({ currentPostId, limit = 4 }: RelatedPostsProps) => {
               
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Calendar className="w-3 h-3" />
-                <span>{formatDate(relatedPost.published_at)}</span>
+                <span>{formatDate(relatedPost.published_at, 'short')}</span>
               </div>
             </div>
           </Link>

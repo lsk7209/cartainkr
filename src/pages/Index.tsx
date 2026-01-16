@@ -1,56 +1,24 @@
 import { Link } from "react-router-dom";
 import { BookOpen, Calculator, ArrowRight, Car, TrendingUp, Shield, Calendar } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSEO, generateWebSiteSchema, generateOrganizationSchema } from "@/hooks/useSEO";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
-
-interface Post {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  thumbnail_url: string | null;
-  published_at: string;
-}
+import { useLatestPosts } from "@/hooks/usePosts";
+import { formatDate } from "@/lib/dateUtils";
+import { BASE_URL, CURRENT_YEAR } from "@/lib/constants";
 
 const Index = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
-  const currentYear = new Date().getFullYear();
-
   // Fetch latest 3 posts
-  const { data: latestPosts, isLoading: postsLoading } = useQuery({
-    queryKey: ["latest-posts-home"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("id, title, slug, excerpt, thumbnail_url, published_at")
-        .order("published_at", { ascending: false })
-        .limit(3);
-      
-      if (error) throw error;
-      return data as Post[];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ko-KR", {
-      month: "long",
-      day: "numeric",
-    });
-  };
+  const { data: latestPosts, isLoading: postsLoading } = useLatestPosts(3);
   
   // Apply SEO meta tags
   useSEO({
     title: '자동차 유지비 계산기 & 구매 가이드 | 카테인',
-    description: `자동차 할부금, 보험료, 유류비 계산부터 구매 가이드까지. ${currentYear}년 최신 자동차 정보와 전문가 칼럼을 무료로 제공합니다.`,
-    canonicalUrl: baseUrl,
+    description: `자동차 할부금, 보험료, 유류비 계산부터 구매 가이드까지. ${CURRENT_YEAR}년 최신 자동차 정보와 전문가 칼럼을 무료로 제공합니다.`,
+    canonicalUrl: BASE_URL,
     ogType: 'website',
     keywords: ['자동차 유지비', '자동차 계산기', '자동차 구매 가이드', '자동차 보험', '자동차 할부'],
   });
@@ -214,7 +182,7 @@ const Index = () => {
                       )}
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Calendar className="w-3.5 h-3.5" />
-                        <time dateTime={post.published_at}>{formatDate(post.published_at)}</time>
+                        <time dateTime={post.published_at}>{formatDate(post.published_at, 'monthDay')}</time>
                       </div>
                     </div>
                   </Link>
