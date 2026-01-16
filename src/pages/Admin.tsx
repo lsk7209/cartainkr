@@ -8,8 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3, FileText, ExternalLink, TrendingUp, Calendar, FileCheck, Lock, Users, Eye, Clock, MousePointerClick, Globe, Monitor, Smartphone } from "lucide-react";
-import { format, subDays, eachDayOfInterval, eachWeekOfInterval, subWeeks, endOfWeek, isWithinInterval } from "date-fns";
-import { ko } from "date-fns/locale";
+import { subDays, eachDayOfInterval, eachWeekOfInterval, subWeeks, endOfWeek, isWithinInterval } from "date-fns";
+import { formatDate } from "@/lib/dateUtils";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import type { PostSummary } from "@/types/post";
 
@@ -349,7 +349,7 @@ const Admin = () => {
       }).length;
 
       return {
-        date: format(day, "MM/dd", { locale: ko }),
+        date: formatDate(day, "compact"),
         count,
       };
     });
@@ -375,7 +375,7 @@ const Admin = () => {
       }).length;
 
       return {
-        week: format(weekStart, "MM/dd", { locale: ko }),
+        week: formatDate(weekStart, "compact"),
         count,
       };
     });
@@ -836,7 +836,7 @@ const Admin = () => {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-foreground truncate">{post.title}</h3>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(post.published_at), "yyyy년 MM월 dd일 HH:mm", { locale: ko })}
+                        {formatDate(post.published_at, "datetime")}
                       </p>
                     </div>
                     <a
@@ -1149,7 +1149,7 @@ const Admin = () => {
                         <h3 className="font-medium text-foreground truncate">{post.title}</h3>
                         <p className="text-sm text-muted-foreground truncate">{post.excerpt}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(post.published_at), "yyyy년 MM월 dd일 HH:mm", { locale: ko })}
+                          {formatDate(post.published_at, "datetime")}
                         </p>
                       </div>
                     </div>
@@ -1281,7 +1281,7 @@ const Admin = () => {
                           </select>
                         </td>
                         <td className="p-4 text-muted-foreground text-sm">
-                          {format(new Date(item.created_at), "MM/dd HH:mm")}
+                          {formatDate(item.created_at, "compact")}
                         </td>
                         <td className="p-4 text-right">
                           <Button
