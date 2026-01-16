@@ -12,6 +12,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSEO, generateArticleSchema, generateFAQSchema, generateBreadcrumbSchema } from "@/hooks/useSEO";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { formatDate, estimateReadTime } from "@/lib/dateUtils";
+import { BASE_URL } from "@/lib/constants";
+import type { PostDetail } from "@/types/post";
 
 // Safe HTML tags and attributes for blog content (defense-in-depth)
 const SANITIZE_CONFIG = {
@@ -26,16 +29,6 @@ const SANITIZE_CONFIG = {
   FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'style'],
   FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur']
 };
-
-interface Post {
-  id: string;
-  title: string;
-  slug: string;
-  content_html: string;
-  excerpt: string | null;
-  thumbnail_url: string | null;
-  published_at: string;
-}
 
 // Extract FAQ from HTML content
 const extractFAQs = (html: string): { question: string; answer: string }[] => {
@@ -58,7 +51,7 @@ const extractFAQs = (html: string): { question: string; answer: string }[] => {
 
 const MagazineDetail = () => {
   const { slug } = useParams<{ slug: string }>();
-  const [post, setPost] = useState<Post | null>(null);
+  const [post, setPost] = useState<PostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -82,7 +75,7 @@ const MagazineDetail = () => {
       } else if (!data) {
         setNotFound(true);
       } else {
-        setPost(data);
+        setPost(data as PostDetail);
       }
       setIsLoading(false);
     };
@@ -105,8 +98,7 @@ const MagazineDetail = () => {
   // Generate canonical URL
   const canonicalUrl = useMemo(() => {
     if (!post?.slug) return undefined;
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
-    return `${baseUrl}/magazine/${post.slug}`;
+    return `${BASE_URL}/magazine/${post.slug}`;
   }, [post?.slug]);
 
   // Apply SEO meta tags - 키워드를 title 앞쪽에 배치
@@ -125,7 +117,6 @@ const MagazineDetail = () => {
   const structuredData = useMemo(() => {
     if (!post) return [];
     
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
     const data: object[] = [];
     
     // Article schema
@@ -139,29 +130,13 @@ const MagazineDetail = () => {
     
     // Breadcrumb schema
     data.push(generateBreadcrumbSchema([
-      { name: '홈', url: baseUrl },
-      { name: '매거진', url: `${baseUrl}/magazine` },
-      { name: post.title, url: `${baseUrl}/magazine/${post.slug}` },
+      { name: '홈', url: BASE_URL },
+      { name: '매거진', url: `${BASE_URL}/magazine` },
+      { name: post.title, url: `${BASE_URL}/magazine/${post.slug}` },
     ]));
     
     return data;
   }, [post, faqs]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ko-KR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
-  const estimateReadTime = (html: string) => {
-    const text = html.replace(/<[^>]*>/g, "");
-    const words = text.length;
-    const minutes = Math.ceil(words / 500); // Korean: ~500 chars per minute
-    return `${minutes}분 소요`;
-  };
 
   const handleShare = async () => {
     try {
