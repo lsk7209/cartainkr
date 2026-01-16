@@ -2,20 +2,20 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
+import { BASE_URL } from "@/lib/constants";
 
 const Privacy = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   useSEO({
     title: '개인정보처리방침 - 개인정보 수집 및 이용 안내 | 카테인',
     description: '카테인 개인정보처리방침입니다. 이용자의 개인정보 수집 항목, 이용 목적, 보유 기간 등을 상세히 안내합니다.',
-    canonicalUrl: `${baseUrl}/privacy`,
+    canonicalUrl: `${BASE_URL}/privacy`,
     ogType: 'website',
   });
 
   const structuredData = generateBreadcrumbSchema([
-    { name: '홈', url: baseUrl },
-    { name: '개인정보처리방침', url: `${baseUrl}/privacy` },
+    { name: '홈', url: BASE_URL },
+    { name: '개인정보처리방침', url: `${BASE_URL}/privacy` },
   ]);
 
   return (

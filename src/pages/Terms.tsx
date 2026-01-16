@@ -2,20 +2,20 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
+import { BASE_URL } from "@/lib/constants";
 
 const Terms = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   useSEO({
     title: '서비스 이용약관 - 이용조건 및 정책 안내 | 카테인',
     description: '카테인 서비스 이용약관입니다. 서비스 이용조건, 이용자의 권리와 의무, 면책조항 등을 상세히 안내합니다.',
-    canonicalUrl: `${baseUrl}/terms`,
+    canonicalUrl: `${BASE_URL}/terms`,
     ogType: 'website',
   });
 
   const structuredData = generateBreadcrumbSchema([
-    { name: '홈', url: baseUrl },
-    { name: '이용약관', url: `${baseUrl}/terms` },
+    { name: '홈', url: BASE_URL },
+    { name: '이용약관', url: `${BASE_URL}/terms` },
   ]);
 
   return (
