@@ -3,21 +3,21 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
+import { BASE_URL } from "@/lib/constants";
 
 const About = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   useSEO({
     title: '자동차 정보 전문 플랫폼 소개 | 카테인',
     description: '카테인은 자동차 구매 가이드, 유지비 계산, 보험 정보를 쉽고 정확하게 제공하는 무료 자동차 정보 서비스입니다.',
-    canonicalUrl: `${baseUrl}/about`,
+    canonicalUrl: `${BASE_URL}/about`,
     ogType: 'website',
     keywords: ['카테인', '자동차 정보', '자동차 플랫폼'],
   });
 
   const structuredData = generateBreadcrumbSchema([
-    { name: '홈', url: baseUrl },
-    { name: '소개', url: `${baseUrl}/about` },
+    { name: '홈', url: BASE_URL },
+    { name: '소개', url: `${BASE_URL}/about` },
   ]);
 
   return (

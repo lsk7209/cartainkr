@@ -3,21 +3,21 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
+import { BASE_URL } from "@/lib/constants";
 
 const Contact = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   
   useSEO({
     title: '광고·제휴·일반 문의하기 | 카테인',
     description: '카테인 광고 게재, 비즈니스 제휴, 일반 문의는 이메일로 연락해 주세요. 영업일 기준 1-2일 이내 답변드립니다.',
-    canonicalUrl: `${baseUrl}/contact`,
+    canonicalUrl: `${BASE_URL}/contact`,
     ogType: 'website',
     keywords: ['카테인 문의', '광고 문의', '제휴 문의'],
   });
 
   const structuredData = generateBreadcrumbSchema([
-    { name: '홈', url: baseUrl },
-    { name: '문의하기', url: `${baseUrl}/contact` },
+    { name: '홈', url: BASE_URL },
+    { name: '문의하기', url: `${BASE_URL}/contact` },
   ]);
 
   return (
