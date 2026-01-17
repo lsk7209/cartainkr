@@ -991,25 +991,79 @@ const Admin = () => {
 
           {/* Posts Tab */}
           <TabsContent value="posts" className="space-y-6">
-            <div className="bg-card rounded-lg border border-border">
-              <div className="p-6 border-b border-border">
-                <h2 className="text-lg font-semibold text-card-foreground">발행된 글 목록</h2>
-                <p className="text-sm text-muted-foreground mt-1">총 {posts.length}개의 글</p>
-              </div>
-              <div className="divide-y divide-border">
-                {posts.map((post) => (
-                  <PostListItem
-                    key={post.id}
-                    post={post}
-                    showThumbnail
-                    showExcerpt
-                  />
-                ))}
-                {posts.length === 0 && (
-                  <p className="text-muted-foreground text-center py-8">발행된 글이 없습니다.</p>
-                )}
-              </div>
-            </div>
+            <DataTable
+              title="발행된 글 목록"
+              icon={FileText}
+              data={posts}
+              variant="table"
+              emptyMessage="발행된 글이 없습니다."
+              columns={[
+                {
+                  key: "thumbnail",
+                  header: "썸네일",
+                  headerClassName: "w-20",
+                  render: (post) => (
+                    post.thumbnail_url ? (
+                      <img
+                        src={post.thumbnail_url}
+                        alt={post.title}
+                        className="w-16 h-10 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="w-16 h-10 bg-muted rounded flex items-center justify-center">
+                        <FileText className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    )
+                  ),
+                },
+                {
+                  key: "title",
+                  header: "제목",
+                  render: (post) => (
+                    <div className="max-w-md">
+                      <a
+                        href={`/magazine/${post.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-foreground hover:text-primary transition-colors font-medium line-clamp-1"
+                      >
+                        {post.title}
+                      </a>
+                      {post.excerpt && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                          {post.excerpt}
+                        </p>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  key: "published_at",
+                  header: "발행일",
+                  headerClassName: "w-32",
+                  render: (post) => (
+                    <span className="text-sm text-muted-foreground">
+                      {formatDate(post.published_at)}
+                    </span>
+                  ),
+                },
+                {
+                  key: "actions",
+                  header: "",
+                  headerClassName: "w-10",
+                  render: (post) => (
+                    <a
+                      href={`/magazine/${post.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </a>
+                  ),
+                },
+              ]}
+            />
           </TabsContent>
 
           {/* Ingester Tab */}
