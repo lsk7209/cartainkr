@@ -1088,66 +1088,71 @@ const Admin = () => {
               </div>
             </div>
 
-            <div className="bg-card rounded-lg border border-border overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="text-left p-4 font-medium text-muted-foreground">제목</th>
-                      <th className="text-left p-4 font-medium text-muted-foreground">카테고리</th>
-                      <th className="text-left p-4 font-medium text-muted-foreground">상태</th>
-                      <th className="text-left p-4 font-medium text-muted-foreground">등록일</th>
-                      <th className="text-right p-4 font-medium text-muted-foreground">작업</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {queue.map((item) => (
-                      <tr key={item.id} className="hover:bg-muted/50 transition-colors">
-                        <td className="p-4">
-                          <div className="max-w-xs">
-                            <p className="font-medium text-foreground truncate">{item.title}</p>
-                            <p className="text-sm text-muted-foreground truncate">{item.target_keywords}</p>
-                          </div>
-                        </td>
-                        <td className="p-4 text-muted-foreground">{item.category}</td>
-                        <td className="p-4">
-                          <select
-                            value={item.status}
-                            onChange={(e) => handleStatusChange(item.id, e.target.value)}
-                            className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadgeClass(item.status)} border-0 cursor-pointer`}
-                          >
-                            <option value="pending">pending</option>
-                            <option value="processing">processing</option>
-                            <option value="completed">completed</option>
-                            <option value="failed">failed</option>
-                          </select>
-                        </td>
-                        <td className="p-4 text-muted-foreground text-sm">
-                          {formatDate(item.created_at, "compact")}
-                        </td>
-                        <td className="p-4 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(item.id)}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {queue.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                          대기열이 비어있습니다.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <DataTable
+              data={queue}
+              variant="table"
+              emptyMessage="대기열이 비어있습니다."
+              columns={[
+                {
+                  key: "title",
+                  header: "제목",
+                  render: (item) => (
+                    <div className="max-w-xs">
+                      <p className="font-medium text-foreground truncate">{item.title}</p>
+                      <p className="text-sm text-muted-foreground truncate">{item.target_keywords}</p>
+                    </div>
+                  ),
+                },
+                {
+                  key: "category",
+                  header: "카테고리",
+                  render: (item) => (
+                    <span className="text-muted-foreground">{item.category}</span>
+                  ),
+                },
+                {
+                  key: "status",
+                  header: "상태",
+                  render: (item) => (
+                    <select
+                      value={item.status}
+                      onChange={(e) => handleStatusChange(item.id, e.target.value)}
+                      className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadgeClass(item.status)} border-0 cursor-pointer`}
+                    >
+                      <option value="pending">pending</option>
+                      <option value="processing">processing</option>
+                      <option value="completed">completed</option>
+                      <option value="failed">failed</option>
+                    </select>
+                  ),
+                },
+                {
+                  key: "created_at",
+                  header: "등록일",
+                  render: (item) => (
+                    <span className="text-muted-foreground text-sm">
+                      {formatDate(item.created_at, "compact")}
+                    </span>
+                  ),
+                },
+                {
+                  key: "actions",
+                  header: "작업",
+                  headerClassName: "text-right",
+                  className: "text-right",
+                  render: (item) => (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(item.id)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  ),
+                },
+              ]}
+            />
           </TabsContent>
 
           {/* Settings Tab */}
