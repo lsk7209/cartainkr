@@ -146,11 +146,6 @@ export const api = {
         }),
     },
 
-    generate: (apiKey: string) =>
-      apiFetch<{ success: boolean; message?: string; error?: string }>('/api/admin/generate', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}` },
-      }),
   },
 };
 

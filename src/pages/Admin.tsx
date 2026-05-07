@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Trash2, RefreshCw, Settings, Upload, List, Zap, BarChart3,
+  Trash2, RefreshCw, Upload, List, BarChart3,
   FileText, TrendingUp, Calendar, FileCheck, Lock, Eye,
 } from "lucide-react";
 import { subDays, eachDayOfInterval, eachWeekOfInterval, subWeeks, endOfWeek, isWithinInterval } from "date-fns";
@@ -64,11 +64,6 @@ const Admin = () => {
   const [queue, setQueue] = useState<PostQueue[]>([]);
   const [posts, setPosts] = useState<PostSummary[]>([]);
   const [stats, setStats] = useState<Stats>({ totalPosts: 0, pendingQueue: 0, completedQueue: 0, thisWeekPosts: 0 });
-  const [postsPerDay, setPostsPerDay] = useState("2");
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatingCount, setGeneratingCount] = useState(0);
-  const [totalToGenerate, setTotalToGenerate] = useState(0);
 
   // Auto-verify stored key on mount
   useEffect(() => {
@@ -115,7 +110,6 @@ const Admin = () => {
     fetchQueue();
     fetchPosts();
     fetchStatsData();
-    fetchSettings();
   };
 
   const fetchQueue = async () => {
@@ -142,15 +136,6 @@ const Admin = () => {
       setStats(data);
     } catch {
       if (import.meta.env.DEV) console.error("Stats fetch error");
-    }
-  };
-
-  const fetchSettings = async () => {
-    try {
-      const data = await api.admin.settings.get(apiKey);
-      if (data.posts_per_day) setPostsPerDay(data.posts_per_day);
-    } catch {
-      if (import.meta.env.DEV) console.error("Settings fetch error");
     }
   };
 
@@ -212,62 +197,6 @@ const Admin = () => {
     } catch {
       toast.error("상태 변경에 실패했습니다.");
     }
-  };
-
-  const handleSaveSettings = async () => {
-    setIsSavingSettings(true);
-    try {
-      await api.admin.settings.set(apiKey, "posts_per_day", postsPerDay);
-      toast.success("설정이 저장되었습니다.");
-    } catch {
-      toast.error("설정 저장에 실패했습니다.");
-    }
-    setIsSavingSettings(false);
-  };
-
-  const handleManualGenerate = async () => {
-    setIsGenerating(true);
-    toast.info("AI 글 생성을 시작합니다...");
-    try {
-      const data = await api.admin.generate(apiKey);
-      if (data.success) {
-        toast.success(data.message ?? "글이 성공적으로 생성되었습니다!");
-        fetchQueue();
-        fetchPosts();
-        fetchStatsData();
-      } else {
-        toast.error(data.error ?? "글 생성에 실패했습니다.");
-      }
-    } catch {
-      toast.error("글 생성 중 오류가 발생했습니다.");
-    }
-    setIsGenerating(false);
-  };
-
-  const handleBulkGenerate = async (count: number) => {
-    setIsGenerating(true);
-    setGeneratingCount(0);
-    setTotalToGenerate(count);
-    let successCount = 0;
-    let failCount = 0;
-
-    for (let i = 0; i < count; i++) {
-      setGeneratingCount(i + 1);
-      toast.info(`글 생성 중... (${i + 1}/${count})`);
-      try {
-        const data = await api.admin.generate(apiKey);
-        if (data.success) successCount++; else failCount++;
-      } catch {
-        failCount++;
-      }
-      if (i < count - 1) await new Promise((r) => setTimeout(r, 2000));
-    }
-
-    toast.success(`생성 완료! 성공: ${successCount}개, 실패: ${failCount}개`);
-    fetchQueue(); fetchPosts(); fetchStatsData();
-    setIsGenerating(false);
-    setGeneratingCount(0);
-    setTotalToGenerate(0);
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -332,12 +261,11 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="dashboard"><BarChart3 className="w-4 h-4 mr-1" />Dashboard</TabsTrigger>
             <TabsTrigger value="posts"><FileText className="w-4 h-4 mr-1" />Posts</TabsTrigger>
             <TabsTrigger value="ingester"><Upload className="w-4 h-4 mr-1" />Ingester</TabsTrigger>
             <TabsTrigger value="queue"><List className="w-4 h-4 mr-1" />Queue</TabsTrigger>
-            <TabsTrigger value="settings"><Settings className="w-4 h-4 mr-1" />Settings</TabsTrigger>
           </TabsList>
 
           {/* Dashboard */}
@@ -437,22 +365,9 @@ const Admin = () => {
           <TabsContent value="queue" className="space-y-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-foreground">글 생성 대기열</h2>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={fetchQueue}>
-                  <RefreshCw className="w-4 h-4 mr-2" />새로고침
-                </Button>
-                <Button size="sm" onClick={handleManualGenerate} disabled={isGenerating}>
-                  {isGenerating ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
-                  1개 생성
-                </Button>
-                <Button size="sm" onClick={() => handleBulkGenerate(5)} disabled={isGenerating || stats.pendingQueue < 1}>
-                  {isGenerating && totalToGenerate > 0 ? (
-                    <><RefreshCw className="w-4 h-4 animate-spin mr-2" />{generatingCount}/{totalToGenerate}</>
-                  ) : (
-                    <><Zap className="w-4 h-4 mr-2" />5개 일괄 생성</>
-                  )}
-                </Button>
-              </div>
+              <Button variant="outline" size="sm" onClick={fetchQueue}>
+                <RefreshCw className="w-4 h-4 mr-2" />새로고침
+              </Button>
             </div>
 
             <DataTable
@@ -500,31 +415,6 @@ const Admin = () => {
             />
           </TabsContent>
 
-          {/* Settings */}
-          <TabsContent value="settings">
-            <div className="bg-card rounded-lg border border-border p-6">
-              <h2 className="text-xl font-semibold mb-4 text-card-foreground">자동 발행 설정</h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">하루 발행 횟수</label>
-                  <select
-                    value={postsPerDay}
-                    onChange={(e) => setPostsPerDay(e.target.value)}
-                    className="w-full p-2 rounded-md border border-border bg-background text-foreground"
-                  >
-                    <option value="1">1회 (오전 1시)</option>
-                    <option value="2">2회 (12시간 간격)</option>
-                    <option value="3">3회 (8시간 간격)</option>
-                    <option value="4">4회 (6시간 간격)</option>
-                  </select>
-                </div>
-                <Button onClick={handleSaveSettings} disabled={isSavingSettings} className="w-full">
-                  {isSavingSettings ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Settings className="w-4 h-4 mr-2" />}
-                  설정 저장
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
         </Tabs>
       </main>
     </div>
