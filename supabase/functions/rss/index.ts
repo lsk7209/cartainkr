@@ -18,7 +18,7 @@ serve(async (req) => {
 
     const { data: posts, error } = await supabase
       .from("posts")
-      .select("title, slug, excerpt, published_at, thumbnail_url")
+      .select("title, slug, excerpt, published_at, updated_at, thumbnail_url")
       .order("published_at", { ascending: false })
       .limit(50);
 
@@ -49,22 +49,31 @@ serve(async (req) => {
     <language>ko</language>
     <lastBuildDate>${now}</lastBuildDate>
     <atom:link href="${baseUrl}/rss.xml" rel="self" type="application/rss+xml"/>
+    <managingEditor>contact@cartain.kr (카테인 에디터)</managingEditor>
+    <webMaster>contact@cartain.kr (카테인)</webMaster>
+    <category>Automotive</category>
+    <ttl>60</ttl>
     <image>
-      <url>${baseUrl}/favicon.ico</url>
+      <url>${baseUrl}/og-image.png</url>
       <title>카테인</title>
       <link>${baseUrl}</link>
+      <width>1200</width>
+      <height>630</height>
     </image>
 `;
 
     if (posts && posts.length > 0) {
       for (const post of posts) {
         const pubDate = new Date(post.published_at).toUTCString();
+        const postUrl = `${baseUrl}/magazine/${post.slug}`;
         rss += `    <item>
       <title>${escapeXml(post.title)}</title>
-      <link>${baseUrl}/magazine/${post.slug}</link>
-      <guid isPermaLink="true">${baseUrl}/magazine/${post.slug}</guid>
+      <link>${postUrl}</link>
+      <guid isPermaLink="true">${postUrl}</guid>
       <description>${escapeXml(post.excerpt)}</description>
       <pubDate>${pubDate}</pubDate>
+      <author>contact@cartain.kr (카테인 에디터)</author>
+      <category>자동차</category>
 `;
         if (post.thumbnail_url) {
           rss += `      <media:content url="${escapeXml(post.thumbnail_url)}" medium="image"/>

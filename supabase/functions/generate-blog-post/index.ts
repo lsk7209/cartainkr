@@ -83,19 +83,36 @@ function sanitizeHtml(html: string): string {
 
 // Generate slug from title with unique timestamp
 function generateSlug(title: string): string {
-  const timestamp = Date.now();
+  const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const randomStr = Math.random().toString(36).substring(2, 6);
-  
-  // Simple transliteration for common Korean characters
-  const baseSlug = title
+
+  // Common automotive Korean → romanized mapping for readable SEO URLs
+  const koMap: Record<string, string> = {
+    자동차: "jadongcha", 보험: "boheom", 유지비: "yujibi", 구매: "gumae",
+    신차: "sincha", 중고차: "junggocha", 세금: "segeum", 연비: "yeonbi",
+    할부: "halbu", 경차: "gyeongcha", 소형차: "sohyungcha", 대형차: "daehyungcha",
+    전기차: "jeongicha", 하이브리드: "hybrid", 수입차: "swipicha", 국산차: "guksancha",
+    엔진: "engine", 타이어: "tire", 브레이크: "brake", 오일: "oil",
+    주차: "jujha", 사고: "sago", 수리: "suri", 튜닝: "tuning",
+    SUV: "suv", 세단: "sedan", 쿠페: "coupe", 왜건: "wagon",
+    절세: "jeolse", 절약: "jeolyak", 비교: "bigyo", 추천: "chucheon",
+    방법: "bangbeop", 가이드: "guide", 팁: "tip",
+  };
+
+  let romanized = title;
+  for (const [ko, en] of Object.entries(koMap)) {
+    romanized = romanized.split(ko).join(en);
+  }
+
+  const baseSlug = romanized
     .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9-]/g, "")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-  
-  // Always append timestamp and random string to ensure uniqueness
-  return baseSlug ? `${baseSlug}-${timestamp}-${randomStr}` : `post-${timestamp}-${randomStr}`;
+    .replace(/^-|-$/g, "")
+    .substring(0, 40); // cap length
+
+  return baseSlug ? `${baseSlug}-${datePart}-${randomStr}` : `post-${datePart}-${randomStr}`;
 }
 
 // Step 1: Generate blog content using Gemini 2.5 Flash
@@ -147,6 +164,13 @@ async function generateBlogContent(title: string, keywords: string, category: st
 2. How-to: 단계별 가이드 형식 (1단계, 2단계...) 포함
 3. 정의형 답변: "~란?" 질문에 40-60자로 답변하는 구조
 4. 목록형 답변: "~방법", "~종류" 질문에 번호 목록으로 답변
+
+=== EEAT 신뢰 신호 (필수) ===
+1. 공신력 있는 출처 명시: 국토교통부, 금융감독원, 보험개발원, 자동차안전연구원(KATRI) 등
+2. 구체적인 법령/정책 근거: "자동차관리법 제X조", "자동차세법 기준" 등 언급
+3. 실제 수치 근거: "2024년 기준", "${currentYear}년 기준" 등 시점 명시
+4. 전문 용어 정확 사용: 업계 표준 용어를 정확하게 사용하고 쉽게 설명
+5. 독자 주의사항: 개인 상황에 따라 다를 수 있음을 명시 (YMYL 책임)
 
 === HTML 구조 (유동적으로 조합) ===
 <article>
@@ -228,16 +252,23 @@ async function generateBlogContent(title: string, keywords: string, category: st
 4. ${currentYear}년 최신 정보 반영
 5. 문단당 2-3문장 유지로 가독성 확보
 
+=== 내부 링크 (선택 사항) ===
+본문 중 자연스러운 위치에 아래 링크를 1-2회 삽입:
+- 유지비 계산 관련 맥락: <a href="/calculator">카테인 유지비 계산기</a>
+- 관련 기사 언급 맥락: <a href="/magazine">카테인 매거진</a>
+
 === 금지사항 ===
-- 광고/외부링크/이미지태그 금지
+- 외부링크/이미지태그 금지 (내부 링크 /calculator, /magazine 만 허용)
 - 뻔한 표현, 상투적 문구 사용 금지
 - 다른 글과 유사한 구조/표현 금지
+- **마크다운 문법 절대 금지**: **굵게**, *기울임*, ## 제목 등 마크다운 사용 금지
+  → 반드시 HTML 태그만 사용: <strong>굵게</strong>, <em>기울임</em>, <h2>제목</h2>
 
 JSON 형식으로 반환:
 {
   "html": "<article>...</article>",
   "image_prompt": "A unique, high-quality 16:9 automotive photography of [구체적 장면 묘사], ${currentYear} style, professional lighting, cinematic composition",
-  "excerpt": "[100자 이내 SEO 최적화 요약, 메인 키워드 포함]"
+  "excerpt": "[120-160자 SEO 최적화 요약. 메인 키워드를 앞부분에 포함. 독자가 클릭하고 싶게 만드는 정보 제공]"
 }`;
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -252,6 +283,8 @@ JSON 형식으로 반환:
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
+      max_tokens: 8192,
+      temperature: 0.85,
     }),
   });
 
@@ -297,6 +330,13 @@ JSON 형식으로 반환:
     .replace(/```json\s*\{?\s*"html"\s*:\s*"/g, "")
     .replace(/"\s*\}?\s*```/g, "")
     .trim();
+
+  // Convert markdown syntax to HTML (AI sometimes mixes markdown inside HTML)
+  // Must do ** before * to avoid partial replacement
+  cleanHtml = cleanHtml
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
 
   // Ensure proper HTML structure
   if (!cleanHtml.startsWith("<article") && !cleanHtml.startsWith("<div")) {
@@ -594,15 +634,28 @@ serve(async (req) => {
     
     debugLog(`Publishing with date offset: ${randomDaysAgo} days ago at ${publishDate.toISOString()}`);
     
+    // Strip markdown and trim excerpt to SEO-optimal length (120-160 chars)
+    const rawExcerpt = (excerpt || '').trim()
+      .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/`(.+?)`/g, '$1')
+      .replace(/^#+\s*/gm, '')
+      .trim();
+    const cleanExcerpt = rawExcerpt.length > 160
+      ? rawExcerpt.substring(0, 157) + '...'
+      : rawExcerpt || queueItem.title;
+
     const { data: post, error: postError } = await supabase
       .from("posts")
       .insert({
         slug,
         title: queueItem.title,
         content_html: html,
-        excerpt,
+        excerpt: cleanExcerpt,
         thumbnail_url: thumbnailUrl || null,
         published_at: publishDate.toISOString(),
+        updated_at: publishDate.toISOString(),
       })
       .select()
       .single();
@@ -619,6 +672,44 @@ serve(async (req) => {
       .from("post_queue")
       .update({ status: "completed" })
       .eq("id", queueItem.id);
+
+    // Ping search engines (IndexNow + Naver) asynchronously — non-blocking
+    const postUrl = `https://cartain.kr/magazine/${slug}`;
+    const indexNowKey = "7f4e2b9d1a8c3f6e0d5b4a2c7e9f1d3b";
+    const pingPayload = JSON.stringify({
+      host: "cartain.kr",
+      key: indexNowKey,
+      keyLocation: `https://cartain.kr/${indexNowKey}.txt`,
+      urlList: [postUrl],
+    });
+
+    Promise.allSettled([
+      // IndexNow (covers Bing, Yandex, Seznam, etc.)
+      fetch("https://api.indexnow.org/indexnow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: pingPayload,
+      }),
+      // Bing direct
+      fetch("https://www.bing.com/indexnow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: pingPayload,
+      }),
+      // Naver Search Advisor
+      fetch(`https://searchadvisor.naver.com/indexnow?url=${encodeURIComponent(postUrl)}&key=${indexNowKey}`),
+      // Daum/Kakao
+      fetch(`https://register.search.daum.net/index.daum?act=insert&url=${encodeURIComponent(postUrl)}`),
+    ]).then((results) => {
+      results.forEach((r, i) => {
+        const names = ["IndexNow", "Bing", "Naver", "Daum"];
+        if (r.status === "fulfilled") {
+          operationalLog(`${names[i]} ping: ${r.value.status}`);
+        } else {
+          operationalLog(`${names[i]} ping failed: ${r.reason}`);
+        }
+      });
+    }).catch(() => {/* silent */});
 
     operationalLog("=== Generate Blog Post Function Completed ===");
 

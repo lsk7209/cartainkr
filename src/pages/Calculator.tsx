@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, useMemo } from "react";
-import html2canvas from "html2canvas";
 import { Download, Car, Fuel, Shield, Percent, ArrowRight, Sparkles, Zap, TrendingUp, ChevronDown, BarChart3, X, Plus, Check } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import LoadingScreen from "@/components/LoadingScreen";
 import ReceiptFooter from "@/components/ReceiptFooter";
 import JsonLd from "@/components/JsonLd";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { useSEO, generateSoftwareApplicationSchema, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import { useSEO, generateSoftwareApplicationSchema, generateBreadcrumbSchema, generateHowToSchema, generateFAQSchema } from "@/hooks/useSEO";
 
 type CalculatorStep = "input" | "loading" | "result";
 type CalculatorMode = "single" | "compare";
@@ -111,14 +111,38 @@ const carPresets: CarPreset[] = [
 const CHART_COLORS = ["#3B82F6", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4"];
 const COMPARE_COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#8B5CF6"];
 
+const CALCULATOR_FAQS = [
+  {
+    question: '자동차 할부 계산기는 어떻게 사용하나요?',
+    answer: '차종을 선택하거나 차량 가격을 직접 입력한 뒤, 할부 기간(개월)과 금리(%)를 입력하세요. 이어서 연비·월 주행거리·유가·월 보험료를 입력하면 할부금, 유류비, 보험료, 자동차세가 포함된 월 총 유지비와 연간 비용을 바로 확인할 수 있습니다.',
+  },
+  {
+    question: '자동차세는 어떻게 계산되나요?',
+    answer: '자동차세는 배기량(cc) 기준으로 부과됩니다. 비영업용 승용차의 경우 1,000cc 이하는 cc당 80원, 1,600cc 이하는 140원, 1,600cc 초과는 200원이 적용됩니다. 연세액을 12로 나누면 월 환산 금액이 됩니다. 전기차는 연 13만 원으로 고정되어 내연기관차보다 훨씬 저렴합니다.',
+  },
+  {
+    question: '자동차 할부 금리는 보통 얼마인가요?',
+    answer: '2024년 기준 국내 자동차 할부 금리는 캐피털 금융사 기준 연 5~9% 수준입니다. 제조사 금융 프로그램(현대캐피탈, 기아캐피탈 등)은 특정 모델·기간에 저금리 프로모션(2~4%)을 운영하기도 합니다. 신용도와 계약 조건에 따라 금리가 달라지므로 여러 금융사를 비교하는 것이 유리합니다.',
+  },
+  {
+    question: '같은 차라도 유지비가 다른 이유는 무엇인가요?',
+    answer: '동일 차종이라도 ① 운전자 연령·사고 이력에 따른 보험료 차이 ② 주거 지역(도심 vs 지방)에 따른 연비 차이 ③ 주행 패턴(고속도로 vs 시내)에 따른 연비 차이 ④ 유가 변동 ⑤ 자동차 할부 금리 차이 등으로 실제 유지비가 크게 달라질 수 있습니다. 카테인 계산기에 본인 조건을 입력하면 보다 정확한 예측이 가능합니다.',
+  },
+  {
+    question: '전기차와 휘발유차의 유지비는 얼마나 차이가 나나요?',
+    answer: '월 1,500km 주행 기준, 휘발유차(연비 12km/L, 유가 1,700원)의 유류비는 약 21만 원인 반면 전기차(전비 6km/kWh, 완속 단가 180원)의 충전비는 약 4.5만 원으로 약 16만 원 차이가 납니다. 자동차세도 전기차는 연 13만 원으로 대형 내연기관차 대비 수십만 원 절약됩니다. 단, 전기차 차량 가격이 높아 총 소유 비용(TCO)은 개별 조건에 따라 다릅니다.',
+  },
+];
+
 const Calculator = () => {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
   const currentYear = new Date().getFullYear();
-  
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
   // Apply SEO meta tags
   useSEO({
     title: '자동차 유지비 계산기 - 할부금·보험료·유류비 무료 계산 | 카테인',
-    description: `${currentYear}년 자동차 할부금, 유류비, 보험료, 자동차세를 무료로 계산하세요. 경차부터 SUV까지 차종별 월 유지비 비교 분석 제공.`,
+    description: `자동차 할부금·유류비·보험료·자동차세를 한 번에 계산하세요. ${currentYear}년 기준 경차·중형차·SUV·전기차 차종별 월 유지비와 연간 비용을 무료로 비교 분석합니다.`,
     canonicalUrl: `${baseUrl}/calculator`,
     ogType: 'website',
     keywords: ['자동차 유지비 계산기', '자동차 할부 계산기', '자동차 보험료 계산', '월 유지비', '차량 유지비'],
@@ -131,6 +155,8 @@ const Calculator = () => {
       '자동차 할부금, 유류비, 보험료, 자동차세를 계산하고 차종별 비용을 비교 분석하는 무료 온라인 도구입니다.',
       `${baseUrl}/calculator`
     ),
+    generateHowToSchema(`${baseUrl}/calculator`),
+    generateFAQSchema(CALCULATOR_FAQS),
     generateBreadcrumbSchema([
       { name: '홈', url: baseUrl },
       { name: '유지비 계산기', url: `${baseUrl}/calculator` },
@@ -270,13 +296,14 @@ const Calculator = () => {
     if (!receiptRef.current) return;
 
     try {
+      const { default: html2canvas } = await import("html2canvas");
       const canvas = await html2canvas(receiptRef.current, {
         backgroundColor: "#faf8f5",
         scale: 2,
       });
       
       const link = document.createElement("a");
-      link.download = `DriveFlow_유지비_${mode === "compare" ? "비교" : "계산"}결과_${new Date().toISOString().slice(0, 10)}.png`;
+      link.download = `카테인_유지비_${mode === "compare" ? "비교" : "계산"}결과_${new Date().toISOString().slice(0, 10)}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
       
@@ -340,13 +367,13 @@ const Calculator = () => {
   }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-violet-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-violet-50/20 flex flex-col">
       {/* Structured Data for SEO */}
       <JsonLd data={structuredData} />
-      
+
       <Header />
       
-      <main className="py-8 px-4">
+      <main id="main-content" className="flex-1 py-8 px-4">
         <div className="max-w-2xl mx-auto">
           {step === "input" && (
             <div className="space-y-8">
@@ -1233,7 +1260,7 @@ const Calculator = () => {
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center">
                       <Car className="w-5 h-5 text-white" />
                     </div>
-                    <h2 className="font-mono text-lg font-bold">DriveFlow</h2>
+                    <h2 className="font-mono text-lg font-bold">카테인</h2>
                   </div>
                   <p className="font-mono text-xs text-receipt-muted">자동차 유지비 계산서</p>
                   <p className="font-mono text-xs text-receipt-muted mt-1">
@@ -1359,7 +1386,42 @@ const Calculator = () => {
             </div>
           )}
         </div>
+
+        {/* FAQ Section — AEO / GEO */}
+        <div className="max-w-2xl mx-auto mt-12 mb-4 px-0">
+          <h2 className="text-xl font-bold text-foreground text-center mb-2">
+            자주 묻는 질문
+          </h2>
+          <p className="text-sm text-muted-foreground text-center mb-6">
+            자동차 유지비 계산기 사용법 및 비용 관련 핵심 Q&A
+          </p>
+          <dl className="space-y-3">
+            {CALCULATOR_FAQS.map((faq, i) => (
+              <div key={i} className="border border-border rounded-xl overflow-hidden bg-white/60 backdrop-blur-sm">
+                <dt>
+                  <button
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                    aria-expanded={openFaq === i}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left font-medium text-foreground hover:bg-muted/50 transition-colors gap-3"
+                  >
+                    <span className="text-sm">{faq.question}</span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${openFaq === i ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                </dt>
+                {openFaq === i && (
+                  <dd className="px-5 pb-5 text-sm text-muted-foreground leading-relaxed border-t border-border pt-4">
+                    {faq.answer}
+                  </dd>
+                )}
+              </div>
+            ))}
+          </dl>
+        </div>
       </main>
+
+      <Footer />
     </div>
   );
 };

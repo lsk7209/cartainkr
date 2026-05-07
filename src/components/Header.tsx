@@ -17,6 +17,13 @@ const Header = forwardRef<HTMLElement>((_, ref) => {
   ];
 
   return (
+    <>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:text-sm focus:font-medium"
+      >
+        본문으로 건너뛰기
+      </a>
     <header ref={ref} className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
       <div className="container max-w-5xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
@@ -33,6 +40,7 @@ const Header = forwardRef<HTMLElement>((_, ref) => {
               <Link
                 key={item.path}
                 to={item.path}
+                aria-current={isActive(item.path) ? "page" : undefined}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   isActive(item.path)
                     ? "bg-primary text-primary-foreground"
@@ -49,7 +57,9 @@ const Header = forwardRef<HTMLElement>((_, ref) => {
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label="메뉴 열기"
+            aria-label={isMobileMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="mobile-nav"
           >
             {isMobileMenuOpen ? (
               <X className="w-6 h-6" />
@@ -61,13 +71,14 @@ const Header = forwardRef<HTMLElement>((_, ref) => {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <nav className="md:hidden py-4 border-t border-border">
+          <nav id="mobile-nav" className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col gap-1">
               {navItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsMobileMenuOpen(false)}
+                  aria-current={isActive(item.path) ? "page" : undefined}
                   className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     isActive(item.path)
                       ? "bg-primary text-primary-foreground"
@@ -83,6 +94,7 @@ const Header = forwardRef<HTMLElement>((_, ref) => {
         )}
       </div>
     </header>
+    </>
   );
 });
 

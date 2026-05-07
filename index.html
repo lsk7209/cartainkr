@@ -1,24 +1,54 @@
 <!doctype html>
 <html lang="ko">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-69KWFZVNCQ"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- DNS Prefetch / Preconnect for critical third-party origins -->
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://tczuttsjfttqvcmdawbo.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://tczuttsjfttqvcmdawbo.supabase.co">
+    <!-- Supabase Storage CDN for blog images -->
+    <link rel="preconnect" href="https://cdn.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.supabase.co">
+
+    <!-- Google Consent Mode v2 defaults (must run BEFORE gtag.js loads) -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-69KWFZVNCQ');
+      // Default: denied until user grants consent
+      gtag('consent', 'default', {
+        ad_storage: 'denied',
+        analytics_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        wait_for_update: 500,
+        region: ['AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI','FR','GB','GR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK','IS','LI','NO']
+      });
+      // Korean visitors — analytics OK without explicit consent (PIPA § 58-2 exception)
+      gtag('consent', 'default', {
+        analytics_storage: 'granted',
+        region: ['KR']
+      });
     </script>
-    
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-69KWFZVNCQ"></script>
+    <script>
+      gtag('js', new Date());
+      gtag('config', 'G-69KWFZVNCQ', { anonymize_ip: true });
+    </script>
+
     <title>카테인 - 자동차 정보 플랫폼</title>
     <meta name="description" content="카테인 - 자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공합니다." />
     <meta name="author" content="카테인" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
 
     <!-- Google Site Verification -->
     <meta name="google-site-verification" content="ekGswLIaR5UyG_klPv0QvN8hsWGdZUp4QO0-Lq6jUj0" />
-    
+
     <!-- Naver Site Verification -->
     <meta name="naver-site-verification" content="cf24492e3e46c01418236115b39f38be940ba349" />
 
@@ -42,22 +72,52 @@
     <meta name="twitter:image" content="https://cartain.kr/og-image.png" />
     <meta name="twitter:image:alt" content="카테인 - 자동차 정보 플랫폼" />
 
+    <!-- Hreflang -->
+    <link rel="alternate" hreflang="ko" href="https://cartain.kr" />
+    <link rel="alternate" hreflang="x-default" href="https://cartain.kr" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
+    <link rel="apple-touch-icon" href="/icon-192x192.png" />
+
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3050601904412736" crossorigin="anonymous"></script>
 
-    <!-- Pretendard Font -->
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <!-- Pretendard Font (non-blocking) -->
+    <link rel="preload" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"></noscript>
 
     <!-- RSS Autodiscovery -->
     <link rel="alternate" type="application/rss+xml" title="카테인 RSS" href="/rss.xml" />
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#3B82F6" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0c1322" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="카테인" />
+    <meta name="format-detection" content="telephone=no, date=no, email=no, address=no" />
   </head>
 
   <body>
     <div id="root"></div>
+    <noscript>
+      <div style="padding:2rem;text-align:center;font-family:sans-serif;max-width:800px;margin:0 auto;">
+        <h1>카테인 - 자동차 정보 플랫폼</h1>
+        <p>자동차 구매 가이드, 유지비 계산기, 보험 정보 등 실용적인 자동차 정보를 제공합니다.</p>
+        <p>이 페이지를 이용하려면 JavaScript를 활성화해 주세요.</p>
+        <nav>
+          <a href="/">홈</a> |
+          <a href="/magazine">매거진</a> |
+          <a href="/calculator">유지비 계산기</a> |
+          <a href="/about">소개</a> |
+          <a href="/contact">문의</a>
+        </nav>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

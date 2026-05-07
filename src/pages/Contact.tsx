@@ -1,31 +1,55 @@
 import { Mail, MessageSquare, Clock, MapPin } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import { useSEO, generateBreadcrumbSchema, generateFAQSchema, generateWebPageSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
 import { BASE_URL } from "@/lib/constants";
 
+const CONTACT_FAQS = [
+  {
+    question: '카테인 계산기 결과가 실제와 다를 수 있나요?',
+    answer: '네, 카테인 유지비 계산기는 참고용으로 제공됩니다. 실제 금액은 차량 조건, 보험사, 지역 등에 따라 달라질 수 있으므로 정확한 견적은 전문가 상담을 권장합니다.',
+  },
+  {
+    question: '카테인 콘텐츠를 다른 곳에 사용해도 되나요?',
+    answer: '카테인의 콘텐츠는 저작권법에 의해 보호됩니다. 개인적인 참고 목적 외의 무단 복제, 배포, 상업적 이용은 금지되어 있습니다. 콘텐츠 활용을 원하시면 사전에 contact@cartain.kr로 문의해 주세요.',
+  },
+  {
+    question: '카테인에 광고를 게재하려면 어떻게 하나요?',
+    answer: '광고 및 제휴 문의는 ads@cartain.kr로 연락해 주시면 담당자가 상세 안내를 드립니다. 영업일 기준 1-2일 이내에 답변드립니다.',
+  },
+];
+
 const Contact = () => {
-  
+
   useSEO({
     title: '광고·제휴·일반 문의하기 | 카테인',
-    description: '카테인 광고 게재, 비즈니스 제휴, 일반 문의는 이메일로 연락해 주세요. 영업일 기준 1-2일 이내 답변드립니다.',
+    description: '카테인 광고 게재, 비즈니스 제휴, 콘텐츠 협업, 일반 문의는 이메일로 연락해 주세요. 영업일 기준 1~2일 이내 답변드리며, 자주 묻는 질문도 확인하실 수 있습니다.',
     canonicalUrl: `${BASE_URL}/contact`,
     ogType: 'website',
     keywords: ['카테인 문의', '광고 문의', '제휴 문의'],
   });
 
-  const structuredData = generateBreadcrumbSchema([
-    { name: '홈', url: BASE_URL },
-    { name: '문의하기', url: `${BASE_URL}/contact` },
-  ]);
+  const structuredData = [
+    generateWebPageSchema(
+      '광고·제휴·일반 문의하기 | 카테인',
+      '카테인 광고 게재, 비즈니스 제휴, 콘텐츠 협업, 일반 문의는 이메일로 연락해 주세요.',
+      `${BASE_URL}/contact`,
+      'ContactPage'
+    ),
+    generateBreadcrumbSchema([
+      { name: '홈', url: BASE_URL },
+      { name: '문의하기', url: `${BASE_URL}/contact` },
+    ]),
+    generateFAQSchema(CONTACT_FAQS),
+  ].filter(Boolean);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <JsonLd data={structuredData} />
       <Header />
       
-      <main className="flex-1 py-12 px-4">
+      <main id="main-content" className="flex-1 py-12 px-4">
         <div className="container max-w-4xl mx-auto">
           <header className="text-center mb-12">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -114,34 +138,16 @@ const Contact = () => {
               자주 묻는 질문
             </h2>
             <div className="space-y-4">
-              <div className="bg-card rounded-xl border border-border p-6">
-                <h3 className="font-bold text-foreground mb-2">
-                  Q. 계산기 결과가 실제와 다를 수 있나요?
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  A. 네, 계산기는 참고용으로 제공됩니다. 실제 금액은 차량 조건, 보험사, 
-                  지역 등에 따라 달라질 수 있으므로 정확한 견적은 전문가 상담을 권장합니다.
-                </p>
-              </div>
-              <div className="bg-card rounded-xl border border-border p-6">
-                <h3 className="font-bold text-foreground mb-2">
-                  Q. 콘텐츠를 다른 곳에 사용해도 되나요?
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  A. 카테인의 콘텐츠는 저작권법에 의해 보호됩니다. 
-                  개인적인 참고 목적 외의 무단 복제, 배포, 상업적 이용은 금지되어 있습니다. 
-                  콘텐츠 활용을 원하시면 사전에 문의해 주세요.
-                </p>
-              </div>
-              <div className="bg-card rounded-xl border border-border p-6">
-                <h3 className="font-bold text-foreground mb-2">
-                  Q. 광고 게재는 어떻게 신청하나요?
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  A. 광고 및 제휴 문의는 ads@cartain.kr로 연락해 주시면 
-                  담당자가 상세 안내를 드립니다.
-                </p>
-              </div>
+              {CONTACT_FAQS.map((faq, i) => (
+                <div key={i} className="bg-card rounded-xl border border-border p-6">
+                  <h3 className="font-bold text-foreground mb-2">
+                    Q. {faq.question}
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    A. {faq.answer}
+                  </p>
+                </div>
+              ))}
             </div>
           </section>
         </div>

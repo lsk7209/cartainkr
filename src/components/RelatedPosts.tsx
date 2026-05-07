@@ -4,14 +4,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { useRelatedPosts } from "@/hooks/usePosts";
 import { formatDate } from "@/lib/dateUtils";
+import { stripMarkdown } from "@/lib/textUtils";
 
 interface RelatedPostsProps {
   currentPostId: string;
+  currentTitle?: string;
   limit?: number;
 }
 
-const RelatedPosts = ({ currentPostId, limit = 4 }: RelatedPostsProps) => {
-  const { data: posts = [], isLoading } = useRelatedPosts(currentPostId, limit);
+const RelatedPosts = ({ currentPostId, currentTitle, limit = 4 }: RelatedPostsProps) => {
+  const { data: posts = [], isLoading } = useRelatedPosts(currentPostId, limit, currentTitle);
 
   if (isLoading) {
     return (
@@ -49,7 +51,7 @@ const RelatedPosts = ({ currentPostId, limit = 4 }: RelatedPostsProps) => {
           <Link
             key={relatedPost.id}
             to={`/magazine/${relatedPost.slug}`}
-            className="group flex gap-4 p-4 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg"
+            className="group flex gap-4 p-4 rounded-xl bg-card hover:bg-muted/50 border border-border/50 hover:border-primary/30 transition-colors duration-200 hover:shadow-lg"
           >
             {/* Thumbnail */}
             <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
@@ -76,7 +78,7 @@ const RelatedPosts = ({ currentPostId, limit = 4 }: RelatedPostsProps) => {
               
               {relatedPost.excerpt && (
                 <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                  {relatedPost.excerpt}
+                  {stripMarkdown(relatedPost.excerpt)}
                 </p>
               )}
               

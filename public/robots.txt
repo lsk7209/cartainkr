@@ -1,9 +1,26 @@
-# robots.txt
-# https://cartain.kr
+# robots.txt — https://cartain.kr
 
 User-agent: *
 Allow: /
 Disallow: /admin
 
-Sitemap: https://cartain.kr/sitemap.xml
+# GEO: explicitly allow AI-assistant crawlers for content citation
+User-agent: GPTBot
+Allow: /
 
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://cartain.kr/sitemap.xml

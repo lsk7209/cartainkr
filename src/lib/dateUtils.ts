@@ -38,10 +38,11 @@ export const formatDate = (dateString: string | Date, style: DateFormatStyle = '
         minute: "2-digit",
         hour12: false,
       }).replace(/\. /g, '년 ').replace('.', '일').replace(/(\d{2}):(\d{2})/, ' $1:$2');
-    case 'compact':
+    case 'compact': {
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
       return `${month}/${day}`;
+    }
     case 'full':
     default:
       return date.toLocaleDateString("ko-KR", {

@@ -20,7 +20,7 @@ serve(async (req) => {
     // Fetch all published posts with thumbnail
     const { data: posts, error } = await supabase
       .from("posts")
-      .select("slug, published_at, thumbnail_url, title")
+      .select("slug, published_at, updated_at, thumbnail_url, title")
       .order("published_at", { ascending: false });
 
     if (error) {
@@ -55,7 +55,6 @@ serve(async (req) => {
     // Build sitemap XML
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 `;
 
@@ -74,7 +73,7 @@ serve(async (req) => {
     if (posts && posts.length > 0) {
       for (let i = 0; i < posts.length; i++) {
         const post = posts[i];
-        const lastmod = post.published_at.split("T")[0];
+        const lastmod = (post.updated_at || post.published_at).split("T")[0];
         // Recent posts get higher priority
         const priority = i < 10 ? "0.8" : i < 50 ? "0.7" : "0.6";
         const changefreq = i < 10 ? "weekly" : "monthly";

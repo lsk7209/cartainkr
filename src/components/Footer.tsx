@@ -28,21 +28,51 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
             <h4 className="font-semibold text-foreground mb-4">서비스</h4>
             <ul className="space-y-2">
               <li>
-                <Link 
-                  to="/magazine" 
+                <Link
+                  to="/magazine"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   매거진
                 </Link>
               </li>
               <li>
-                <Link 
-                  to="/calculator" 
+                <Link
+                  to="/calculator"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   유지비 계산기
                 </Link>
               </li>
+              <li>
+                <a
+                  href="/rss.xml"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  type="application/rss+xml"
+                >
+                  RSS 피드
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Topics */}
+          <div>
+            <h4 className="font-semibold text-foreground mb-4">주제별 정보</h4>
+            <ul className="space-y-2">
+              {[
+                { label: "자동차 구매 가이드", q: "구매" },
+                { label: "유지비·비용 절약", q: "유지비" },
+                { label: "자동차 보험", q: "보험" },
+                { label: "전기차 정보", q: "전기차" },
+                { label: "자동차 세금", q: "세금" },
+                { label: "정비·관리", q: "수리" },
+              ].map((t) => (
+                <li key={t.q}>
+                  <Link to={`/magazine?q=${t.q}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                    {t.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -51,16 +81,16 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
             <h4 className="font-semibold text-foreground mb-4">회사</h4>
             <ul className="space-y-2">
               <li>
-                <Link 
-                  to="/about" 
+                <Link
+                  to="/about"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   회사 소개
                 </Link>
               </li>
               <li>
-                <Link 
-                  to="/contact" 
+                <Link
+                  to="/contact"
                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   문의하기

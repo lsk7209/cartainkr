@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import { useSEO, generateBreadcrumbSchema, generateWebPageSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
 import { BASE_URL } from "@/lib/constants";
 
@@ -8,29 +8,36 @@ const Terms = () => {
   
   useSEO({
     title: '서비스 이용약관 - 이용조건 및 정책 안내 | 카테인',
-    description: '카테인 서비스 이용약관입니다. 서비스 이용조건, 이용자의 권리와 의무, 면책조항 등을 상세히 안내합니다.',
+    description: '카테인 서비스 이용약관 안내. 서비스 이용 조건, 회원 권리와 의무, 콘텐츠 저작권 정책, 면책조항 등 서비스 이용에 필요한 모든 사항을 상세히 안내합니다.',
     canonicalUrl: `${BASE_URL}/terms`,
     ogType: 'website',
   });
 
-  const structuredData = generateBreadcrumbSchema([
-    { name: '홈', url: BASE_URL },
-    { name: '이용약관', url: `${BASE_URL}/terms` },
-  ]);
+  const structuredData = [
+    generateWebPageSchema(
+      '서비스 이용약관 | 카테인',
+      '카테인 서비스 이용약관. 서비스 이용 조건, 회원 권리와 의무, 콘텐츠 저작권, 면책조항 안내.',
+      `${BASE_URL}/terms`
+    ),
+    generateBreadcrumbSchema([
+      { name: '홈', url: BASE_URL },
+      { name: '이용약관', url: `${BASE_URL}/terms` },
+    ]),
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <JsonLd data={structuredData} />
       <Header />
       
-      <main className="flex-1 py-12 px-4">
+      <main id="main-content" className="flex-1 py-12 px-4">
         <div className="container max-w-4xl mx-auto">
           <header className="mb-10">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               이용약관
             </h1>
             <p className="text-muted-foreground">
-              시행일: 2024년 1월 1일 | 최종 수정일: 2024년 12월 24일
+              시행일: 2025년 1월 1일 | 최종 수정일: 2026년 5월 7일
             </p>
           </header>
 
@@ -170,7 +177,7 @@ const Terms = () => {
               </h2>
               <div className="bg-muted/30 rounded-lg p-6">
                 <p className="text-muted-foreground leading-relaxed">
-                  이 약관은 2024년 1월 1일부터 시행됩니다.
+                  이 약관은 2025년 1월 1일부터 시행됩니다.
                 </p>
               </div>
             </section>

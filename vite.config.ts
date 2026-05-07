@@ -29,11 +29,11 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
       ];
 
       // Fetch dynamic posts from Supabase
-      let dynamicPosts: Array<{ slug: string; published_at: string }> = [];
+      let dynamicPosts: Array<{ slug: string; published_at: string; updated_at?: string | null }> = [];
       if (opts.backendUrl && opts.supabaseAnonKey) {
         try {
           const res = await fetch(
-            `${opts.backendUrl}/rest/v1/posts?select=slug,published_at&order=published_at.desc`,
+            `${opts.backendUrl}/rest/v1/posts?select=slug,published_at,updated_at&order=published_at.desc`,
             {
               headers: {
                 apikey: opts.supabaseAnonKey,
@@ -67,7 +67,11 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
 
       const dynamicSitemapEntries = dynamicPosts
         .map((post) => {
-          const lastmod = post.published_at ? post.published_at.split("T")[0] : today;
+          const lastmod = post.updated_at
+            ? post.updated_at.split("T")[0]
+            : post.published_at
+            ? post.published_at.split("T")[0]
+            : today;
           return (
             `  <url>\n` +
             `    <loc>${opts.siteUrl}/magazine/${post.slug}</loc>\n` +
@@ -87,11 +91,23 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
         `</urlset>\n`;
 
       const robotsTxt =
-        `# robots.txt\n` +
-        `# ${opts.siteUrl}\n\n` +
+        `# robots.txt — ${opts.siteUrl}\n\n` +
         `User-agent: *\n` +
         `Allow: /\n` +
         `Disallow: /admin\n\n` +
+        `# GEO: explicitly allow AI-assistant crawlers for content citation\n` +
+        `User-agent: GPTBot\n` +
+        `Allow: /\n\n` +
+        `User-agent: ChatGPT-User\n` +
+        `Allow: /\n\n` +
+        `User-agent: Google-Extended\n` +
+        `Allow: /\n\n` +
+        `User-agent: ClaudeBot\n` +
+        `Allow: /\n\n` +
+        `User-agent: PerplexityBot\n` +
+        `Allow: /\n\n` +
+        `User-agent: Applebot-Extended\n` +
+        `Allow: /\n\n` +
         `Sitemap: ${opts.siteUrl}/sitemap.xml\n`;
 
       // Generate rss.xml at build time
@@ -166,6 +182,26 @@ export default defineConfig(({ mode }) => {
       react(),
       mode === "development" && componentTagger(),
     ].filter(Boolean),
+    build: {
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-query': ['@tanstack/react-query'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+            'vendor-charts': ['recharts'],
+            'vendor-radix': [
+              '@radix-ui/react-dialog',
+              '@radix-ui/react-dropdown-menu',
+              '@radix-ui/react-select',
+              '@radix-ui/react-tabs',
+              '@radix-ui/react-tooltip',
+            ],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),

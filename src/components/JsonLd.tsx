@@ -1,10 +1,12 @@
 interface JsonLdProps {
-  data: object | object[];
+  data: (object | null | undefined) | (object | null | undefined)[];
 }
 
 const JsonLd = ({ data }: JsonLdProps) => {
-  const jsonLdArray = Array.isArray(data) ? data : [data];
-  
+  const jsonLdArray = (Array.isArray(data) ? data : [data]).filter(Boolean) as object[];
+
+  if (!jsonLdArray.length) return null;
+
   return (
     <>
       {jsonLdArray.map((item, index) => (

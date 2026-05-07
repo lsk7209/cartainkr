@@ -1,7 +1,7 @@
-import { Car, Users, Target, Award } from "lucide-react";
+import { Car, Users, Target, Award, BookOpen, CheckCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import { useSEO, generateBreadcrumbSchema, generateOrganizationSchema, generateWebPageSchema, generateAuthorSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
 import { BASE_URL } from "@/lib/constants";
 
@@ -9,23 +9,33 @@ const About = () => {
   
   useSEO({
     title: '자동차 정보 전문 플랫폼 소개 | 카테인',
-    description: '카테인은 자동차 구매 가이드, 유지비 계산, 보험 정보를 쉽고 정확하게 제공하는 무료 자동차 정보 서비스입니다.',
+    description: '카테인은 자동차 구매, 유지비, 보험, 세금 정보를 쉽고 정확하게 제공하는 자동차 정보 전문 플랫폼입니다. 전문 에디터가 작성한 신뢰할 수 있는 자동차 콘텐츠를 무료로 확인하세요.',
     canonicalUrl: `${BASE_URL}/about`,
     ogType: 'website',
     keywords: ['카테인', '자동차 정보', '자동차 플랫폼'],
   });
 
-  const structuredData = generateBreadcrumbSchema([
-    { name: '홈', url: BASE_URL },
-    { name: '소개', url: `${BASE_URL}/about` },
-  ]);
+  const structuredData = [
+    generateWebPageSchema(
+      '자동차 정보 전문 플랫폼 소개 | 카테인',
+      '카테인은 자동차 구매, 유지비, 보험, 세금 정보를 쉽고 정확하게 제공하는 자동차 정보 전문 플랫폼입니다.',
+      `${BASE_URL}/about`,
+      'AboutPage'
+    ),
+    generateBreadcrumbSchema([
+      { name: '홈', url: BASE_URL },
+      { name: '소개', url: `${BASE_URL}/about` },
+    ]),
+    generateOrganizationSchema(),
+    generateAuthorSchema(),
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <JsonLd data={structuredData} />
       <Header />
       
-      <main className="flex-1 py-12 px-4">
+      <main id="main-content" className="flex-1 py-12 px-4">
         <div className="container max-w-4xl mx-auto">
           <header className="text-center mb-12">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -127,6 +137,45 @@ const About = () => {
             </div>
           </section>
 
+          {/* Editorial Process - EEAT signal */}
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
+              편집 원칙
+            </h2>
+            <div className="bg-card rounded-xl border border-border p-8">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">정확성 우선</h3>
+                    <p className="text-sm text-muted-foreground">모든 수치와 제도 정보는 발행 시점의 공식 자료를 기준으로 작성합니다.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">정기 업데이트</h3>
+                    <p className="text-sm text-muted-foreground">법규·세율·보험료 변경 시 해당 콘텐츠를 즉시 수정합니다.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">광고 독립성</h3>
+                    <p className="text-sm text-muted-foreground">광고 파트너의 영향 없이 독립적인 시각으로 정보를 제공합니다.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <BookOpen className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1">출처 명시</h3>
+                    <p className="text-sm text-muted-foreground">통계·수치 인용 시 국토교통부, 보험개발원 등 공신력 있는 출처를 기재합니다.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Company Info */}
           <section>
             <div className="bg-card rounded-xl border border-border p-8 text-center">
@@ -136,8 +185,8 @@ const About = () => {
               </p>
               <div className="text-sm text-muted-foreground space-y-1">
                 <p>사업자: 카테인</p>
-                <p>이메일: contact@cartain.kr</p>
-                <p>© 2024 카테인. All rights reserved.</p>
+                <p>이메일: <a href="mailto:contact@cartain.kr" className="text-primary hover:underline">contact@cartain.kr</a></p>
+                <p>© {new Date().getFullYear()} 카테인. All rights reserved.</p>
               </div>
             </div>
           </section>

@@ -15,6 +15,7 @@ export interface PostSummary {
 // 게시물 상세용 타입 (전체 정보)
 export interface PostDetail extends PostSummary {
   content_html: string;
+  updated_at?: string | null;
 }
 
 // 페이지네이션된 게시물 응답

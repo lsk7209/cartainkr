@@ -1,8 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Calendar, Clock, User, ArrowLeft, Share2, Calculator } from "lucide-react";
 import DOMPurify from "dompurify";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RelatedPosts from "@/components/RelatedPosts";
@@ -13,8 +13,28 @@ import { toast } from "sonner";
 import { useSEO, generateArticleSchema, generateFAQSchema, generateBreadcrumbSchema } from "@/hooks/useSEO";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { formatDate, estimateReadTime } from "@/lib/dateUtils";
+import { buildToc } from "@/lib/tocUtils";
+import { markdownToHtml, stripMarkdown } from "@/lib/textUtils";
 import { BASE_URL } from "@/lib/constants";
 import type { PostDetail } from "@/types/post";
+import AdSenseAd from "@/components/AdSenseAd";
+import TableOfContents from "@/components/TableOfContents";
+import ReadingProgress from "@/components/ReadingProgress";
+
+// Enforce secure attributes via DOMPurify hook (runs once at module load)
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') {
+    const href = node.getAttribute('href') || '';
+    if (href.startsWith('http') || href.startsWith('//')) {
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener noreferrer');
+    }
+  }
+  if (node.tagName === 'IMG') {
+    if (!node.getAttribute('loading')) node.setAttribute('loading', 'lazy');
+    if (!node.getAttribute('decoding')) node.setAttribute('decoding', 'async');
+  }
+});
 
 // Safe HTML tags and attributes for blog content (defense-in-depth)
 const SANITIZE_CONFIG = {
@@ -51,9 +71,24 @@ const extractFAQs = (html: string): { question: string; answer: string }[] => {
 
 const MagazineDetail = () => {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const articleRef = useRef<HTMLDivElement>(null);
   const [post, setPost] = useState<PostDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  // Intercept internal links in generated content to use React Router navigation
+  const handleArticleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const target = (e.target as HTMLElement).closest('a');
+    if (!target) return;
+    const href = target.getAttribute('href');
+    if (!href) return;
+    const isInternal = href.startsWith('/') && !href.startsWith('//');
+    if (isInternal) {
+      e.preventDefault();
+      navigate(href);
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -63,19 +98,16 @@ const MagazineDetail = () => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("slug", slug)
-        .maybeSingle();
+      const data = await api.posts.get(slug).catch((err) => {
+        if (err.message?.includes('404')) return null;
+        console.error("Error fetching post:", err);
+        return null;
+      });
 
-      if (error) {
-        console.error("Error fetching post:", error);
-        setNotFound(true);
-      } else if (!data) {
+      if (!data) {
         setNotFound(true);
       } else {
-        setPost(data as PostDetail);
+        setPost(data);
       }
       setIsLoading(false);
     };
@@ -83,10 +115,13 @@ const MagazineDetail = () => {
     fetchPost();
   }, [slug]);
 
-  // Sanitize HTML content on the client-side as defense-in-depth
-  const sanitizedContent = useMemo(() => {
-    if (!post?.content_html) return '';
-    return DOMPurify.sanitize(post.content_html, SANITIZE_CONFIG);
+  // Build TOC and inject heading IDs, then sanitize
+  const { sanitizedContent, toc } = useMemo(() => {
+    if (!post?.content_html) return { sanitizedContent: '', toc: [] };
+    const converted = markdownToHtml(post.content_html);
+    const { html: htmlWithIds, toc: tocItems } = buildToc(converted);
+    const sanitized = DOMPurify.sanitize(htmlWithIds, SANITIZE_CONFIG);
+    return { sanitizedContent: sanitized, toc: tocItems };
   }, [post?.content_html]);
 
   // Extract FAQs for structured data
@@ -104,11 +139,12 @@ const MagazineDetail = () => {
   // Apply SEO meta tags - 키워드를 title 앞쪽에 배치
   useSEO({
     title: post ? `${post.title} - 자동차 정보 | 카테인` : '자동차 정보 플랫폼 | 카테인',
-    description: post?.excerpt || post?.title || '자동차 구매 가이드, 유지비 계산, 보험 정보 등 실용적인 자동차 정보를 제공합니다.',
+    description: post?.excerpt ? stripMarkdown(post.excerpt) : (post?.title || '자동차 구매 가이드, 유지비 계산, 보험 정보 등 실용적인 자동차 정보를 제공합니다.'),
     canonicalUrl,
     ogImage: post?.thumbnail_url || undefined,
     ogType: 'article',
     publishedAt: post?.published_at,
+    modifiedAt: post?.updated_at || post?.published_at,
     author: '카테인',
     keywords: ['자동차', '자동차 정보', '자동차 유지비', '자동차 구매'],
   });
@@ -206,12 +242,13 @@ const MagazineDetail = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <ReadingProgress />
       {/* Structured Data for SEO */}
       <JsonLd data={structuredData} />
       
       <Header />
 
-      <main className="flex-1 py-12 px-4">
+      <main id="main-content" className="flex-1 py-12 px-4">
         <article className="max-w-3xl mx-auto">
           {/* Back Link */}
           <Link
@@ -232,7 +269,7 @@ const MagazineDetail = () => {
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <User className="w-4 h-4" />
-                  <span>카테인 에디터</span>
+                  <Link to="/about" className="hover:text-primary transition-colors">카테인 에디터</Link>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4" />
@@ -269,11 +306,16 @@ const MagazineDetail = () => {
             </figure>
           )}
 
+          {/* Table of Contents — shown for articles with 3+ headings */}
+          <TableOfContents items={toc} />
+
           {/* Article Content - sanitized client-side for defense-in-depth */}
-          <div
-            className="magazine-body max-w-none"
-            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-          />
+          <div className="magazine-body max-w-none" ref={articleRef} onClick={handleArticleClick}>
+            <article className="pl-4 md:pl-5" dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
+          </div>
+
+          {/* Mid-article ad — slot ID to be filled after AdSense approval */}
+          <AdSenseAd format="auto" className="my-8" />
 
           {/* CTA Section - 내부 링크 & 행동 유도 */}
           <div className="my-10 p-6 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border border-primary/20">
@@ -344,7 +386,7 @@ const MagazineDetail = () => {
           </footer>
 
           {/* Related Posts */}
-          <RelatedPosts currentPostId={post.id} limit={4} />
+          <RelatedPosts currentPostId={post.id} currentTitle={post.title} limit={4} />
         </article>
       </main>
 

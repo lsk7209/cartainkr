@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useSEO, generateBreadcrumbSchema } from "@/hooks/useSEO";
+import { useSEO, generateBreadcrumbSchema, generateWebPageSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
 import { BASE_URL } from "@/lib/constants";
 
@@ -8,29 +8,36 @@ const Privacy = () => {
   
   useSEO({
     title: '개인정보처리방침 - 개인정보 수집 및 이용 안내 | 카테인',
-    description: '카테인 개인정보처리방침입니다. 이용자의 개인정보 수집 항목, 이용 목적, 보유 기간 등을 상세히 안내합니다.',
+    description: '카테인 개인정보처리방침 안내. 서비스 이용 중 수집되는 개인정보 항목, 이용 목적, 보유 기간, 제3자 제공 여부 및 이용자 권리를 투명하게 공개합니다.',
     canonicalUrl: `${BASE_URL}/privacy`,
     ogType: 'website',
   });
 
-  const structuredData = generateBreadcrumbSchema([
-    { name: '홈', url: BASE_URL },
-    { name: '개인정보처리방침', url: `${BASE_URL}/privacy` },
-  ]);
+  const structuredData = [
+    generateWebPageSchema(
+      '개인정보처리방침 | 카테인',
+      '카테인 개인정보처리방침. 수집 항목, 이용 목적, 보유 기간, 제3자 광고 서비스(Google AdSense·Analytics) 안내.',
+      `${BASE_URL}/privacy`
+    ),
+    generateBreadcrumbSchema([
+      { name: '홈', url: BASE_URL },
+      { name: '개인정보처리방침', url: `${BASE_URL}/privacy` },
+    ]),
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <JsonLd data={structuredData} />
       <Header />
       
-      <main className="flex-1 py-12 px-4">
+      <main id="main-content" className="flex-1 py-12 px-4">
         <div className="container max-w-4xl mx-auto">
           <header className="mb-10">
             <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               개인정보처리방침
             </h1>
             <p className="text-muted-foreground">
-              시행일: 2024년 1월 1일 | 최종 수정일: 2024년 12월 24일
+              시행일: 2025년 1월 1일 | 최종 수정일: 2026년 5월 7일
             </p>
           </header>
 
@@ -166,14 +173,43 @@ const Privacy = () => {
               </div>
             </section>
 
+            <section className="mb-8">
+              <h2 className="text-xl font-bold text-foreground mb-4">
+                제8조 (제3자 광고 서비스)
+              </h2>
+              <div className="bg-muted/30 rounded-lg p-6">
+                <p className="text-muted-foreground leading-relaxed mb-4">
+                  회사는 서비스 운영 및 콘텐츠 제공을 위해 다음과 같은 제3자 서비스를 이용합니다.
+                </p>
+                <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                  <li>
+                    <strong className="text-foreground">Google AdSense</strong> — 광고 게재 서비스.
+                    Google은 이용자의 쿠키를 사용하여 관심 기반 광고를 제공할 수 있습니다.
+                    이용자는 <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google 광고 설정</a>에서
+                    개인 맞춤 광고를 비활성화할 수 있습니다.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">Google Analytics</strong> — 웹 분석 서비스.
+                    방문 통계 수집을 위해 익명 데이터를 처리합니다.
+                    이용자는 <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Analytics 차단 플러그인</a>을 통해
+                    수집을 거부할 수 있습니다.
+                  </li>
+                </ul>
+                <p className="text-muted-foreground leading-relaxed mt-4">
+                  이러한 제3자 서비스의 개인정보 처리 방침은 각 사업자의 정책을 따르며,
+                  회사는 이에 대한 책임을 지지 않습니다.
+                </p>
+              </div>
+            </section>
+
             <section>
               <h2 className="text-xl font-bold text-foreground mb-4">
-                제8조 (개인정보처리방침 변경)
+                제9조 (개인정보처리방침 변경)
               </h2>
               <div className="bg-muted/30 rounded-lg p-6">
                 <p className="text-muted-foreground leading-relaxed">
-                  이 개인정보처리방침은 2024년 1월 1일부터 적용됩니다. 
-                  법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는 
+                  이 개인정보처리방침은 2025년 1월 1일부터 적용됩니다.
+                  법령 및 방침에 따른 변경내용의 추가, 삭제 및 정정이 있는 경우에는
                   변경사항의 시행 7일 전부터 공지사항을 통하여 고지할 것입니다.
                 </p>
               </div>

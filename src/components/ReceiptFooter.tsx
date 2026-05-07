@@ -8,8 +8,8 @@ const ReceiptFooter = () => {
           <QrCode className="w-10 h-10 text-foreground/60" />
         </div>
         <div className="text-center">
-          <p className="font-mono text-xs text-receipt-muted">DriveFlow Ads</p>
-          <p className="font-mono text-xs text-receipt-muted mt-1">driveflow.ads</p>
+          <p className="font-mono text-xs text-receipt-muted">카테인</p>
+          <p className="font-mono text-xs text-receipt-muted mt-1">cartain.kr</p>
         </div>
       </div>
       <p className="text-center font-mono text-[10px] text-receipt-muted mt-4">

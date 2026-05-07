@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* DriveFlow Color System */
+    /* 카테인 컬러 시스템 */
     --background: 210 20% 98%;
     --foreground: 222 47% 11%;
 
@@ -194,7 +194,8 @@
   .magazine-body .styled-table tbody tr,
   .prose .styled-table tbody tr,
   table.styled-table tbody tr {
-    transition: all 0.3s ease !important;
+    transition: background-color 0.2s ease, transform 0.2s ease !important;
+    will-change: transform;
   }
 
   .magazine-body .styled-table tbody tr:hover,
@@ -249,7 +250,8 @@
   }
 
   .info-box li {
-    @apply text-foreground/90 leading-relaxed pl-8 relative py-2 rounded-lg transition-all duration-200;
+    @apply text-foreground/90 leading-relaxed pl-8 relative py-2 rounded-lg;
+    transition: background-color 0.2s ease, padding-left 0.2s ease;
   }
 
   .info-box li:hover {
@@ -413,7 +415,8 @@
   }
 
   .magazine-body article a {
-    @apply text-primary font-medium underline decoration-primary/30 underline-offset-4 transition-all duration-200;
+    @apply text-primary font-medium underline decoration-primary/30 underline-offset-4;
+    transition: color 0.2s ease, text-decoration-color 0.2s ease;
   }
 
   .magazine-body article a:hover {
@@ -422,7 +425,8 @@
 
   /* FAQ Details/Summary with animation */
   .magazine-body article details {
-    @apply my-6 rounded-xl overflow-hidden border border-border/50 transition-all duration-300;
+    @apply my-6 rounded-xl overflow-hidden border border-border/50;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
     background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted) / 0.3) 100%);
   }
 
@@ -431,7 +435,8 @@
   }
 
   .magazine-body article summary {
-    @apply cursor-pointer px-6 py-5 font-semibold text-foreground flex items-center justify-between transition-all duration-200;
+    @apply cursor-pointer px-6 py-5 font-semibold text-foreground flex items-center justify-between;
+    transition: background-color 0.2s ease;
   }
 
   .magazine-body article summary:hover {
@@ -606,6 +611,18 @@
 }
 
 @layer utilities {
+  /* Respect user motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    html {
+      scroll-behavior: auto !important;
+    }
+  }
+
   /* Loading Animation */
   @keyframes fade-up {
     0% {
