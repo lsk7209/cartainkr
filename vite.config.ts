@@ -93,7 +93,8 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
             .replace(/(<meta property="og:image" content=")[^"]*/,        `$1${img}`)
             .replace(/(<meta name="twitter:title" content=")[^"]*/,       `$1${safeTitle} | 카테인`)
             .replace(/(<meta name="twitter:description" content=")[^"]*/,  `$1${safeDesc}`)
-            .replace(/(<meta name="twitter:image" content=")[^"]*/,       `$1${img}`);
+            .replace(/(<meta name="twitter:image" content=")[^"]*/,       `$1${img}`)
+            .replace('</head>', `  <link rel="canonical" href="${pageUrl}" />\n  </head>`);
 
           const articleDir = path.join(distDir, 'magazine', slug);
           await fs.mkdir(articleDir, { recursive: true });
