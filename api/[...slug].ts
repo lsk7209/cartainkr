@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDb, POSTS_PER_PAGE } from './_lib/turso';
-import { requireAdmin, setCors } from './_lib/auth';
+import { getDb, POSTS_PER_PAGE } from './_lib/turso.js';
+import { requireAdmin, setCors } from './_lib/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);

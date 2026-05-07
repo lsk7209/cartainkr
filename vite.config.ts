@@ -124,24 +124,8 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
         `  </channel>\n` +
         `</rss>\n`;
 
-      let rssXml = defaultRssXml;
-      if (opts.backendUrl) {
-        try {
-          const res = await fetch(`${opts.backendUrl}/functions/v1/rss`, {
-            headers: {
-              Accept: "application/rss+xml, application/xml;q=0.9, */*;q=0.8",
-            },
-          });
-
-          if (res.ok) {
-            rssXml = await res.text();
-          } else {
-            console.warn(`[generate-seo-files] RSS fetch failed: ${res.status} ${res.statusText}`);
-          }
-        } catch (err) {
-          console.warn("[generate-seo-files] RSS fetch error:", err);
-        }
-      }
+      // RSS is served at runtime by Vercel /api/rss — use default placeholder at build time
+      const rssXml = defaultRssXml;
 
       const publicDir = path.resolve(__dirname, "public");
       await fs.mkdir(publicDir, { recursive: true });
@@ -159,8 +143,9 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const backendUrl = env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const stripBom = (s: string) => s.replace(/^﻿/, "");
+  const backendUrl = stripBom(env.VITE_SUPABASE_URL ?? "");
+  const supabaseAnonKey = stripBom(env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "");
   const siteUrl = env.VITE_SITE_URL || env.SITE_URL || "https://cartain.kr";
 
   return {
