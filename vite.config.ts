@@ -84,14 +84,14 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
           const safeDesc = desc.replace(/"/g, '&quot;');
 
           const articleHtml = indexHtml
-            .replace(/(<title>)[^<]*/,                         `$1${safeTitle} | 카테인`)
+            .replace(/(<title>)[^<]*/,                         `$1${safeTitle} - 자동차 정보 | 카테인`)
             .replace(/(<meta name="description" content=")[^"]*/,  `$1${safeDesc}`)
-            .replace(/(<meta property="og:title" content=")[^"]*/,       `$1${safeTitle} | 카테인`)
+            .replace(/(<meta property="og:title" content=")[^"]*/,       `$1${safeTitle} - 자동차 정보 | 카테인`)
             .replace(/(<meta property="og:description" content=")[^"]*/,  `$1${safeDesc}`)
             .replace(/(<meta property="og:type" content=")[^"]*/,         '$1article')
             .replace(/(<meta property="og:url" content=")[^"]*/,          `$1${pageUrl}`)
             .replace(/(<meta property="og:image" content=")[^"]*/,        `$1${img}`)
-            .replace(/(<meta name="twitter:title" content=")[^"]*/,       `$1${safeTitle} | 카테인`)
+            .replace(/(<meta name="twitter:title" content=")[^"]*/,       `$1${safeTitle} - 자동차 정보 | 카테인`)
             .replace(/(<meta name="twitter:description" content=")[^"]*/,  `$1${safeDesc}`)
             .replace(/(<meta name="twitter:image" content=")[^"]*/,       `$1${img}`)
             .replace('</head>', `  <link rel="canonical" href="${pageUrl}" />\n  </head>`);
