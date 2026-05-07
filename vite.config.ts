@@ -83,6 +83,9 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
           const safeTitle = title.replace(/"/g, '&quot;');
           const safeDesc = desc.replace(/"/g, '&quot;');
 
+          // Safe text escaping for noscript HTML content
+          const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
           const articleHtml = indexHtml
             .replace(/(<title>)[^<]*/,                         `$1${safeTitle} - 자동차 정보 | 카테인`)
             .replace(/(<meta name="description" content=")[^"]*/,  `$1${safeDesc}`)
@@ -94,7 +97,11 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
             .replace(/(<meta name="twitter:title" content=")[^"]*/,       `$1${safeTitle} - 자동차 정보 | 카테인`)
             .replace(/(<meta name="twitter:description" content=")[^"]*/,  `$1${safeDesc}`)
             .replace(/(<meta name="twitter:image" content=")[^"]*/,       `$1${img}`)
-            .replace('</head>', `  <link rel="canonical" href="${pageUrl}" />\n  </head>`);
+            .replace('</head>', `  <link rel="canonical" href="${pageUrl}" />\n  </head>`)
+            .replace(
+              /<noscript>[\s\S]*?<\/noscript>/,
+              `<noscript><div style="padding:2rem;max-width:800px;margin:0 auto;font-family:sans-serif"><h1>${escHtml(title)}</h1><p>${escHtml(desc)}</p><p>이 페이지를 보려면 JavaScript를 활성화해 주세요.</p><p><a href="/">홈</a> | <a href="/magazine">매거진</a></p></div></noscript>`
+            );
 
           const articleDir = path.join(distDir, 'magazine', slug);
           await fs.mkdir(articleDir, { recursive: true });

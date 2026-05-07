@@ -87,6 +87,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({ success: true });
     }
 
+    // IndexNow: ping Bing/Yandex/Seznam with all post URLs
+    if (path === '/api/admin/indexnow' && req.method === 'POST') {
+      const INDEXNOW_KEY = '7f4e2b9d1a8c3f6e0d5b4a2c7e9f1d3b';
+      const BASE = 'https://cartain.kr';
+      const db = getDb();
+      const rows = await db.execute('SELECT slug FROM posts ORDER BY published_at DESC LIMIT 500');
+      const urlList = (rows.rows as any[]).map((r) => `${BASE}/magazine/${r.slug}`);
+      urlList.unshift(BASE, `${BASE}/magazine`, `${BASE}/calculator`);
+
+      const payload = {
+        host: 'cartain.kr',
+        key: INDEXNOW_KEY,
+        keyLocation: `${BASE}/${INDEXNOW_KEY}.txt`,
+        urlList,
+      };
+
+      const response = await fetch('https://api.indexnow.org/indexnow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(payload),
+      });
+
+      return res.json({ success: response.ok, status: response.status, count: urlList.length });
+    }
+
     return res.status(404).json({ error: 'Not found' });
   } catch (e) {
     console.error('[API/admin]', e);

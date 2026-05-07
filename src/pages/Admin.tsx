@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Trash2, RefreshCw, Upload, List, BarChart3,
-  FileText, TrendingUp, Calendar, FileCheck, Lock, Eye,
+  FileText, TrendingUp, Calendar, FileCheck, Lock, Eye, Zap,
 } from "lucide-react";
 import { subDays, eachDayOfInterval, eachWeekOfInterval, subWeeks, endOfWeek, isWithinInterval } from "date-fns";
 import { formatDate } from "@/lib/dateUtils";
@@ -199,6 +199,23 @@ const Admin = () => {
     }
   };
 
+  const [indexNowLoading, setIndexNowLoading] = useState(false);
+
+  const handleIndexNow = async () => {
+    setIndexNowLoading(true);
+    try {
+      const res = await api.admin.indexnow(apiKey);
+      if (res.success) {
+        toast.success(`IndexNow 완료: ${res.count}개 URL 제출 (HTTP ${res.status})`);
+      } else {
+        toast.error(`IndexNow 실패: HTTP ${res.status}`);
+      }
+    } catch {
+      toast.error("IndexNow 요청에 실패했습니다.");
+    }
+    setIndexNowLoading(false);
+  };
+
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case "pending": return "bg-yellow-100 text-yellow-800";
@@ -287,6 +304,20 @@ const Admin = () => {
               <div className="space-y-3">
                 {posts.slice(0, 5).map((post) => <PostListItem key={post.id} post={post} compact />)}
                 {!posts.length && <p className="text-muted-foreground text-center py-4">발행된 글이 없습니다.</p>}
+              </div>
+            </div>
+
+            <div className="bg-card rounded-lg border border-border p-6">
+              <h2 className="text-lg font-semibold mb-4 text-card-foreground">SEO 도구</h2>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-foreground">IndexNow 제출</p>
+                  <p className="text-sm text-muted-foreground">전체 글 URL을 Bing·Yandex·Seznam에 일괄 제출합니다.</p>
+                </div>
+                <Button onClick={handleIndexNow} disabled={indexNowLoading} variant="outline">
+                  {indexNowLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+                  IndexNow 실행
+                </Button>
               </div>
             </div>
           </TabsContent>

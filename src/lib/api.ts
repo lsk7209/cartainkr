@@ -146,6 +146,12 @@ export const api = {
         }),
     },
 
+    indexnow: (apiKey: string) =>
+      apiFetch<{ success: boolean; status: number; count: number }>('/api/admin/indexnow', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}` },
+      }),
+
   },
 };
 
