@@ -69,6 +69,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    if (path === '/api/admin/posts' && req.method === 'POST') {
+      const { id, slug, title, content_html, excerpt, thumbnail_url, published_at } = req.body as {
+        id: string; slug: string; title: string; content_html: string;
+        excerpt: string; thumbnail_url: string | null; published_at: string;
+      };
+      const db = getDb();
+      const now = published_at || new Date().toISOString();
+      await db.execute({
+        sql: 'INSERT INTO posts (id, slug, title, content_html, excerpt, thumbnail_url, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        args: [id, slug, title, content_html, excerpt, thumbnail_url ?? null, now, now],
+      });
+      // Mark queue item as completed if queue_id provided
+      const { queue_id } = req.body as { queue_id?: string };
+      if (queue_id) {
+        await db.execute({ sql: "UPDATE post_queue SET status = 'completed' WHERE id = ?", args: [queue_id] });
+      }
+      return res.json({ success: true, slug });
+    }
+
     if (path === '/api/admin/settings' && req.method === 'GET') {
       const db = getDb();
       const rows = await db.execute('SELECT key, value FROM settings');
