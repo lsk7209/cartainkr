@@ -423,6 +423,73 @@
     @apply decoration-primary;
   }
 
+  /* Images */
+  .magazine-body article img {
+    @apply rounded-xl my-6 shadow-sm;
+    max-width: calc(100% + 1rem);
+    margin-left: -1rem;
+    width: calc(100% + 1rem);
+    height: auto;
+    display: block;
+  }
+  @media (min-width: 768px) {
+    .magazine-body article img {
+      max-width: calc(100% + 1.25rem);
+      margin-left: -1.25rem;
+      width: calc(100% + 1.25rem);
+    }
+  }
+
+  /* Blockquotes */
+  .magazine-body article blockquote {
+    @apply my-8 py-4 px-6 rounded-r-xl text-foreground/80 italic;
+    border-left: 4px solid hsl(var(--primary));
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.05), transparent);
+  }
+  .magazine-body article blockquote p {
+    @apply mb-0;
+  }
+
+  /* Code */
+  .magazine-body article code {
+    @apply px-1.5 py-0.5 rounded text-sm font-mono;
+    background: hsl(var(--muted));
+    color: hsl(var(--primary));
+  }
+  .magazine-body article pre {
+    @apply my-6 p-4 rounded-xl overflow-x-auto text-sm;
+    background: hsl(var(--muted));
+  }
+  .magazine-body article pre code {
+    @apply p-0 bg-transparent;
+    color: inherit;
+  }
+
+  /* Tables */
+  .magazine-body article table {
+    @apply w-full my-6 text-sm border-collapse rounded-xl overflow-hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .magazine-body article th {
+    @apply px-4 py-3 text-left font-semibold text-primary-foreground;
+    background: hsl(var(--primary));
+  }
+  .magazine-body article td {
+    @apply px-4 py-3 text-foreground/90 border-b border-border;
+  }
+  .magazine-body article tr:last-child td {
+    @apply border-b-0;
+  }
+  .magazine-body article tr:nth-child(even) td {
+    background: hsl(var(--muted) / 0.4);
+  }
+
+  /* HR */
+  .magazine-body article hr {
+    @apply my-10 border-0 h-px;
+    background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
+  }
+
   /* FAQ Details/Summary with animation */
   .magazine-body article details {
     @apply my-6 rounded-xl overflow-hidden border border-border/50;

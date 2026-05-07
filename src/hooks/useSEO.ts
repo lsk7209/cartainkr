@@ -59,7 +59,9 @@ export const useSEO = ({
       setMeta('og:image:alt', title, true);
       setMeta('og:image:width', '1200', true);
       setMeta('og:image:height', '630', true);
-      setMeta('og:image:type', 'image/jpeg', true);
+      const ext = ogImage.split('?')[0].split('.').pop()?.toLowerCase();
+      const imageType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'webp' ? 'image/webp' : 'image/png';
+      setMeta('og:image:type', imageType, true);
     }
     if (canonicalUrl) {
       setMeta('og:url', canonicalUrl, true);
@@ -86,6 +88,7 @@ export const useSEO = ({
       if (author) {
         setMeta('article:author', author, true);
       }
+      setMeta('article:section', '자동차', true);
     }
 
     // Canonical URL
@@ -108,7 +111,7 @@ export const useSEO = ({
       document.querySelector('meta[property="og:url"]')?.remove();
       document.querySelector('meta[property="og:type"]')?.remove();
       // Remove article-specific meta tags
-      ['article:published_time', 'article:modified_time', 'article:author'].forEach((prop) => {
+      ['article:published_time', 'article:modified_time', 'article:author', 'article:section'].forEach((prop) => {
         document.querySelector(`meta[property="${prop}"]`)?.remove();
       });
     };

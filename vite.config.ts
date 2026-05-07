@@ -6,8 +6,8 @@ import { componentTagger } from "lovable-tagger";
 
 interface SeoPluginOptions {
   siteUrl: string;
-  backendUrl?: string;
-  supabaseAnonKey?: string;
+  tursoUrl?: string;
+  tursoToken?: string;
 }
 
 function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
@@ -15,81 +15,7 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
     name: "generate-seo-files",
     apply: "build",
     async buildStart() {
-      const today = new Date().toISOString().split("T")[0];
-
-      // Static routes
-      const staticRoutes: Array<{ path: string; changefreq: string; priority: string }> = [
-        { path: "/", changefreq: "daily", priority: "1.0" },
-        { path: "/magazine", changefreq: "daily", priority: "0.9" },
-        { path: "/calculator", changefreq: "weekly", priority: "0.8" },
-        { path: "/about", changefreq: "monthly", priority: "0.6" },
-        { path: "/contact", changefreq: "monthly", priority: "0.5" },
-        { path: "/privacy", changefreq: "yearly", priority: "0.3" },
-        { path: "/terms", changefreq: "yearly", priority: "0.3" },
-      ];
-
-      // Fetch dynamic posts from Supabase
-      let dynamicPosts: Array<{ slug: string; published_at: string; updated_at?: string | null }> = [];
-      if (opts.backendUrl && opts.supabaseAnonKey) {
-        try {
-          const res = await fetch(
-            `${opts.backendUrl}/rest/v1/posts?select=slug,published_at,updated_at&order=published_at.desc`,
-            {
-              headers: {
-                apikey: opts.supabaseAnonKey,
-                Authorization: `Bearer ${opts.supabaseAnonKey}`,
-              },
-            }
-          );
-          if (res.ok) {
-            dynamicPosts = (await res.json()) as Array<{ slug: string; published_at: string }>;
-            console.log(`[generate-seo-files] Fetched ${dynamicPosts.length} posts for sitemap`);
-          } else {
-            console.warn(`[generate-seo-files] Failed to fetch posts: ${res.status}`);
-          }
-        } catch (err) {
-          console.warn("[generate-seo-files] Error fetching posts:", err);
-        }
-      }
-
-      // Build sitemap
-      const staticSitemapEntries = staticRoutes
-        .map(
-          (r) =>
-            `  <url>\n` +
-            `    <loc>${opts.siteUrl}${r.path}</loc>\n` +
-            `    <lastmod>${today}</lastmod>\n` +
-            `    <changefreq>${r.changefreq}</changefreq>\n` +
-            `    <priority>${r.priority}</priority>\n` +
-            `  </url>\n`
-        )
-        .join("");
-
-      const dynamicSitemapEntries = dynamicPosts
-        .map((post) => {
-          const lastmod = post.updated_at
-            ? post.updated_at.split("T")[0]
-            : post.published_at
-            ? post.published_at.split("T")[0]
-            : today;
-          return (
-            `  <url>\n` +
-            `    <loc>${opts.siteUrl}/magazine/${post.slug}</loc>\n` +
-            `    <lastmod>${lastmod}</lastmod>\n` +
-            `    <changefreq>weekly</changefreq>\n` +
-            `    <priority>0.7</priority>\n` +
-            `  </url>\n`
-          );
-        })
-        .join("");
-
-      const sitemapXml =
-        `<?xml version="1.0" encoding="UTF-8"?>\n` +
-        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-        staticSitemapEntries +
-        dynamicSitemapEntries +
-        `</urlset>\n`;
-
+      // sitemap.xml and rss.xml are served at runtime by Vercel API functions
       const robotsTxt =
         `# robots.txt — ${opts.siteUrl}\n\n` +
         `User-agent: *\n` +
@@ -110,30 +36,74 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
         `Allow: /\n\n` +
         `Sitemap: ${opts.siteUrl}/sitemap.xml\n`;
 
-      // Generate rss.xml at build time
-      const defaultRssXml =
-        `<?xml version="1.0" encoding="UTF-8"?>\n` +
-        `<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n` +
-        `  <channel>\n` +
-        `    <title>카테인 - 자동차 정보 매거진</title>\n` +
-        `    <link>${opts.siteUrl}</link>\n` +
-        `    <description>자동차 유지비 계산, 차량 관리 팁, 최신 자동차 뉴스를 제공하는 카테인 매거진</description>\n` +
-        `    <language>ko</language>\n` +
-        `    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>\n` +
-        `    <atom:link href="${opts.siteUrl}/rss.xml" rel="self" type="application/rss+xml"/>\n` +
-        `  </channel>\n` +
-        `</rss>\n`;
-
-      // RSS is served at runtime by Vercel /api/rss — use default placeholder at build time
-      const rssXml = defaultRssXml;
-
       const publicDir = path.resolve(__dirname, "public");
       await fs.mkdir(publicDir, { recursive: true });
-      // sitemap.xml and rss.xml are served by Vercel API functions at runtime
-      // Only write robots.txt as a static file
       await fs.writeFile(path.join(publicDir, "robots.txt"), robotsTxt, "utf8");
+      console.log("[generate-seo-files] robots.txt generated");
+    },
 
-      console.log(`[generate-seo-files] Generated sitemap with ${staticRoutes.length + dynamicPosts.length} URLs`);
+    async closeBundle() {
+      // Pre-render article pages with correct OG tags for social media crawlers.
+      // Vercel serves static files before applying rewrites, so these pre-rendered
+      // pages will be served directly (with article-specific OG tags) instead of
+      // the generic index.html.
+      const rawUrl = opts.tursoUrl ?? '';
+      const tursoUrl = rawUrl.replace(/^﻿/, '').replace('libsql://', 'https://');
+      const tursoToken = (opts.tursoToken ?? '').replace(/^﻿/, '');
+      if (!tursoUrl || !tursoToken) {
+        console.log('[seo-plugin] Skipping article pre-render: TURSO_URL/TURSO_TOKEN not set');
+        return;
+      }
+
+      const distDir = path.resolve(__dirname, 'dist');
+      let indexHtml: string;
+      try {
+        indexHtml = await fs.readFile(path.join(distDir, 'index.html'), 'utf-8');
+      } catch {
+        console.log('[seo-plugin] Skipping pre-render: dist/index.html not found');
+        return;
+      }
+
+      try {
+        const { createClient } = await import('@libsql/client/web');
+        const db = createClient({ url: tursoUrl, authToken: tursoToken });
+        const result = await db.execute(
+          'SELECT slug, title, excerpt, thumbnail_url, published_at FROM posts ORDER BY published_at DESC'
+        );
+
+        let count = 0;
+        for (const row of result.rows as any[]) {
+          const { slug, title, excerpt, thumbnail_url } = row;
+          if (!slug || !title) continue;
+
+          const pageUrl = `${opts.siteUrl}/magazine/${slug}`;
+          const rawExcerpt = (excerpt ?? title) as string;
+          const desc = rawExcerpt.replace(/<[^>]+>/g, '').slice(0, 160).trim();
+          const img = (thumbnail_url as string | null) ?? `${opts.siteUrl}/og-image.png`;
+          const safeTitle = title.replace(/"/g, '&quot;');
+          const safeDesc = desc.replace(/"/g, '&quot;');
+
+          const articleHtml = indexHtml
+            .replace(/(<title>)[^<]*/,                         `$1${safeTitle} | 카테인`)
+            .replace(/(<meta name="description" content=")[^"]*/,  `$1${safeDesc}`)
+            .replace(/(<meta property="og:title" content=")[^"]*/,       `$1${safeTitle} | 카테인`)
+            .replace(/(<meta property="og:description" content=")[^"]*/,  `$1${safeDesc}`)
+            .replace(/(<meta property="og:type" content=")[^"]*/,         '$1article')
+            .replace(/(<meta property="og:url" content=")[^"]*/,          `$1${pageUrl}`)
+            .replace(/(<meta property="og:image" content=")[^"]*/,        `$1${img}`)
+            .replace(/(<meta name="twitter:title" content=")[^"]*/,       `$1${safeTitle} | 카테인`)
+            .replace(/(<meta name="twitter:description" content=")[^"]*/,  `$1${safeDesc}`)
+            .replace(/(<meta name="twitter:image" content=")[^"]*/,       `$1${img}`);
+
+          const articleDir = path.join(distDir, 'magazine', slug);
+          await fs.mkdir(articleDir, { recursive: true });
+          await fs.writeFile(path.join(articleDir, 'index.html'), articleHtml, 'utf-8');
+          count++;
+        }
+        console.log(`[seo-plugin] Pre-rendered ${count} article pages`);
+      } catch (err) {
+        console.warn('[seo-plugin] Article pre-render failed:', err);
+      }
     },
   };
 }
@@ -141,27 +111,17 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const stripBom = (s: string) => s.replace(/^﻿/, "");
-  const backendUrl = stripBom(env.VITE_SUPABASE_URL ?? "");
-  const supabaseAnonKey = stripBom(env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "");
   const siteUrl = env.VITE_SITE_URL || env.SITE_URL || "https://cartain.kr";
+  const tursoUrl = env.TURSO_URL ?? '';
+  const tursoToken = env.TURSO_TOKEN ?? '';
 
   return {
     server: {
       host: "::",
       port: 8080,
-      proxy: backendUrl
-        ? {
-            "/rss.xml": {
-              target: backendUrl,
-              changeOrigin: true,
-              rewrite: () => "/functions/v1/rss",
-            },
-          }
-        : undefined,
     },
     plugins: [
-      generateSeoFilesPlugin({ siteUrl, backendUrl, supabaseAnonKey }),
+      generateSeoFilesPlugin({ siteUrl, tursoUrl, tursoToken }),
       react(),
       mode === "development" && componentTagger(),
     ].filter(Boolean),
@@ -172,7 +132,6 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             'vendor-react': ['react', 'react-dom', 'react-router-dom'],
             'vendor-query': ['@tanstack/react-query'],
-            'vendor-supabase': ['@supabase/supabase-js'],
             'vendor-charts': ['recharts'],
             'vendor-radix': [
               '@radix-ui/react-dialog',
