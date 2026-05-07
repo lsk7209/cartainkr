@@ -129,11 +129,9 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
 
       const publicDir = path.resolve(__dirname, "public");
       await fs.mkdir(publicDir, { recursive: true });
-      await Promise.all([
-        fs.writeFile(path.join(publicDir, "sitemap.xml"), sitemapXml, "utf8"),
-        fs.writeFile(path.join(publicDir, "robots.txt"), robotsTxt, "utf8"),
-        fs.writeFile(path.join(publicDir, "rss.xml"), rssXml, "utf8"),
-      ]);
+      // sitemap.xml and rss.xml are served by Vercel API functions at runtime
+      // Only write robots.txt as a static file
+      await fs.writeFile(path.join(publicDir, "robots.txt"), robotsTxt, "utf8");
 
       console.log(`[generate-seo-files] Generated sitemap with ${staticRoutes.length + dynamicPosts.length} URLs`);
     },

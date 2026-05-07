@@ -1,8 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+const stripBom = (s: string) => s.replace(/^﻿/, '');
+
 export function requireAdmin(req: VercelRequest): boolean {
   const auth = req.headers['authorization'];
-  const key = process.env.ADMIN_API_KEY;
+  const key = stripBom(process.env.ADMIN_API_KEY ?? '');
   return !!key && auth === `Bearer ${key}`;
 }
 
