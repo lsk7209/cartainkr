@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({ success: true, count: items.length });
     }
 
-    if (path === '/api/admin/posts/update' && req.method === 'POST') {
+    if (path === '/api/admin/update-post' && req.method === 'POST') {
       const { id, title, content_html, excerpt, thumbnail_url } = req.body as {
         id: string; title?: string; content_html?: string;
         excerpt?: string; thumbnail_url?: string;
