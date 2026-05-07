@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import CookieConsent from "@/components/CookieConsent";
 import Index from "./pages/Index";
 
 const PageFallback = () => (
@@ -74,7 +73,6 @@ const App = () => (
           </Routes>
         </Suspense>
         </ErrorBoundary>
-        <CookieConsent />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
