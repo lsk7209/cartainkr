@@ -53,6 +53,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({ success: true, count: items.length });
     }
 
+    if (path === '/api/admin/posts/update' && req.method === 'POST') {
+      const { id, title, content_html, excerpt, thumbnail_url } = req.body as {
+        id: string; title?: string; content_html?: string;
+        excerpt?: string; thumbnail_url?: string;
+      };
+      const db = getDb();
+      const now = new Date().toISOString();
+      await db.execute({
+        sql: `UPDATE posts SET title = COALESCE(?, title), content_html = COALESCE(?, content_html), excerpt = COALESCE(?, excerpt), thumbnail_url = COALESCE(?, thumbnail_url), updated_at = ? WHERE id = ?`,
+        args: [title ?? null, content_html ?? null, excerpt ?? null, thumbnail_url ?? null, now, id],
+      });
+      return res.json({ success: true });
+    }
+
     const queueItemMatch = path.match(/^\/api\/admin\/queue\/([^/]+)$/);
     if (queueItemMatch) {
       const id = queueItemMatch[1];
