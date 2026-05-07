@@ -1,9 +1,11 @@
 import { createClient } from '@libsql/client/web';
 
+const stripBom = (s: string) => s.replace(/^﻿/, '');
+
 export function getDb() {
-  const raw = process.env.TURSO_URL ?? '';
+  const raw = stripBom(process.env.TURSO_URL ?? '');
   const url = raw.startsWith('libsql://') ? raw.replace('libsql://', 'https://') : raw;
-  return createClient({ url, authToken: process.env.TURSO_TOKEN ?? '' });
+  return createClient({ url, authToken: stripBom(process.env.TURSO_TOKEN ?? '') });
 }
 
 export const POSTS_PER_PAGE = 12;
