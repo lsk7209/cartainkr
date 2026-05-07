@@ -8,9 +8,9 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
   return (
     <footer ref={ref} className="py-10 px-4 border-t border-border bg-card">
       <div className="container max-w-5xl mx-auto">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-8">
           {/* Brand */}
-          <div className="md:col-span-1">
+          <div className="col-span-2 md:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Car className="w-4 h-4 text-primary-foreground" />
