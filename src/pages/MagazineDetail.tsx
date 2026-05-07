@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useSEO, generateArticleSchema, generateFAQSchema, generateBreadcrumbSchema } from "@/hooks/useSEO";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getResponsiveSrcSet } from "@/lib/imageUtils";
 import { formatDate, estimateReadTime } from "@/lib/dateUtils";
 import { buildToc } from "@/lib/tocUtils";
 import { markdownToHtml, stripMarkdown } from "@/lib/textUtils";
@@ -298,6 +298,8 @@ const MagazineDetail = () => {
             <figure className="aspect-video rounded-xl overflow-hidden mb-8">
               <img
                 src={getOptimizedImageUrl(post.thumbnail_url, { width: 800 }) || post.thumbnail_url}
+                srcSet={getResponsiveSrcSet(post.thumbnail_url, [400, 800, 1200]) || undefined}
+                sizes="(max-width: 768px) 100vw, 800px"
                 alt={post.title}
                 className="w-full h-full object-cover"
                 loading="eager"

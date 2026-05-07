@@ -9,7 +9,7 @@ import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSEO, generateWebSiteSchema, generateOrganizationSchema, generateFAQSchema } from "@/hooks/useSEO";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getResponsiveSrcSet } from "@/lib/imageUtils";
 import { useLatestPosts, usePostsCount } from "@/hooks/usePosts";
 import { formatDate } from "@/lib/dateUtils";
 import { stripMarkdown } from "@/lib/textUtils";
@@ -198,10 +198,13 @@ const Index = () => {
                       {post.thumbnail_url ? (
                         <img
                           src={getOptimizedImageUrl(post.thumbnail_url, { width: 400 }) || post.thumbnail_url}
+                          srcSet={getResponsiveSrcSet(post.thumbnail_url, [320, 480, 640]) || undefined}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                           alt={post.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           loading={idx === 0 ? "eager" : "lazy"}
                           fetchPriority={idx === 0 ? "high" : "low"}
+                          decoding="async"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/20">
