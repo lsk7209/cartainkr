@@ -1,16 +1,17 @@
-name: Auto Publish Article
+name: Backfill Post Thumbnails
 
 on:
-  schedule:
-    # 매 5시간마다 실행 (UTC 기준: 0, 5, 10, 15, 20시)
-    - cron: '0 */5 * * *'
   workflow_dispatch:
-    # 수동 실행 버튼 (Actions 탭에서 즉시 테스트 가능)
+    inputs:
+      limit:
+        description: '처리할 최대 포스트 수 (0=전체)'
+        required: false
+        default: '0'
 
 jobs:
-  publish:
+  backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 120
 
     steps:
       - name: Checkout
@@ -24,12 +25,12 @@ jobs:
       - name: Install dependencies
         run: pip install anthropic requests replicate
 
-      - name: Publish article
-        run: python scripts/auto_publish.py
+      - name: Run backfill
+        working-directory: scripts
+        run: python backfill_images.py --limit ${{ github.event.inputs.limit || '0' }}
         env:
           CARTAIN_TOKEN:             ${{ secrets.CARTAIN_TOKEN }}
           ANTHROPIC_API_KEY:         ${{ secrets.ANTHROPIC_API_KEY }}
-          VERCEL_DEPLOY_HOOK:        ${{ secrets.VERCEL_DEPLOY_HOOK }}
           REPLICATE_API_TOKEN:       ${{ secrets.REPLICATE_API_TOKEN }}
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

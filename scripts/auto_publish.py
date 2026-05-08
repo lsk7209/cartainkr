@@ -2,9 +2,10 @@
 자동 발행 스크립트 — GitHub Actions 크론에서 5시간마다 실행
 1. 큐에서 다음 pending 항목 조회
 2. Claude API로 3000자 이상 HTML 아티클 생성
-3. cartain.kr API로 발행
-4. IndexNow 핑
-5. Vercel Deploy Hook으로 SSG 재빌드 트리거
+3. Replicate로 썸네일 이미지 생성 → Supabase Storage 업로드
+4. cartain.kr API로 발행
+5. IndexNow 핑
+6. Vercel Deploy Hook으로 SSG 재빌드 트리거
 """
 
 import os
@@ -16,6 +17,13 @@ import string
 import requests
 import anthropic
 from datetime import datetime, timezone
+
+# 이미지 생성 모듈 (선택적 — 환경변수 미설정 시 스킵)
+try:
+    from generate_image import make_thumbnail
+    _IMAGE_ENABLED = bool(os.environ.get("REPLICATE_API_TOKEN"))
+except ImportError:
+    _IMAGE_ENABLED = False
 
 CARTAIN_TOKEN  = os.environ["CARTAIN_TOKEN"]
 ANTHROPIC_KEY  = os.environ["ANTHROPIC_API_KEY"]
@@ -156,7 +164,7 @@ def publish(article: dict, queue_id: str):
         "title":        article["title"],
         "content_html": article["content_html"],
         "excerpt":      article["excerpt"],
-        "thumbnail_url": None,
+        "thumbnail_url": article.get("thumbnail_url"),
         "published_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
         "queue_id":     queue_id,
     }
@@ -197,6 +205,19 @@ def main():
     article = generate_article(queue_title, recent_slugs)
     print(f"📝 생성: {article['title']}")
     print(f"🔗 slug: {article['slug']}")
+
+    # 이미지 생성 (REPLICATE_API_TOKEN 설정된 경우)
+    if _IMAGE_ENABLED:
+        print("🎨 썸네일 이미지 생성 중...")
+        try:
+            article["thumbnail_url"] = make_thumbnail(article["title"], article["excerpt"])
+            print(f"🖼️  썸네일: {article['thumbnail_url']}")
+        except Exception as e:
+            print(f"⚠️  이미지 생성 실패 (thumbnail 없이 발행): {e}")
+            article["thumbnail_url"] = None
+    else:
+        print("⚠️  REPLICATE_API_TOKEN 미설정 — 이미지 없이 발행")
+        article["thumbnail_url"] = None
 
     result = publish(article, queue_id)
     print(f"✅ 발행 완료: {result}")
