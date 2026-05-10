@@ -11,7 +11,7 @@
       "destination": "/api/rss"
     },
     {
-      "source": "/((?!api|assets|favicon|icon|og-image|manifest|robots|sitemap|rss|ads|7f4e2b9d).*)",
+      "source": "/((?!api|assets|favicon|icon|og-image|manifest|robots|sitemap|rss|ads|7f4e2b9d|llms|ai-index|docs).*)",
       "destination": "/index.html"
     }
   ],

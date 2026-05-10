@@ -1,0 +1,50 @@
+{
+  "site": "cartain.kr",
+  "name": "카테인",
+  "locale": "ko_KR",
+  "description": "자동차 유지비·구매·보험·세금 정보 플랫폼. 무료 계산기와 전문 매거진 제공.",
+  "lastUpdated": "2026-05-11",
+  "feeds": {
+    "rss": "https://cartain.kr/rss.xml",
+    "sitemap": "https://cartain.kr/sitemap.xml",
+    "llms": "https://cartain.kr/llms.txt",
+    "llmsFull": "https://cartain.kr/llms-full.txt"
+  },
+  "pages": [
+    {
+      "url": "https://cartain.kr",
+      "title": "카테인 - 자동차 유지비 계산기 & 구매 가이드",
+      "description": "자동차 할부금·보험료·유류비를 무료로 계산하고 최신 자동차 구매 가이드를 확인하세요.",
+      "type": "homepage",
+      "keywords": ["자동차 유지비", "자동차 계산기", "자동차 구매 가이드"]
+    },
+    {
+      "url": "https://cartain.kr/magazine",
+      "title": "자동차 매거진 - 카테인",
+      "description": "자동차 구매, 유지비, 보험, 세금, 전기차 관련 전문 아티클 모음",
+      "type": "list",
+      "keywords": ["자동차 매거진", "자동차 정보", "자동차 가이드"]
+    },
+    {
+      "url": "https://cartain.kr/calculator",
+      "title": "자동차 유지비 계산기 - 카테인",
+      "description": "할부금·연료비·보험료·자동차세를 입력하면 월 유지비와 연간 총비용을 자동 계산합니다.",
+      "type": "tool",
+      "keywords": ["자동차 유지비 계산기", "자동차 할부 계산", "월 유지비"]
+    },
+    {
+      "url": "https://cartain.kr/about",
+      "title": "카테인 소개",
+      "description": "카테인은 대한민국 자동차 오너를 위한 실용 정보 플랫폼입니다.",
+      "type": "about"
+    }
+  ],
+  "categories": [
+    { "slug": "구매", "name": "구매 가이드" },
+    { "slug": "유지비", "name": "유지비·비용" },
+    { "slug": "보험", "name": "보험 정보" },
+    { "slug": "전기차", "name": "연비·전기차" },
+    { "slug": "세금", "name": "세금·법규" },
+    { "slug": "수리", "name": "정비·관리" }
+  ]
+}
