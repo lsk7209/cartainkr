@@ -1,5 +1,6 @@
 const SUPABASE_STORAGE = /supabase\.co\/storage\/v1\/object\/public\//;
 const SUPABASE_CDN = /supabase\.co\/storage\/v1\/render\/image\/public\//;
+export const DEFAULT_POST_THUMBNAIL = "/og-image.png";
 
 /**
  * Return an optimized image URL via Supabase Storage image transformations.
@@ -42,4 +43,11 @@ export const getResponsiveSrcSet = (
   return widths
     .map((w) => `${getOptimizedImageUrl(url, { width: w })} ${w}w`)
     .join(', ');
+};
+
+export const getPostThumbnailUrl = (
+  url: string | null,
+  options: { width?: number; height?: number; quality?: number } = {},
+): string => {
+  return getOptimizedImageUrl(url || DEFAULT_POST_THUMBNAIL, options) || DEFAULT_POST_THUMBNAIL;
 };

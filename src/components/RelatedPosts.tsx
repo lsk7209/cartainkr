@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getPostThumbnailUrl } from "@/lib/imageUtils";
 import { useRelatedPosts } from "@/hooks/usePosts";
 import { formatDate } from "@/lib/dateUtils";
 import { stripMarkdown } from "@/lib/textUtils";
@@ -55,19 +55,13 @@ const RelatedPosts = ({ currentPostId, currentTitle, limit = 4 }: RelatedPostsPr
           >
             {/* Thumbnail */}
             <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
-              {relatedPost.thumbnail_url ? (
-                <img
-                  src={getOptimizedImageUrl(relatedPost.thumbnail_url, { width: 200 }) || relatedPost.thumbnail_url}
-                  alt={relatedPost.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                  <span className="text-3xl">📰</span>
-                </div>
-              )}
+              <img
+                src={getPostThumbnailUrl(relatedPost.thumbnail_url, { width: 200 })}
+                alt={relatedPost.title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
 
             {/* Content */}

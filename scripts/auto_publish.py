@@ -16,7 +16,29 @@ import random
 import string
 import requests
 import anthropic
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PUBLISH_INTERVAL_HOURS = int(os.environ.get("PUBLISH_INTERVAL_HOURS", "5"))
+
+
+def load_local_env_files() -> None:
+    for filename in (".env", ".env.production.local", ".env.production"):
+        env_path = ROOT / filename
+        if not env_path.exists():
+            continue
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            if not line or line.lstrip().startswith("#") or "=" not in line:
+                continue
+            name, value = line.split("=", 1)
+            name = name.strip()
+            value = value.strip().strip('"').strip("'")
+            if name and value and not os.environ.get(name):
+                os.environ[name] = value
+
+
+load_local_env_files()
 
 # 이미지 생성 모듈 (선택적 — 환경변수 미설정 시 스킵)
 try:
@@ -25,8 +47,12 @@ try:
 except ImportError:
     _IMAGE_ENABLED = False
 
-CARTAIN_TOKEN  = os.environ["CARTAIN_TOKEN"]
-ANTHROPIC_KEY  = os.environ["ANTHROPIC_API_KEY"]
+CARTAIN_TOKEN  = os.environ.get("CARTAIN_TOKEN") or os.environ.get("ADMIN_API_KEY")
+ANTHROPIC_KEY  = os.environ.get("ANTHROPIC_API_KEY")
+if not CARTAIN_TOKEN:
+    raise RuntimeError("CARTAIN_TOKEN or ADMIN_API_KEY is not set")
+if not ANTHROPIC_KEY:
+    raise RuntimeError("ANTHROPIC_API_KEY is not set")
 DEPLOY_HOOK    = os.environ.get("VERCEL_DEPLOY_HOOK", "")
 BASE           = "https://www.cartain.kr"
 AUTH           = {"Authorization": f"Bearer {CARTAIN_TOKEN}"}
@@ -36,8 +62,41 @@ AUTH_JSON      = {**AUTH, "Content-Type": "application/json; charset=utf-8"}
 # ── 최근 발행 슬러그 목록으로 중복 방지 ──────────────────────────────────────
 def get_recent_slugs(n=30):
     r = requests.get(f"{BASE}/api/admin/posts", headers=AUTH, timeout=15)
+    r.raise_for_status()
     rows = r.json()
     return [row["slug"] for row in rows[:n]]
+
+
+def parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def format_publish_at(value: datetime) -> str:
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
+def get_next_publish_at() -> datetime:
+    r = requests.get(f"{BASE}/api/admin/posts?limit=500", headers=AUTH, timeout=15)
+    r.raise_for_status()
+    rows = r.json()
+    published_times = [
+        parsed
+        for parsed in (parse_iso_datetime(row.get("published_at")) for row in rows)
+        if parsed is not None
+    ]
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    latest = max(published_times, default=None)
+    if latest and latest > now:
+        return latest + timedelta(hours=PUBLISH_INTERVAL_HOURS)
+    return now
 
 
 # ── 큐에서 다음 pending 항목 ───────────────────────────────────────────────
@@ -165,7 +224,7 @@ def publish(article: dict, queue_id: str):
         "content_html": article["content_html"],
         "excerpt":      article["excerpt"],
         "thumbnail_url": article.get("thumbnail_url"),
-        "published_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+        "published_at": article.get("published_at", format_publish_at(get_next_publish_at())),
         "queue_id":     queue_id,
     }
     r = requests.post(f"{BASE}/api/admin/posts", headers=AUTH_JSON,
@@ -203,6 +262,7 @@ def main():
 
     print("✍️  Claude API로 아티클 생성 중...")
     article = generate_article(queue_title, recent_slugs)
+    article["published_at"] = format_publish_at(get_next_publish_at())
     print(f"📝 생성: {article['title']}")
     print(f"🔗 slug: {article['slug']}")
 

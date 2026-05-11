@@ -1,0 +1,6 @@
+.omc/
+.omx/
+out/
+seeds-tmp/
+_queue.json
+_tmp_articles*.mjs

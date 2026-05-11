@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback, useLayoutEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Calendar, Clock, User, ArrowLeft, Share2, Calculator } from "lucide-react";
 import DOMPurify from "dompurify";
@@ -77,6 +77,10 @@ const MagazineDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [slug]);
+
   // Intercept internal links in generated content to use React Router navigation
   const handleArticleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const target = (e.target as HTMLElement).closest('a');
@@ -92,6 +96,10 @@ const MagazineDetail = () => {
 
   useEffect(() => {
     const fetchPost = async () => {
+      setIsLoading(true);
+      setNotFound(false);
+      setPost(null);
+
       if (!slug) {
         setNotFound(true);
         setIsLoading(false);

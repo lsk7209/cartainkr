@@ -1,6 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb, POSTS_PER_PAGE } from './_lib/turso.js';
 import { setCors } from './_lib/auth.js';
+import { CACHE_CONTROL, setPublicCache } from './_lib/cache.js';
+
+type CountRow = { cnt: string | number };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
@@ -17,12 +20,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const db = getDb();
       const [rows, countRow] = await Promise.all([
         db.execute({
-          sql: 'SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts ORDER BY published_at DESC LIMIT ? OFFSET ?',
+          sql: "SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT ? OFFSET ?",
           args: [POSTS_PER_PAGE, offset],
         }),
-        db.execute('SELECT COUNT(*) as cnt FROM posts'),
+        db.execute(
+          "SELECT COUNT(*) as cnt FROM posts WHERE datetime(published_at) <= datetime('now')",
+        ),
       ]);
-      return res.json({ posts: rows.rows, totalCount: Number((countRow.rows[0] as any).cnt) });
+      setPublicCache(res, CACHE_CONTROL.POSTS_LIST);
+      return res.json({
+        posts: rows.rows,
+        totalCount: Number((countRow.rows[0] as unknown as CountRow).cnt),
+      });
     }
 
     return res.status(404).json({ error: 'Not found' });

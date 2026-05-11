@@ -10,6 +10,233 @@ interface SeoPluginOptions {
   tursoToken?: string;
 }
 
+type PrerenderPostRow = {
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  thumbnail_url: string | null;
+  published_at: string;
+  updated_at: string | null;
+  content_html: string | null;
+};
+
+type StaticRoute = {
+  path: string;
+  title: string;
+  description: string;
+  ogType: "website";
+};
+
+const STATIC_ROUTES: StaticRoute[] = [
+  {
+    path: "/magazine",
+    title: "자동차 매거진 | 카테인",
+    description:
+      "자동차 구매, 유지비, 보험, 세금, 전기차 정보를 한곳에서 확인하세요.",
+    ogType: "website",
+  },
+  {
+    path: "/calculator",
+    title: "자동차 유지비 계산기 | 카테인",
+    description:
+      "차량 가격, 보험료, 세금, 연료비를 입력해 월간 자동차 유지비를 계산하세요.",
+    ogType: "website",
+  },
+];
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeAttribute(value: string) {
+  return escapeHtml(value).replace(/"/g, "&quot;");
+}
+
+function stripHtml(value: string) {
+  return value.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function createJsonLdScript(data: object | object[]) {
+  return `<script type="application/ld+json">${JSON.stringify(data).replace(
+    /<\/script/gi,
+    "<\\/script",
+  )}</script>`;
+}
+
+function extractFaqs(html: string) {
+  const faqs: { question: string; answer: string }[] = [];
+  const detailsRegex =
+    /<details[^>]*>\s*<summary[^>]*>(.*?)<\/summary>\s*(?:<div[^>]*>)?([\s\S]*?)(?:<\/div>)?\s*<\/details>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = detailsRegex.exec(html)) !== null) {
+    const question = stripHtml(match[1]);
+    const answer = stripHtml(match[2]);
+    if (question && answer) {
+      faqs.push({ question, answer });
+    }
+  }
+
+  return faqs;
+}
+
+function buildArticleStructuredData(
+  row: PrerenderPostRow,
+  siteUrl: string,
+  description: string,
+) {
+  const articleUrl = `${siteUrl}/magazine/${row.slug}`;
+  const imageUrl = row.thumbnail_url || `${siteUrl}/og-image.png`;
+  const text = row.content_html ? stripHtml(row.content_html) : "";
+  const wordCount = text ? text.split(/\s+/).length : undefined;
+  const article = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "@id": articleUrl,
+    headline: row.title,
+    description,
+    articleSection: "자동차",
+    ...(wordCount ? { wordCount } : {}),
+    image: {
+      "@type": "ImageObject",
+      url: imageUrl,
+      width: 1200,
+      height: 630,
+    },
+    url: articleUrl,
+    datePublished: row.published_at,
+    dateModified: row.updated_at || row.published_at,
+    inLanguage: "ko-KR",
+    author: {
+      "@type": "Person",
+      name: "카테인 에디터",
+      url: `${siteUrl}/about`,
+    },
+    publisher: {
+      "@type": "Organization",
+      "@id": `${siteUrl}/#organization`,
+      name: "카테인",
+      url: siteUrl,
+      logo: {
+        "@type": "ImageObject",
+        url: `${siteUrl}/og-image.png`,
+        width: 1200,
+        height: 630,
+      },
+    },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": articleUrl,
+    },
+    isPartOf: {
+      "@type": "WebSite",
+      "@id": `${siteUrl}/#website`,
+      name: "카테인",
+      url: siteUrl,
+    },
+    about: {
+      "@type": "Thing",
+      name: "자동차",
+    },
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: ["h1", "h2", "article > p:first-of-type"],
+    },
+  };
+  const breadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "홈", item: siteUrl },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "매거진",
+        item: `${siteUrl}/magazine`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: row.title,
+        item: articleUrl,
+      },
+    ],
+  };
+  const faqs = row.content_html ? extractFaqs(row.content_html) : [];
+  const faqSchema = faqs.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
+      }
+    : null;
+
+  return faqSchema ? [article, faqSchema, breadcrumb] : [article, breadcrumb];
+}
+
+function injectRouteMeta(
+  indexHtml: string,
+  route: StaticRoute,
+  siteUrl: string,
+) {
+  const pageUrl = `${siteUrl}${route.path}`;
+  const safeTitle = escapeAttribute(route.title);
+  const safeDescription = escapeAttribute(route.description);
+
+  return indexHtml
+    .replace(/(<title>)[^<]*/, `$1${safeTitle}`)
+    .replace(
+      /(<meta name="description" content=")[^"]*/,
+      `$1${safeDescription}`,
+    )
+    .replace(/(<meta property="og:title" content=")[^"]*/, `$1${safeTitle}`)
+    .replace(
+      /(<meta property="og:description" content=")[^"]*/,
+      `$1${safeDescription}`,
+    )
+    .replace(/(<meta property="og:type" content=")[^"]*/, `$1${route.ogType}`)
+    .replace(/(<meta property="og:url" content=")[^"]*/, `$1${pageUrl}`)
+    .replace(/(<meta name="twitter:title" content=")[^"]*/, `$1${safeTitle}`)
+    .replace(
+      /(<meta name="twitter:description" content=")[^"]*/,
+      `$1${safeDescription}`,
+    )
+    .replace(
+      "</head>",
+      `  <link rel="canonical" href="${pageUrl}" />\n  </head>`,
+    )
+    .replace(
+      /<noscript>[\s\S]*?<\/noscript>/,
+      `<noscript><div style="padding:2rem;max-width:800px;margin:0 auto;font-family:sans-serif"><h1>${escapeHtml(route.title)}</h1><p>${escapeHtml(route.description)}</p><p>이 페이지를 보려면 JavaScript를 활성화해 주세요.</p><p><a href="/">홈</a> | <a href="/magazine">매거진</a></p></div></noscript>`,
+    );
+}
+
+async function writeStaticRouteFiles(
+  distDir: string,
+  indexHtml: string,
+  siteUrl: string,
+) {
+  for (const route of STATIC_ROUTES) {
+    const routeDir = path.join(distDir, route.path.replace(/^\//, ""));
+    await fs.mkdir(routeDir, { recursive: true });
+    await fs.writeFile(
+      path.join(routeDir, "index.html"),
+      injectRouteMeta(indexHtml, route, siteUrl),
+      "utf-8",
+    );
+  }
+}
+
 function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
   return {
     name: "generate-seo-files",
@@ -58,18 +285,6 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
       // Vercel serves static files before applying rewrites, so these pre-rendered
       // pages will be served directly (with article-specific OG tags) instead of
       // the generic index.html.
-      const rawUrl = opts.tursoUrl ?? "";
-      const tursoUrl = rawUrl
-        .replace(/^﻿/, "")
-        .replace("libsql://", "https://");
-      const tursoToken = (opts.tursoToken ?? "").replace(/^﻿/, "");
-      if (!tursoUrl || !tursoToken) {
-        console.log(
-          "[seo-plugin] Skipping article pre-render: TURSO_URL/TURSO_TOKEN not set",
-        );
-        return;
-      }
-
       const distDir = path.resolve(__dirname, "dist");
       let indexHtml: string;
       try {
@@ -84,15 +299,32 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
         return;
       }
 
+      await writeStaticRouteFiles(distDir, indexHtml, opts.siteUrl);
+      console.log(
+        `[seo-plugin] Generated ${STATIC_ROUTES.length} static route pages`,
+      );
+
+      const rawUrl = opts.tursoUrl ?? "";
+      const tursoUrl = rawUrl
+        .replace(/^\uFEFF/, "")
+        .replace("libsql://", "https://");
+      const tursoToken = (opts.tursoToken ?? "").replace(/^\uFEFF/, "");
+      if (!tursoUrl || !tursoToken) {
+        console.log(
+          "[seo-plugin] Skipping article pre-render: TURSO_URL/TURSO_TOKEN not set",
+        );
+        return;
+      }
+
       try {
         const { createClient } = await import("@libsql/client/web");
         const db = createClient({ url: tursoUrl, authToken: tursoToken });
         const result = await db.execute(
-          "SELECT slug, title, excerpt, thumbnail_url, published_at FROM posts WHERE published_at <= datetime('now') ORDER BY published_at DESC",
+          "SELECT slug, title, excerpt, thumbnail_url, published_at, updated_at, content_html FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC",
         );
 
         let count = 0;
-        for (const row of result.rows as any[]) {
+        for (const row of result.rows as PrerenderPostRow[]) {
           const { slug, title, excerpt, thumbnail_url } = row;
           if (!slug || !title) continue;
 
@@ -106,13 +338,9 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
             (thumbnail_url as string | null) ?? `${opts.siteUrl}/og-image.png`;
           const safeTitle = title.replace(/"/g, "&quot;");
           const safeDesc = desc.replace(/"/g, "&quot;");
-
-          // Safe text escaping for noscript HTML content
-          const escHtml = (s: string) =>
-            s
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;");
+          const structuredData = createJsonLdScript(
+            buildArticleStructuredData(row, opts.siteUrl, desc),
+          );
 
           const articleHtml = indexHtml
             .replace(/(<title>)[^<]*/, `$1${safeTitle} - 자동차 정보 | 카테인`)
@@ -142,11 +370,11 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
             .replace(/(<meta name="twitter:image" content=")[^"]*/, `$1${img}`)
             .replace(
               "</head>",
-              `  <link rel="canonical" href="${pageUrl}" />\n  </head>`,
+              `  <link rel="canonical" href="${pageUrl}" />\n  ${structuredData}\n  </head>`,
             )
             .replace(
               /<noscript>[\s\S]*?<\/noscript>/,
-              `<noscript><div style="padding:2rem;max-width:800px;margin:0 auto;font-family:sans-serif"><h1>${escHtml(title)}</h1><p>${escHtml(desc)}</p><p>이 페이지를 보려면 JavaScript를 활성화해 주세요.</p><p><a href="/">홈</a> | <a href="/magazine">매거진</a></p></div></noscript>`,
+              `<noscript><div style="padding:2rem;max-width:800px;margin:0 auto;font-family:sans-serif"><h1>${escapeHtml(title)}</h1><p>${escapeHtml(desc)}</p><p>이 페이지를 보려면 JavaScript를 활성화해 주세요.</p><p><a href="/">홈</a> | <a href="/magazine">매거진</a></p></div></noscript>`,
             );
 
           const articleDir = path.join(distDir, "magazine", slug);

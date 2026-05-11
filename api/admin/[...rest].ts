@@ -2,6 +2,28 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getDb } from '../_lib/turso.js';
 import { requireAdmin, setCors } from '../_lib/auth.js';
 
+const DEFAULT_POST_LIMIT = 100;
+const MAX_POST_LIMIT = 500;
+
+type CountRow = { cnt: number | string };
+type SettingRow = { key: string; value: string };
+type SlugRow = { slug: string };
+
+function parseBoundedInt(value: string | null, fallback: number, max: number) {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(0, parsed));
+}
+
+function asRow<T>(row: unknown) {
+  return row as T;
+}
+
+function asRows<T>(rows: unknown) {
+  return rows as T[];
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -22,16 +44,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         db.execute("SELECT COUNT(*) as cnt FROM post_queue WHERE status = 'completed'"),
       ]);
       return res.json({
-        totalPosts: Number((total.rows[0] as any).cnt),
-        thisWeekPosts: Number((weekly.rows[0] as any).cnt),
-        pendingQueue: Number((pending.rows[0] as any).cnt),
-        completedQueue: Number((completed.rows[0] as any).cnt),
+        totalPosts: Number(asRow<CountRow>(total.rows[0]).cnt),
+        thisWeekPosts: Number(asRow<CountRow>(weekly.rows[0]).cnt),
+        pendingQueue: Number(asRow<CountRow>(pending.rows[0]).cnt),
+        completedQueue: Number(asRow<CountRow>(completed.rows[0]).cnt),
       });
     }
 
     if (path === '/api/admin/posts' && req.method === 'GET') {
       const db = getDb();
-      const rows = await db.execute('SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts ORDER BY published_at DESC LIMIT 100');
+      const thumbnailFilter = url.searchParams.get('thumbnail');
+      const limit = parseBoundedInt(url.searchParams.get('limit'), DEFAULT_POST_LIMIT, MAX_POST_LIMIT);
+      const offset = parseBoundedInt(url.searchParams.get('offset'), 0, Number.MAX_SAFE_INTEGER);
+      const where = thumbnailFilter === 'missing'
+        ? "WHERE thumbnail_url IS NULL OR TRIM(thumbnail_url) = ''"
+        : '';
+      const rows = await db.execute({
+        sql: `SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts ${where} ORDER BY published_at DESC LIMIT ? OFFSET ?`,
+        args: [limit, offset],
+      });
       return res.json(rows.rows);
     }
 
@@ -106,7 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const db = getDb();
       const rows = await db.execute('SELECT key, value FROM settings');
       const out: Record<string, string> = {};
-      for (const row of rows.rows as any[]) out[row.key] = row.value;
+      for (const row of asRows<SettingRow>(rows.rows)) out[row.key] = row.value;
       return res.json(out);
     }
 
@@ -126,7 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const BASE = 'https://cartain.kr';
       const db = getDb();
       const rows = await db.execute('SELECT slug FROM posts ORDER BY published_at DESC LIMIT 500');
-      const urlList = (rows.rows as any[]).map((r) => `${BASE}/magazine/${r.slug}`);
+      const urlList = asRows<SlugRow>(rows.rows).map((r) => `${BASE}/magazine/${r.slug}`);
       urlList.unshift(BASE, `${BASE}/magazine`, `${BASE}/calculator`);
 
       const payload = {

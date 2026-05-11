@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLatestPosts } from "@/hooks/usePosts";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getPostThumbnailUrl } from "@/lib/imageUtils";
 import { useSEO } from "@/hooks/useSEO";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -76,16 +76,14 @@ const NotFound = () => {
                 {posts.map((post) => (
                   <Link key={post.id} to={`/magazine/${post.slug}`}>
                     <Card className="h-full hover:shadow-md transition-shadow">
-                      {post.thumbnail_url && (
-                        <div className="aspect-video overflow-hidden rounded-t-lg">
-                          <img
-                            src={getOptimizedImageUrl(post.thumbnail_url, { width: 400 }) || post.thumbnail_url}
-                            alt={post.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        </div>
-                      )}
+                      <div className="aspect-video overflow-hidden rounded-t-lg">
+                        <img
+                          src={getPostThumbnailUrl(post.thumbnail_url, { width: 400 })}
+                          alt={post.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      </div>
                       <CardContent className="p-4">
                         <h3 className="font-medium line-clamp-2 mb-2">{post.title}</h3>
                         {post.excerpt && (

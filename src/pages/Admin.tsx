@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { subDays, eachDayOfInterval, eachWeekOfInterval, subWeeks, endOfWeek, isWithinInterval } from "date-fns";
 import { formatDate } from "@/lib/dateUtils";
+import { getPostThumbnailUrl } from "@/lib/imageUtils";
 import type { PostSummary } from "@/types/post";
 
 const STORAGE_KEY = "cartainkr_admin_key";
@@ -68,6 +69,8 @@ const Admin = () => {
   // Auto-verify stored key on mount
   useEffect(() => {
     if (apiKey) verifyKey(apiKey);
+    // Stored-key verification should only run once on initial admin mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const verifyKey = async (key: string) => {
@@ -104,6 +107,8 @@ const Admin = () => {
     if (isAuthenticated) {
       fetchAll();
     }
+    // Fetch after authentication flips; fetchAll closes over the current key.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   const fetchAll = () => {
@@ -335,14 +340,13 @@ const Admin = () => {
                   key: "thumbnail",
                   header: "썸네일",
                   headerClassName: "w-20",
-                  render: (post) =>
-                    post.thumbnail_url ? (
-                      <img src={post.thumbnail_url} alt={post.title} className="w-16 h-10 object-cover rounded" />
-                    ) : (
-                      <div className="w-16 h-10 bg-muted rounded flex items-center justify-center">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                    ),
+                  render: (post) => (
+                    <img
+                      src={getPostThumbnailUrl(post.thumbnail_url, { width: 128 })}
+                      alt={post.title}
+                      className="w-16 h-10 object-cover rounded"
+                    />
+                  ),
                 },
                 {
                   key: "title",

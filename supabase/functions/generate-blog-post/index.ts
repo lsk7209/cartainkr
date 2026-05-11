@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 const corsHeaders = {
@@ -403,7 +403,7 @@ async function generateImage(imagePrompt: string): Promise<string> {
 
 // Step 3: Upload image to Supabase Storage
 async function uploadImageToStorage(
-  supabase: any,
+  supabase: SupabaseClient,
   base64DataUrl: string,
   filename: string
 ): Promise<string> {

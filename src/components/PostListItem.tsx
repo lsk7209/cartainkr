@@ -1,6 +1,6 @@
 import { ExternalLink } from "lucide-react";
 import { formatDate } from "@/lib/dateUtils";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getPostThumbnailUrl } from "@/lib/imageUtils";
 import { cn } from "@/lib/utils";
 import type { PostSummary } from "@/types/post";
 
@@ -34,9 +34,9 @@ export const PostListItem = ({
       )}
     >
       <div className="flex items-center gap-4 flex-1 min-w-0">
-        {showThumbnail && post.thumbnail_url && (
+        {showThumbnail && (
           <img
-            src={getOptimizedImageUrl(post.thumbnail_url, { width: 128 }) || post.thumbnail_url}
+            src={getPostThumbnailUrl(post.thumbnail_url, { width: 128 })}
             alt={post.title}
             className="w-16 h-12 object-cover rounded"
             loading="lazy"

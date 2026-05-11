@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const stripBom = (s: string) => s.replace(/^﻿/, '');
+const stripBom = (s: string) => s.replace(/^\uFEFF/, '');
 
 export function requireAdmin(req: VercelRequest): boolean {
   const auth = req.headers['authorization'];

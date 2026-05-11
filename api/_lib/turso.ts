@@ -1,6 +1,6 @@
 import { createClient } from '@libsql/client/web';
 
-const stripBom = (s: string) => s.replace(/^﻿/, '');
+const stripBom = (s: string) => s.replace(/^\uFEFF/, '');
 
 export function getDb() {
   const raw = stripBom(process.env.TURSO_URL ?? '');

@@ -7,7 +7,7 @@ import JsonLd from "@/components/JsonLd";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useSEO, generateCollectionPageSchema, generateBreadcrumbSchema } from "@/hooks/useSEO";
-import { getOptimizedImageUrl, getResponsiveSrcSet } from "@/lib/imageUtils";
+import { getPostThumbnailUrl, getResponsiveSrcSet } from "@/lib/imageUtils";
 import { usePaginatedPosts, useSearchPosts } from "@/hooks/usePosts";
 import { formatDate } from "@/lib/dateUtils";
 import { stripMarkdown } from "@/lib/textUtils";
@@ -25,7 +25,10 @@ const MagazineList = () => {
   const { data: searchResults = [], isLoading: searchLoading } = useSearchPosts(searchQuery);
 
   const isSearchMode = searchQuery.length >= 2;
-  const posts = isSearchMode ? searchResults : (data?.posts || []);
+  const posts = useMemo(
+    () => (isSearchMode ? searchResults : (data?.posts || [])),
+    [data?.posts, isSearchMode, searchResults],
+  );
   const totalCount = data?.totalCount || 0;
   const totalPages = isSearchMode ? 1 : Math.ceil(totalCount / POSTS_PER_PAGE);
   const isLoadingAny = isSearchMode ? searchLoading : isLoading;
@@ -103,7 +106,7 @@ const MagazineList = () => {
     const maxVisible = 5;
     
     let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-    let end = Math.min(totalPages, start + maxVisible - 1);
+    const end = Math.min(totalPages, start + maxVisible - 1);
     
     if (end - start + 1 < maxVisible) {
       start = Math.max(1, end - maxVisible + 1);
@@ -222,22 +225,16 @@ const MagazineList = () => {
                   >
                     {/* Thumbnail */}
                     <div className="aspect-video bg-muted overflow-hidden">
-                      {post.thumbnail_url ? (
-                        <img
-                          src={getOptimizedImageUrl(post.thumbnail_url, { width: 400 }) || post.thumbnail_url}
-                          srcSet={getResponsiveSrcSet(post.thumbnail_url, [320, 400, 640])}
-                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          alt={post.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading={index < 3 ? "eager" : "lazy"}
-                          decoding="async"
-                          fetchPriority={index < 3 ? "high" : "low"}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-accent">
-                          <span className="text-4xl font-bold text-primary/30">카</span>
-                        </div>
-                      )}
+                      <img
+                        src={getPostThumbnailUrl(post.thumbnail_url, { width: 400 })}
+                        srcSet={getResponsiveSrcSet(post.thumbnail_url, [320, 400, 640]) || undefined}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading={index < 3 ? "eager" : "lazy"}
+                        decoding="async"
+                        fetchPriority={index < 3 ? "high" : "low"}
+                      />
                     </div>
 
                     {/* Content */}
