@@ -8,7 +8,7 @@ export default async function handler(
   try {
     const db = getDb();
     const rows = await db.execute(
-      "SELECT slug, updated_at, published_at, thumbnail_url FROM posts ORDER BY published_at DESC",
+      "SELECT slug, updated_at, published_at, thumbnail_url FROM posts WHERE published_at <= datetime('now') ORDER BY published_at DESC",
     );
     const BASE = "https://cartain.kr";
     const staticUrls = [
