@@ -88,7 +88,7 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
         const { createClient } = await import("@libsql/client/web");
         const db = createClient({ url: tursoUrl, authToken: tursoToken });
         const result = await db.execute(
-          "SELECT slug, title, excerpt, thumbnail_url, published_at FROM posts ORDER BY published_at DESC",
+          "SELECT slug, title, excerpt, thumbnail_url, published_at FROM posts WHERE published_at <= datetime('now') ORDER BY published_at DESC",
         );
 
         let count = 0;
