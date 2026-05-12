@@ -9,6 +9,14 @@ type SitemapPostRow = {
   thumbnail_url: string | null;
 };
 
+const escapeXml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+
 export default async function handler(
   _req: VercelRequest,
   res: VercelResponse,
@@ -18,7 +26,7 @@ export default async function handler(
     const rows = await db.execute(
       "SELECT slug, updated_at, published_at, thumbnail_url FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC",
     );
-    const BASE = "https://cartain.kr";
+    const BASE = "https://www.cartain.kr";
     const staticUrls = [
       { loc: BASE, priority: "1.0" },
       { loc: `${BASE}/magazine`, priority: "0.9" },
@@ -31,7 +39,7 @@ export default async function handler(
     const staticXml = staticUrls
       .map(
         (u) =>
-          `  <url><loc>${u.loc}</loc><priority>${u.priority}</priority></url>`,
+          `  <url><loc>${escapeXml(u.loc)}</loc><priority>${u.priority}</priority></url>`,
       )
       .join("\n");
     const postsXml = (rows.rows as unknown as SitemapPostRow[])
@@ -41,9 +49,9 @@ export default async function handler(
           10,
         );
         const imageTag = p.thumbnail_url
-          ? `\n    <image:image><image:loc>${p.thumbnail_url}</image:loc></image:image>`
+          ? `\n    <image:image><image:loc>${escapeXml(p.thumbnail_url)}</image:loc></image:image>`
           : "";
-        return `  <url><loc>${BASE}/magazine/${p.slug}</loc><lastmod>${lastmod}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>${imageTag}\n  </url>`;
+        return `  <url><loc>${escapeXml(`${BASE}/magazine/${p.slug}`)}</loc><lastmod>${lastmod}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>${imageTag}\n  </url>`;
       })
       .join("\n");
     res.setHeader("Content-Type", "application/xml; charset=utf-8");

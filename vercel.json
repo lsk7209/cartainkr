@@ -11,7 +11,15 @@
       "destination": "/api/rss"
     },
     {
-      "source": "/((?!api|assets|favicon|icon|og-image|manifest|robots|sitemap|rss|ads|7f4e2b9d|llms|ai-index|docs).*)",
+      "source": "/feed.xml",
+      "destination": "/api/rss"
+    },
+    {
+      "source": "/feed",
+      "destination": "/api/rss"
+    },
+    {
+      "source": "/((?!api|assets|favicon|icon|og-image|manifest|robots|sitemap|rss|feed|ads|7f4e2b9d|llms|ai-index|docs).*)",
       "destination": "/index.html"
     }
   ],
@@ -43,6 +51,20 @@
     },
     {
       "source": "/rss.xml",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600" },
+        { "key": "Content-Type", "value": "application/rss+xml; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/feed.xml",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600" },
+        { "key": "Content-Type", "value": "application/rss+xml; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/feed",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=3600" },
         { "key": "Content-Type", "value": "application/rss+xml; charset=utf-8" }

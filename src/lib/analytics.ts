@@ -4,7 +4,7 @@ declare global {
   }
 }
 
-const GA_MEASUREMENT_ID = "G-69KWFZVNCQ";
+const GA_MEASUREMENT_ID = "G-N7JJFW6007";
 
 // 기본 이벤트 전송
 export const trackEvent = (

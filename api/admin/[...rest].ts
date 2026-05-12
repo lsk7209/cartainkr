@@ -6,6 +6,13 @@ const DEFAULT_POST_LIMIT = 100;
 const MAX_POST_LIMIT = 500;
 
 type CountRow = { cnt: number | string };
+
+const normalizeContentHtml = (value: unknown) => {
+  if (typeof value !== 'string') return null;
+  const content = value.trim();
+  if (!content || content === '[object Object]') return null;
+  return value;
+};
 type SettingRow = { key: string; value: string };
 type SlugRow = { slug: string };
 
@@ -86,14 +93,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (path === '/api/admin/update-post' && req.method === 'POST') {
       const { id, title, content_html, excerpt, thumbnail_url } = req.body as {
-        id: string; title?: string; content_html?: string;
+        id: string; title?: string; content_html?: unknown;
         excerpt?: string; thumbnail_url?: string;
       };
+      const normalizedContent = content_html === undefined ? null : normalizeContentHtml(content_html);
+      if (content_html !== undefined && !normalizedContent) {
+        return res.status(400).json({ error: 'Invalid content_html' });
+      }
       const db = getDb();
       const now = new Date().toISOString();
       await db.execute({
         sql: `UPDATE posts SET title = COALESCE(?, title), content_html = COALESCE(?, content_html), excerpt = COALESCE(?, excerpt), thumbnail_url = COALESCE(?, thumbnail_url), updated_at = ? WHERE id = ?`,
-        args: [title ?? null, content_html ?? null, excerpt ?? null, thumbnail_url ?? null, now, id],
+        args: [title ?? null, normalizedContent, excerpt ?? null, thumbnail_url ?? null, now, id],
       });
       return res.json({ success: true });
     }
@@ -116,14 +127,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (path === '/api/admin/posts' && req.method === 'POST') {
       const { id, slug, title, content_html, excerpt, thumbnail_url, published_at } = req.body as {
-        id: string; slug: string; title: string; content_html: string;
+        id: string; slug: string; title: string; content_html: unknown;
         excerpt: string; thumbnail_url: string | null; published_at: string;
       };
+      const normalizedContent = normalizeContentHtml(content_html);
+      if (!normalizedContent) {
+        return res.status(400).json({ error: 'Invalid content_html' });
+      }
       const db = getDb();
       const now = published_at || new Date().toISOString();
       await db.execute({
         sql: 'INSERT INTO posts (id, slug, title, content_html, excerpt, thumbnail_url, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        args: [id, slug, title, content_html, excerpt, thumbnail_url ?? null, now, now],
+        args: [id, slug, title, normalizedContent, excerpt, thumbnail_url ?? null, now, now],
       });
       // Mark queue item as completed if queue_id provided
       const { queue_id } = req.body as { queue_id?: string };

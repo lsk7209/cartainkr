@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-const GA_MEASUREMENT_ID = "G-69KWFZVNCQ";
+const GA_MEASUREMENT_ID = "G-N7JJFW6007";
 
 export const usePageTracking = () => {
   const location = useLocation();
