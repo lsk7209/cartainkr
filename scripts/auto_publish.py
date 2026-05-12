@@ -122,7 +122,59 @@ def make_slug(en_title: str) -> str:
     today = datetime.now(timezone.utc).strftime("%Y%m%d")
     suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
     base = re.sub(r"[^a-z0-9]+", "-", en_title.lower()).strip("-")[:60]
+    if not base:
+        base = "car-guide"
     return f"{base}-{today}-{suffix}"
+
+
+def generate_fallback_article(queue_title: str) -> dict:
+    title = queue_title.strip() or "자동차 실전 관리 가이드 2026"
+    excerpt = (
+        f"{title}의 핵심 기준을 구매 전 확인할 항목, 비용 계산, 서류 점검, "
+        "실전 체크리스트 중심으로 정리합니다."
+    )
+    slug_seed = "car-guide-" + re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:40]
+    content = f"""
+<p class="article-summary">{excerpt}</p>
+<div class="key-takeaways">
+  <h2>핵심 요약</h2>
+  <ul>
+    <li>차량 관련 결정은 차값이 아니라 총비용 기준으로 비교해야 합니다.</li>
+    <li>세금, 보험, 보증, 정비 이력은 계약 전 반드시 서면으로 확인합니다.</li>
+    <li>조건이 애매하면 공식 기관 또는 계약서 원문 기준으로 다시 점검합니다.</li>
+  </ul>
+</div>
+<h2>먼저 확인할 기준</h2>
+<p>{title}에서 가장 먼저 볼 것은 실제 지출과 책임 범위입니다. 자동차 관련 비용은 차량 가격, 세금, 보험료, 소모품, 정비비가 함께 움직이기 때문에 한 항목만 보고 판단하면 예산이 쉽게 어긋납니다.</p>
+<h2>비용 계산 방법</h2>
+<p>구매 또는 유지 비용은 월 단위와 연 단위로 나누어 계산하는 것이 좋습니다. 취득세, 공채, 자동차세, 보험료처럼 한 번에 나가는 비용과 유류비, 충전비, 정비비처럼 반복되는 비용을 분리하면 비교가 쉬워집니다.</p>
+<table>
+  <thead><tr><th>항목</th><th>확인 포인트</th></tr></thead>
+  <tbody>
+    <tr><td>초기 비용</td><td>차량 가격, 취득세, 공채, 등록비, 보험료</td></tr>
+    <tr><td>월 유지비</td><td>유류비 또는 충전비, 주차비, 소모품, 할부금</td></tr>
+    <tr><td>위험 비용</td><td>중도해지 위약금, 보증 제외 수리비, 사고 자기부담금</td></tr>
+  </tbody>
+</table>
+<h2>실전 체크리스트</h2>
+<ul>
+  <li>견적서의 포함 항목과 제외 항목을 분리해서 확인하기</li>
+  <li>보험료는 본인 나이와 운전 경력 기준으로 직접 조회하기</li>
+  <li>계약 전 세금 감면, 보증, 환불, 위약금 조건을 서면으로 남기기</li>
+  <li>중고차는 성능점검기록부와 보험 이력을 함께 확인하기</li>
+</ul>
+<h2>자주 묻는 질문</h2>
+<details><summary>온라인 평균 비용만 보고 결정해도 되나요?</summary><div><p>평균 비용은 참고용입니다. 실제 비용은 지역, 명의, 보험 경력, 차량 등급, 계약 조건에 따라 달라지므로 본인 조건으로 다시 계산해야 합니다.</p></div></details>
+<details><summary>계약 전 가장 중요한 서류는 무엇인가요?</summary><div><p>견적서, 계약서, 약관, 보증 조건, 세금 계산 내역입니다. 분쟁이 생기면 구두 안내보다 서면 자료가 기준이 됩니다.</p></div></details>
+<h2>마무리</h2>
+<p>{title}는 한 번의 선택보다 보유 기간 전체 비용과 조건을 보는 것이 중요합니다. 위 체크리스트를 기준으로 비교하면 불필요한 지출과 사후 분쟁을 줄일 수 있습니다.</p>
+""".strip()
+    return {
+        "title": title,
+        "slug": make_slug(slug_seed),
+        "excerpt": excerpt,
+        "content_html": content,
+    }
 
 
 # ── Claude API로 아티클 생성 ───────────────────────────────────────────────
@@ -261,7 +313,11 @@ def main():
     print(f"📰 최근 슬러그 {len(recent_slugs)}개 로드")
 
     print("✍️  Claude API로 아티클 생성 중...")
-    article = generate_article(queue_title, recent_slugs)
+    try:
+        article = generate_article(queue_title, recent_slugs)
+    except Exception as e:
+        print(f"Claude article generation failed, using local fallback: {type(e).__name__}: {e}")
+        article = generate_fallback_article(queue_title)
     article["published_at"] = format_publish_at(get_next_publish_at())
     print(f"📝 생성: {article['title']}")
     print(f"🔗 slug: {article['slug']}")
