@@ -1,6 +1,14 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.cartain.kr" }],
+      "destination": "https://cartain.kr/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/sitemap.xml",
@@ -19,7 +27,11 @@
       "destination": "/api/rss"
     },
     {
-      "source": "/((?!api|assets|favicon|icon|og-image|manifest|robots|sitemap|rss|feed|ads|7f4e2b9d|llms|ai-index|docs).*)",
+      "source": "/magazine/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/:path*",
       "destination": "/index.html"
     }
   ],
