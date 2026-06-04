@@ -2,8 +2,8 @@ name: Auto Publish Article
 
 on:
   schedule:
-    # 매 5시간마다 실행 (UTC 기준: 0, 5, 10, 15, 20시)
-    - cron: '0 */5 * * *'
+    # 하루 1회 (UTC 0시 = KST 9시). 빌드 비용 절감: 5편을 생성한 뒤 deploy hook 1회.
+    - cron: '0 0 * * *'
   workflow_dispatch:
     # 수동 실행 버튼 (Actions 탭에서 즉시 테스트 가능)
 
@@ -38,3 +38,4 @@ jobs:
           SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           PUBLISH_INTERVAL_HOURS:    "5"
+          BATCH_SIZE:                "5"

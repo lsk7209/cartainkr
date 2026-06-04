@@ -54,7 +54,7 @@ if not CARTAIN_TOKEN:
 if not ANTHROPIC_KEY:
     raise RuntimeError("ANTHROPIC_API_KEY is not set")
 DEPLOY_HOOK    = os.environ.get("VERCEL_DEPLOY_HOOK", "")
-BASE           = "https://www.cartain.kr"
+BASE           = "https://cartain.kr"
 AUTH           = {"Authorization": f"Bearer {CARTAIN_TOKEN}"}
 AUTH_JSON      = {**AUTH, "Content-Type": "application/json; charset=utf-8"}
 
@@ -100,14 +100,16 @@ def get_next_publish_at() -> datetime:
 
 
 # ── 큐에서 다음 pending 항목 ───────────────────────────────────────────────
-def get_next_pending():
+def get_next_pending(exit_if_empty: bool = True):
     r = requests.get(f"{BASE}/api/admin/queue", headers=AUTH, timeout=15)
     r.raise_for_status()
     queue = r.json()
     pending = [x for x in queue if x.get("status") == "pending"]
     if not pending:
-        print("❌ pending 항목 없음 — 큐가 비었습니다.")
-        sys.exit(0)
+        if exit_if_empty:
+            print("❌ pending 항목 없음 — 큐가 비었습니다.")
+            sys.exit(0)
+        return None
     return pending[0]
 
 
@@ -301,13 +303,14 @@ def trigger_vercel():
 
 
 # ── 메인 ───────────────────────────────────────────────────────────────────
-def main():
-    print(f"[{datetime.now(timezone.utc).isoformat()}] auto_publish 시작")
-
-    pending      = get_next_pending()
+def publish_one(index: int, total: int):
+    """큐에서 1편을 생성·발행한다. 큐가 비면 None 반환(배치 종료 신호)."""
+    pending = get_next_pending(exit_if_empty=(index == 0))
+    if pending is None:
+        return None
     queue_id     = pending["id"]
     queue_title  = pending.get("title", "")
-    print(f"📋 pending: {queue_id} | {queue_title[:60]}")
+    print(f"📋 [{index + 1}/{total}] pending: {queue_id} | {queue_title[:60]}")
 
     recent_slugs = get_recent_slugs(30)
     print(f"📰 최근 슬러그 {len(recent_slugs)}개 로드")
@@ -340,10 +343,28 @@ def main():
 
     idx = ping_indexnow()
     print(f"📡 IndexNow: bing={idx.get('bing')} naver={idx.get('naver')} count={idx.get('count')}")
+    return result
 
-    trigger_vercel()
 
-    print("🎉 완료!")
+def main():
+    # 빌드 비용 절감: BATCH_SIZE편을 생성·발행한 뒤 Vercel deploy hook(=풀 재빌드)을 1회만 호출.
+    # published_at은 기존 로직대로 5h 간격으로 예약되므로 글 노출 시각 분산은 유지되고,
+    # 재빌드 시 도달분이 일괄 노출된다(spinkorea와 동일 원리). cron은 하루 1회 권장.
+    batch_size = max(1, int(os.environ.get("BATCH_SIZE", "5")))
+    print(f"[{datetime.now(timezone.utc).isoformat()}] auto_publish 시작 (BATCH_SIZE={batch_size})")
+
+    published = 0
+    for i in range(batch_size):
+        if publish_one(i, batch_size) is None:
+            print(f"📭 큐 소진 — {published}편까지 발행")
+            break
+        published += 1
+
+    if published > 0:
+        trigger_vercel()  # 배치당 1회만 → 재빌드 1회
+        print(f"🎉 배치 완료: {published}편 발행, 재빌드 1회")
+    else:
+        print("📭 발행할 글 없음 — 재빌드 스킵")
 
 
 if __name__ == "__main__":
