@@ -50,9 +50,21 @@ const LoadingScreen = ({ onComplete }: LoadingScreenProps) => {
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center px-4">
-      {/* 광고 영역 placeholder */}
-      <div className="w-full max-w-md h-64 bg-gradient-to-br from-slate-100 to-slate-50 rounded-2xl border border-slate-200 flex items-center justify-center mb-12 shadow-inner">
-        <p className="text-muted-foreground text-sm">광고 영역</p>
+      <div className="w-full max-w-md mb-10 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div>
+            <p className="text-xs text-muted-foreground">월 유지비</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">자동 계산</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">세금/보험</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">항목 분리</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">비교 기준</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">연간 환산</p>
+          </div>
+        </div>
       </div>
 
       {/* 로딩 애니메이션 */}

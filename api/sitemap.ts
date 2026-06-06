@@ -26,7 +26,7 @@ export default async function handler(
     const rows = await db.execute(
       "SELECT slug, updated_at, published_at, thumbnail_url FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC",
     );
-    const BASE = "https://www.cartain.kr";
+    const BASE = "https://cartain.kr";
     const staticUrls = [
       { loc: BASE, priority: "1.0" },
       { loc: `${BASE}/magazine`, priority: "0.9" },

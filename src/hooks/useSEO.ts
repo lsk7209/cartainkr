@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { BASE_URL } from "@/lib/constants";
 
 interface SEOProps {
   title: string;
@@ -171,10 +172,7 @@ export const generateArticleSchema = (post: {
   slug: string;
   content_html?: string | null;
 }) => {
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://cartain.kr";
+  const baseUrl = BASE_URL;
   const articleUrl = `${baseUrl}/magazine/${post.slug}`;
 
   // Estimate word count from HTML content for EEAT signal
@@ -291,10 +289,7 @@ export const generateCollectionPageSchema = (
     datePublished?: string;
   }[],
 ) => {
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://cartain.kr";
+  const baseUrl = BASE_URL;
 
   return {
     "@context": "https://schema.org",
@@ -328,10 +323,7 @@ export const generateCollectionPageSchema = (
 
 // WebSite schema for homepage
 export const generateWebSiteSchema = () => {
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://cartain.kr";
+  const baseUrl = BASE_URL;
 
   return {
     "@context": "https://schema.org",
@@ -365,10 +357,7 @@ export const generateWebSiteSchema = () => {
 
 // Organization schema
 export const generateOrganizationSchema = () => {
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://cartain.kr";
+  const baseUrl = BASE_URL;
 
   return {
     "@context": "https://schema.org",
@@ -396,10 +385,7 @@ export const generateOrganizationSchema = () => {
 
 // Person schema for author EEAT signal
 export const generateAuthorSchema = () => {
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://cartain.kr";
+  const baseUrl = BASE_URL;
 
   return {
     "@context": "https://schema.org",
@@ -476,10 +462,7 @@ export const generateSoftwareApplicationSchema = (
   description: string,
   url: string,
 ) => {
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://cartain.kr";
+  const baseUrl = BASE_URL;
 
   return {
     "@context": "https://schema.org",
@@ -516,10 +499,7 @@ export const generateWebPageSchema = (
   url: string,
   pageType: "WebPage" | "AboutPage" | "ContactPage" = "WebPage",
 ) => {
-  const baseUrl =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://cartain.kr";
+  const baseUrl = BASE_URL;
 
   return {
     "@context": "https://schema.org",

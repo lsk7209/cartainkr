@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useSEO, generateSoftwareApplicationSchema, generateBreadcrumbSchema, generateHowToSchema, generateFAQSchema } from "@/hooks/useSEO";
+import { BASE_URL } from "@/lib/constants";
 
 type CalculatorStep = "input" | "loading" | "result";
 type CalculatorMode = "single" | "compare";
@@ -134,18 +135,41 @@ const CALCULATOR_FAQS = [
   },
 ];
 
+const COST_GUIDE_ROWS = [
+  {
+    item: "할부금",
+    basis: "차량 가격, 선수금, 할부 기간, 금리",
+    check: "총 이자와 월 납입액을 함께 확인",
+  },
+  {
+    item: "유류비",
+    basis: "월 주행거리, 연비, 리터당 유가",
+    check: "시내 주행이 많으면 실제 비용 상승",
+  },
+  {
+    item: "보험료",
+    basis: "운전자 나이, 사고 이력, 차종",
+    check: "견적은 운전자 조건별로 재확인",
+  },
+  {
+    item: "자동차세",
+    basis: "배기량 또는 전기차 고정 세액",
+    check: "연세액을 월 비용으로 환산",
+  },
+];
+
 const Calculator = () => {
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cartain.kr';
+  const baseUrl = BASE_URL;
   const currentYear = new Date().getFullYear();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // Apply SEO meta tags
   useSEO({
-    title: '자동차 유지비 계산기 - 할부금·보험료·유류비 무료 계산 | 카테인',
-    description: `자동차 할부금·유류비·보험료·자동차세를 한 번에 계산하세요. ${currentYear}년 기준 경차·중형차·SUV·전기차 차종별 월 유지비와 연간 비용을 무료로 비교 분석합니다.`,
+    title: '자동차 유지비 계산기 | 월 비용·할부·보험료 무료 계산',
+    description: `자동차 유지비 계산기로 월 비용을 바로 확인하세요. ${currentYear}년 기준 할부금, 보험료, 자동차세, 유류비와 연간 비용을 무료로 비교합니다.`,
     canonicalUrl: `${baseUrl}/calculator`,
     ogType: 'website',
-    keywords: ['자동차 유지비 계산기', '자동차 할부 계산기', '자동차 보험료 계산', '월 유지비', '차량 유지비'],
+    keywords: ['자동차 유지비 계산기', '차량 유지비 계산', '유지비 계산기', '자동차 할부 계산기', '자동차 보험료 계산', '월 유지비'],
   });
 
   // Generate structured data
@@ -1386,6 +1410,43 @@ const Calculator = () => {
             </div>
           )}
         </div>
+
+        {/* Search intent section — AEO / GEO */}
+        <section className="max-w-3xl mx-auto mt-12 px-0" aria-labelledby="cost-guide-heading">
+          <div className="rounded-lg border border-border bg-white/70 p-5 md:p-6">
+            <p className="text-xs font-semibold text-primary mb-2">자동차 유지비 계산 기준</p>
+            <h2 id="cost-guide-heading" className="text-xl font-bold text-foreground mb-3">
+              자동차 유지비는 월마다 나가는 고정비와 주행비를 합산한 금액입니다
+            </h2>
+            <p className="text-sm leading-7 text-muted-foreground mb-5">
+              자동차 유지비 계산은 할부금, 유류비, 보험료, 자동차세를 월 단위로 환산해 비교하는 방식이 가장 실용적입니다.
+              같은 차종이라도 금리, 주행거리, 보험 조건이 달라지면 실제 월 비용이 크게 달라질 수 있습니다.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <caption className="sr-only">자동차 유지비 계산 항목별 기준과 확인 포인트</caption>
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    <th scope="col" className="py-3 pr-4 font-semibold text-foreground">항목</th>
+                    <th scope="col" className="py-3 pr-4 font-semibold text-foreground">계산 기준</th>
+                    <th scope="col" className="py-3 font-semibold text-foreground">확인 포인트</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COST_GUIDE_ROWS.map((row) => (
+                    <tr key={row.item} className="border-b border-border/70 last:border-0">
+                      <th scope="row" className="py-3 pr-4 text-left font-medium text-foreground">
+                        {row.item}
+                      </th>
+                      <td className="py-3 pr-4 text-muted-foreground">{row.basis}</td>
+                      <td className="py-3 text-muted-foreground">{row.check}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
 
         {/* FAQ Section — AEO / GEO */}
         <div className="max-w-2xl mx-auto mt-12 mb-4 px-0">

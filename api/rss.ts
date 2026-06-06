@@ -28,7 +28,7 @@ export default async function handler(
     const rows = await db.execute(
       "SELECT title, slug, excerpt, published_at FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT 50",
     );
-    const BASE = "https://www.cartain.kr";
+    const BASE = "https://cartain.kr";
     const items = (rows.rows as unknown as RssPostRow[])
       .map(
         (p) =>

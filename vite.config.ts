@@ -37,12 +37,43 @@ const STATIC_ROUTES: StaticRoute[] = [
   },
   {
     path: "/calculator",
-    title: "자동차 유지비 계산기 | 카테인",
+    title: "자동차 유지비 계산기 | 월 비용·할부·보험료 무료 계산",
     description:
-      "차량 가격, 보험료, 세금, 연료비를 입력해 월간 자동차 유지비를 계산하세요.",
+      "자동차 유지비 계산기로 월 비용을 바로 확인하세요. 할부금, 보험료, 자동차세, 유류비와 연간 비용을 무료로 비교합니다.",
+    ogType: "website",
+  },
+  {
+    path: "/about",
+    title: "카테인 소개 | 자동차 정보 플랫폼",
+    description:
+      "카테인은 자동차 구매, 유지비, 보험, 세금 정보를 쉽게 비교할 수 있는 자동차 정보 플랫폼입니다.",
+    ogType: "website",
+  },
+  {
+    path: "/contact",
+    title: "문의하기 | 카테인",
+    description:
+      "카테인 제휴, 오류 제보, 콘텐츠 문의를 위한 연락처와 운영 정보를 확인하세요.",
+    ogType: "website",
+  },
+  {
+    path: "/privacy",
+    title: "개인정보처리방침 | 카테인",
+    description:
+      "카테인의 개인정보 수집, 이용, 광고 쿠키, 분석 도구 사용 기준을 안내합니다.",
+    ogType: "website",
+  },
+  {
+    path: "/terms",
+    title: "이용약관 | 카테인",
+    description:
+      "카테인 서비스 이용 조건, 콘텐츠 이용 범위, 책임 제한 기준을 안내합니다.",
     ogType: "website",
   },
 ];
+
+const APP_NOSCRIPT_REGEX =
+  /<noscript>\s*<div style="padding:2rem;text-align:center;font-family:sans-serif;max-width:800px;margin:0 auto;">[\s\S]*?<\/div>\s*<\/noscript>/;
 
 function escapeHtml(value: string) {
   return value
@@ -216,7 +247,7 @@ function injectRouteMeta(
       `  <link rel="canonical" href="${pageUrl}" />\n  </head>`,
     )
     .replace(
-      /<noscript>[\s\S]*?<\/noscript>/,
+      APP_NOSCRIPT_REGEX,
       `<noscript><div style="padding:2rem;max-width:800px;margin:0 auto;font-family:sans-serif"><h1>${escapeHtml(route.title)}</h1><p>${escapeHtml(route.description)}</p><p>이 페이지를 보려면 JavaScript를 활성화해 주세요.</p><p><a href="/">홈</a> | <a href="/magazine">매거진</a></p></div></noscript>`,
     );
 }
@@ -373,7 +404,7 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
               `  <link rel="canonical" href="${pageUrl}" />\n  ${structuredData}\n  </head>`,
             )
             .replace(
-              /<noscript>[\s\S]*?<\/noscript>/,
+              APP_NOSCRIPT_REGEX,
               `<noscript><div style="padding:2rem;max-width:800px;margin:0 auto;font-family:sans-serif"><h1>${escapeHtml(title)}</h1><p>${escapeHtml(desc)}</p><p>이 페이지를 보려면 JavaScript를 활성화해 주세요.</p><p><a href="/">홈</a> | <a href="/magazine">매거진</a></p></div></noscript>`,
             );
 
@@ -397,7 +428,9 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const siteUrl = env.VITE_SITE_URL || env.SITE_URL || "https://cartain.kr";
+  const siteUrl = (env.VITE_SITE_URL || env.SITE_URL || "https://cartain.kr")
+    .replace(/\/$/, "")
+    .replace("https://www.cartain.kr", "https://cartain.kr");
   const tursoUrl = env.TURSO_URL ?? "";
   const tursoToken = env.TURSO_TOKEN ?? "";
 

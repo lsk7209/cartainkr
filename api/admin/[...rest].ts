@@ -92,8 +92,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (path === '/api/admin/update-post' && req.method === 'POST') {
-      const { id, title, content_html, excerpt, thumbnail_url } = req.body as {
-        id: string; title?: string; content_html?: unknown;
+      const { id, slug, title, content_html, excerpt, thumbnail_url } = req.body as {
+        id: string; slug?: string; title?: string; content_html?: unknown;
         excerpt?: string; thumbnail_url?: string;
       };
       const normalizedContent = content_html === undefined ? null : normalizeContentHtml(content_html);
@@ -103,8 +103,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const db = getDb();
       const now = new Date().toISOString();
       await db.execute({
-        sql: `UPDATE posts SET title = COALESCE(?, title), content_html = COALESCE(?, content_html), excerpt = COALESCE(?, excerpt), thumbnail_url = COALESCE(?, thumbnail_url), updated_at = ? WHERE id = ?`,
-        args: [title ?? null, normalizedContent, excerpt ?? null, thumbnail_url ?? null, now, id],
+        sql: `UPDATE posts SET slug = COALESCE(?, slug), title = COALESCE(?, title), content_html = COALESCE(?, content_html), excerpt = COALESCE(?, excerpt), thumbnail_url = COALESCE(?, thumbnail_url), updated_at = ? WHERE id = ?`,
+        args: [slug ?? null, title ?? null, normalizedContent, excerpt ?? null, thumbnail_url ?? null, now, id],
       });
       return res.json({ success: true });
     }
@@ -173,7 +173,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const db = getDb();
       const rows = await db.execute('SELECT slug FROM posts ORDER BY published_at DESC LIMIT 500');
       const urlList = asRows<SlugRow>(rows.rows).map((r) => `${BASE}/magazine/${r.slug}`);
-      urlList.unshift(BASE, `${BASE}/magazine`, `${BASE}/calculator`);
+      urlList.unshift(
+        BASE,
+        `${BASE}/magazine`,
+        `${BASE}/calculator`,
+        `${BASE}/about`,
+        `${BASE}/contact`,
+        `${BASE}/privacy`,
+        `${BASE}/terms`,
+      );
 
       const payload = {
         host: 'cartain.kr',

@@ -202,7 +202,6 @@ const Index = () => {
                         alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading={idx === 0 ? "eager" : "lazy"}
-                        fetchPriority={idx === 0 ? "high" : "low"}
                         decoding="async"
                       />
                     </div>
@@ -353,7 +352,7 @@ const Index = () => {
             </dl>
             <p className="text-center mt-8 text-sm text-muted-foreground">
               더 궁금한 점이 있으신가요?{" "}
-              <Link to="/contact" className="text-primary hover:underline">
+              <Link to="/contact" className="text-primary underline underline-offset-2">
                 문의하기
               </Link>
             </p>

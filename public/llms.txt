@@ -13,16 +13,17 @@
 
 ## 주요 페이지
 
-- 홈: https://cartain.kr
-- 매거진: https://cartain.kr/magazine
-- 유지비 계산기: https://cartain.kr/calculator
-- 소개: https://cartain.kr/about
+- [홈](https://cartain.kr)
+- [매거진](https://cartain.kr/magazine)
+- [유지비 계산기](https://cartain.kr/calculator)
+- [소개](https://cartain.kr/about)
 
 ## 콘텐츠 피드
 
-- RSS: https://cartain.kr/rss.xml
-- 사이트맵: https://cartain.kr/sitemap.xml
-- AI 인덱스: https://cartain.kr/ai-index.json
+- [RSS](https://cartain.kr/rss.xml)
+- [사이트맵](https://cartain.kr/sitemap.xml)
+- [AI 인덱스](https://cartain.kr/ai-index.json)
+- [전체 LLM 문서](https://cartain.kr/llms-full.txt)
 
 ## 콘텐츠 카테고리
 

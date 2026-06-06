@@ -24,8 +24,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "public" / "generated-thumbnails"
-BASE_URL = os.environ.get("CARTAIN_BASE_URL", "https://www.cartain.kr").rstrip("/")
-SITE_URL = os.environ.get("CARTAIN_SITE_URL", "https://www.cartain.kr").rstrip("/")
+BASE_URL = os.environ.get("CARTAIN_BASE_URL", "https://cartain.kr").rstrip("/")
+SITE_URL = os.environ.get("CARTAIN_SITE_URL", "https://cartain.kr").rstrip("/")
 WIDTH = 1200
 HEIGHT = 675
 REQUEST_TIMEOUT_SECONDS = 20

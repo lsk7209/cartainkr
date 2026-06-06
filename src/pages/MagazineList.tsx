@@ -233,7 +233,6 @@ const MagazineList = () => {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading={index < 3 ? "eager" : "lazy"}
                         decoding="async"
-                        fetchPriority={index < 3 ? "high" : "low"}
                       />
                     </div>
 

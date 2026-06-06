@@ -3,7 +3,7 @@
   "name": "카테인",
   "locale": "ko_KR",
   "description": "자동차 유지비·구매·보험·세금 정보 플랫폼. 무료 계산기와 전문 매거진 제공.",
-  "lastUpdated": "2026-05-11",
+  "lastUpdated": "2026-05-15",
   "feeds": {
     "rss": "https://cartain.kr/rss.xml",
     "sitemap": "https://cartain.kr/sitemap.xml",

@@ -69,6 +69,11 @@ const extractFAQs = (html: string): { question: string; answer: string }[] => {
   return faqs;
 };
 
+const demoteContentH1 = (html: string) =>
+  html.replace(/<\/?h1(\s[^>]*)?>/gi, (tag) =>
+    tag.startsWith("</") ? "</h2>" : tag.replace(/^<h1/i, "<h2"),
+  );
+
 const MagazineDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -126,7 +131,7 @@ const MagazineDetail = () => {
   // Build TOC and inject heading IDs, then sanitize
   const { sanitizedContent, toc } = useMemo(() => {
     if (!post?.content_html) return { sanitizedContent: '', toc: [] };
-    const converted = markdownToHtml(post.content_html);
+    const converted = demoteContentH1(markdownToHtml(post.content_html));
     const { html: htmlWithIds, toc: tocItems } = buildToc(converted);
     const sanitized = DOMPurify.sanitize(htmlWithIds, SANITIZE_CONFIG);
     return { sanitizedContent: sanitized, toc: tocItems };
@@ -311,7 +316,6 @@ const MagazineDetail = () => {
                 alt={post.title}
                 className="w-full h-full object-cover"
                 loading="eager"
-                fetchPriority="high"
               />
             </figure>
           )}

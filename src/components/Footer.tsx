@@ -25,7 +25,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
 
           {/* Services */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">서비스</h4>
+            <p className="font-semibold text-foreground mb-4">서비스</p>
             <ul className="space-y-2">
               <li>
                 <Link
@@ -57,7 +57,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
 
           {/* Topics */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">주제별 정보</h4>
+            <p className="font-semibold text-foreground mb-4">주제별 정보</p>
             <ul className="space-y-2">
               {[
                 { label: "자동차 구매 가이드", q: "구매" },
@@ -78,7 +78,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">회사</h4>
+            <p className="font-semibold text-foreground mb-4">회사</p>
             <ul className="space-y-2">
               <li>
                 <Link
@@ -101,7 +101,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">법적 고지</h4>
+            <p className="font-semibold text-foreground mb-4">법적 고지</p>
             <ul className="space-y-2">
               <li>
                 <Link 

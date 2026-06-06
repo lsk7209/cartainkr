@@ -20,7 +20,7 @@ import requests
 from generate_image import make_thumbnail, validate_runtime_config
 
 
-BASE_URL = os.environ.get("CARTAIN_BASE_URL", "https://www.cartain.kr").rstrip("/")
+BASE_URL = os.environ.get("CARTAIN_BASE_URL", "https://cartain.kr").rstrip("/")
 DEFAULT_BATCH_SIZE = 100
 REQUEST_TIMEOUT_SECONDS = 20
 DEFAULT_SLEEP_SECONDS = 1.5

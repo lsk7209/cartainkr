@@ -30,3 +30,19 @@ dist-ssr
 pub_*.html
 art_*.html
 publish_batch*.py
+
+# OMC / OMX 산출물 (세션마다 변경)
+.omc/
+.omx/
+
+# 임시 글 생성·시드 산출물
+_tmp_articles*.mjs
+seeds-tmp/
+out/
+
+# Python 캐시
+__pycache__/
+*.pyc
+
+# 발행 큐 산출물
+_queue.json
