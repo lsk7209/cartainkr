@@ -1,13 +1,17 @@
-# Status | 마지막: 2026-05-15
+# Status | 마지막: 2026-06-07
 ## 현재 작업
-사이트 최적화 완료 후 고품질 예약글 300개 추가 생성 완료
+AdSense 검수 실패 근본원인(크롤러 글 500) P0 수정·배포·검증 완료. P1/P2 대기
 ## 최근 변경
+- 06-07: [P0] 크롤러 raw한글 글URL 500 수정 — ssr.ts safeDecode+조회폴백, sitemap/rss encodeURIComponent. 봇 UA 글 12/12 200 검증
 - 05-15: 자동차 비용·세금·보험·정비 주제 예약글 300개 추가, 총 글 753개
 - 05-15: 마지막 예약일 2026-08-29 00:00 KST, IndexNow 507개 재제출
 - 05-15: 유지비·보험료 관련 글 5개에 /calculator 내부링크 박스 추가
 - 05-15: /calculator에 유지비 정의·계산 항목 비교표 추가, 모바일 렌더링 확인
 - 05-15: GSC 저CTR 대응으로 /calculator 메타 title·description 검색어 앞배치
 ## TODO
+- [ ] GSC sitemap 재제출 + 대표 글 3개 URL검사 "가져올 수 있음" 확인 + IndexNow 재제출 (P0 마무리, 수동)
+- [ ] P1: 검수기간 자동발행 크론(auto-publish.yml) 일시중지 + 발행정책 수립
+- [ ] P2: 글 하단 AI고지·출처·YMYL disclaimer 렌더 (SSR+SPA, 본문 비수정)
 - [x] 배포 후 https://www.cartain.kr → https://cartain.kr 영구 리다이렉트 확인
 - [x] 배포 후 /sitemap.xml, /feed.xml Cache-Control 재확인
 - [x] GSC sitemap 재제출 및 GA4/IndexNow 운영 확인
