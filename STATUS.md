@@ -1,7 +1,8 @@
 # Status | 마지막: 2026-06-07
 ## 현재 작업
-AdSense 검수 실패 근본원인(크롤러 글 500) P0 수정·배포·검증 완료. P1/P2 대기
+AdSense 검수 실패 근본원인(크롤러 글 500) P0 수정·배포·검증 완료 + GSC 사이트맵 재제출 성공. P1/P2 대기
 ## 최근 변경
+- 06-07: GSC 사이트맵 API 재제출 성공 — 상태 "성공"(errors 0), 구글이 lastDownloaded 당일 갱신(수정본 재크롤). scripts/submit_sitemap_gsc.py 추가
 - 06-07: [P0] 크롤러 raw한글 글URL 500 수정 — ssr.ts safeDecode+조회폴백, sitemap/rss encodeURIComponent. 봇 UA 글 12/12 200 검증
 - 05-15: 자동차 비용·세금·보험·정비 주제 예약글 300개 추가, 총 글 753개
 - 05-15: 마지막 예약일 2026-08-29 00:00 KST, IndexNow 507개 재제출
