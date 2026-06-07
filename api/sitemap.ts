@@ -51,7 +51,7 @@ export default async function handler(
         const imageTag = p.thumbnail_url
           ? `\n    <image:image><image:loc>${escapeXml(p.thumbnail_url)}</image:loc></image:image>`
           : "";
-        return `  <url><loc>${escapeXml(`${BASE}/magazine/${p.slug}`)}</loc><lastmod>${lastmod}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>${imageTag}\n  </url>`;
+        return `  <url><loc>${escapeXml(`${BASE}/magazine/${encodeURIComponent(p.slug)}`)}</loc><lastmod>${lastmod}</lastmod><changefreq>monthly</changefreq><priority>0.7</priority>${imageTag}\n  </url>`;
       })
       .join("\n");
     res.setHeader("Content-Type", "application/xml; charset=utf-8");

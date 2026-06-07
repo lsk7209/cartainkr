@@ -17,7 +17,8 @@ const escapeXml = (value: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
 
-const cdata = (value: string) => `<![CDATA[${value.replace(/\]\]>/g, "]]]]><![CDATA[>")}]]>`;
+const cdata = (value: string) =>
+  `<![CDATA[${value.replace(/\]\]>/g, "]]]]><![CDATA[>")}]]>`;
 
 export default async function handler(
   _req: VercelRequest,
@@ -32,7 +33,7 @@ export default async function handler(
     const items = (rows.rows as unknown as RssPostRow[])
       .map(
         (p) =>
-          `  <item>\n    <title>${cdata(p.title)}</title>\n    <link>${escapeXml(`${BASE}/magazine/${p.slug}`)}</link>\n    <description>${cdata(p.excerpt ?? "")}</description>\n    <pubDate>${new Date(p.published_at).toUTCString()}</pubDate>\n    <guid isPermaLink="true">${escapeXml(`${BASE}/magazine/${p.slug}`)}</guid>\n  </item>`,
+          `  <item>\n    <title>${cdata(p.title)}</title>\n    <link>${escapeXml(`${BASE}/magazine/${encodeURIComponent(p.slug)}`)}</link>\n    <description>${cdata(p.excerpt ?? "")}</description>\n    <pubDate>${new Date(p.published_at).toUTCString()}</pubDate>\n    <guid isPermaLink="true">${escapeXml(`${BASE}/magazine/${encodeURIComponent(p.slug)}`)}</guid>\n  </item>`,
       )
       .join("\n");
     res.setHeader("Content-Type", "application/rss+xml; charset=utf-8");

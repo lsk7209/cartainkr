@@ -68,6 +68,16 @@ const stripMarkdown = (text: string): string =>
     .replace(/^#+\s*/gm, "")
     .trim();
 
+// 봇이 raw 한글 URL(사이트맵·외부 링크)로 들어오면 decodeURIComponent가
+// 잘못된 시퀀스에서 throw → 500. 디코딩 실패 시 원본을 그대로 사용한다.
+const safeDecode = (s: string): string => {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+};
+
 const formatDate = (iso: string): string => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -165,9 +175,16 @@ ${bodyMain}
 
 async function renderArticle(slug: string): Promise<string | null> {
   const db = getDb();
+  // DB는 raw 한글 slug로 저장됨. 디코딩/인코딩 형태가 섞여 들어와도 매칭되도록 두 형태 모두 조회.
+  let encodedVariant = slug;
+  try {
+    encodedVariant = encodeURIComponent(slug);
+  } catch {
+    /* slug 그대로 사용 */
+  }
   const rows = await db.execute({
-    sql: "SELECT * FROM posts WHERE slug = ? AND datetime(published_at) <= datetime('now') LIMIT 1",
-    args: [slug],
+    sql: "SELECT * FROM posts WHERE slug IN (?, ?) AND datetime(published_at) <= datetime('now') LIMIT 1",
+    args: [slug, encodedVariant],
   });
   const post = rows.rows[0] as unknown as PostRow | undefined;
   if (!post) return null;
@@ -442,7 +459,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       html = await renderMagazineList();
       setPublicCache(res, CACHE_CONTROL.POSTS_LIST);
     } else if (path.startsWith("/magazine/")) {
-      const slug = decodeURIComponent(path.slice("/magazine/".length));
+      const slug = safeDecode(path.slice("/magazine/".length));
       html = await renderArticle(slug);
       if (html) setPublicCache(res, CACHE_CONTROL.POST_DETAIL);
     } else {
