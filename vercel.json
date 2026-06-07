@@ -27,39 +27,6 @@
       "destination": "/api/rss"
     },
     {
-      "source": "/",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": "(?i).*(bot|crawl|spider|slurp|mediapartners|adsbot|yeti|daum|naver|facebookexternalhit|twitterbot|whatsapp|telegram|slack|discord|embedly|google-inspectiontool|lighthouse).*"
-        }
-      ],
-      "destination": "/api/ssr"
-    },
-    {
-      "source": "/(magazine|about|contact|privacy|terms|calculator)",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": "(?i).*(bot|crawl|spider|slurp|mediapartners|adsbot|yeti|daum|naver|facebookexternalhit|twitterbot|whatsapp|telegram|slack|discord|embedly|google-inspectiontool|lighthouse).*"
-        }
-      ],
-      "destination": "/api/ssr"
-    },
-    {
-      "source": "/magazine/:slug*",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": "(?i).*(bot|crawl|spider|slurp|mediapartners|adsbot|yeti|daum|naver|facebookexternalhit|twitterbot|whatsapp|telegram|slack|discord|embedly|google-inspectiontool|lighthouse).*"
-        }
-      ],
-      "destination": "/api/ssr"
-    },
-    {
       "source": "/:path*",
       "destination": "/index.html"
     }

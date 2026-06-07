@@ -429,7 +429,9 @@ function renderStaticPage(path: string): string | null {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url!, `https://${req.headers.host}`);
-  const path = url.pathname.replace(/\/+$/, "") || "/";
+  // middleware가 원본 경로를 ?p= 로 전달(/api/ssr로 rewrite되므로 pathname은 못 씀)
+  const rawPath = url.searchParams.get("p") || url.pathname;
+  const path = rawPath.replace(/\/+$/, "") || "/";
 
   try {
     let html: string | null = null;
