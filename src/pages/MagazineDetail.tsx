@@ -17,7 +17,6 @@ import { buildToc } from "@/lib/tocUtils";
 import { markdownToHtml, stripMarkdown } from "@/lib/textUtils";
 import { BASE_URL } from "@/lib/constants";
 import type { PostDetail } from "@/types/post";
-import AdSenseAd from "@/components/AdSenseAd";
 import TableOfContents from "@/components/TableOfContents";
 import ReadingProgress from "@/components/ReadingProgress";
 
@@ -327,9 +326,6 @@ const MagazineDetail = () => {
           <div className="magazine-body max-w-none" ref={articleRef} onClick={handleArticleClick}>
             <article className="pl-4 md:pl-5" dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
           </div>
-
-          {/* Mid-article ad — slot ID to be filled after AdSense approval */}
-          <AdSenseAd format="auto" className="my-8" />
 
           {/* CTA Section - 내부 링크 & 행동 유도 */}
           <div className="my-10 p-6 bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl border border-primary/20">

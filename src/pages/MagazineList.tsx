@@ -12,7 +12,6 @@ import { usePaginatedPosts, useSearchPosts } from "@/hooks/usePosts";
 import { formatDate } from "@/lib/dateUtils";
 import { stripMarkdown } from "@/lib/textUtils";
 import { BASE_URL, CURRENT_YEAR, POSTS_PER_PAGE } from "@/lib/constants";
-import AdSenseAd from "@/components/AdSenseAd";
 
 const MagazineList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -164,9 +163,6 @@ const MagazineList = () => {
               </p>
             )}
           </header>
-
-          {/* Top ad banner — slot ID to be filled after AdSense approval */}
-          <AdSenseAd format="horizontal" className="mb-10" />
 
           {/* Posts Grid */}
           {isLoadingAny ? (
