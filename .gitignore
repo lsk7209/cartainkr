@@ -46,3 +46,5 @@ __pycache__/
 
 # 발행 큐 산출물
 _queue.json
+.env
+.env.*
