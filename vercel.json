@@ -27,6 +27,34 @@
       "destination": "/api/rss"
     },
     {
+      "source": "/api/posts/count",
+      "destination": "/api/posts?__r=count"
+    },
+    {
+      "source": "/api/posts/latest",
+      "destination": "/api/posts?__r=latest"
+    },
+    {
+      "source": "/api/posts/search",
+      "destination": "/api/posts?__r=search"
+    },
+    {
+      "source": "/api/posts/related",
+      "destination": "/api/posts?__r=related"
+    },
+    {
+      "source": "/api/posts/:slug",
+      "destination": "/api/posts?__r=detail&__slug=:slug"
+    },
+    {
+      "source": "/api/admin/queue/:id",
+      "destination": "/api/admin?__r=queue-item&__id=:id"
+    },
+    {
+      "source": "/api/admin/:action",
+      "destination": "/api/admin?__r=:action"
+    },
+    {
       "source": "/:path*",
       "destination": "/index.html"
     }

@@ -1,0 +1,288 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { getDb } from "./_lib/turso.js";
+import { requireAdmin, setCors } from "./_lib/auth.js";
+
+const DEFAULT_POST_LIMIT = 100;
+const MAX_POST_LIMIT = 500;
+
+type CountRow = { cnt: number | string };
+
+const normalizeContentHtml = (value: unknown) => {
+  if (typeof value !== "string") return null;
+  const content = value.trim();
+  if (!content || content === "[object Object]") return null;
+  return value;
+};
+type SettingRow = { key: string; value: string };
+type SlugRow = { slug: string };
+
+function parseBoundedInt(value: string | null, fallback: number, max: number) {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(0, parsed));
+}
+
+function asRow<T>(row: unknown) {
+  return row as T;
+}
+
+function asRows<T>(rows: unknown) {
+  return rows as T[];
+}
+
+// 정적 파일명(api/admin.ts)으로 두고, 하위 경로는 vercel.json rewrites가
+// `?__r=<route>` (queue item은 `?__r=queue-item&__id=`) 쿼리로 넘겨준다.
+// (Vercel은 rewrites 정의 시 동적 catch-all 함수의 자동 라우트를 만들지 않음)
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setCors(res);
+  if (req.method === "OPTIONS") return res.status(204).end();
+
+  if (!requireAdmin(req))
+    return res.status(401).json({ error: "Unauthorized" });
+
+  const url = new URL(req.url!, `http://${req.headers.host}`);
+
+  // 라우트 복원
+  const r = url.searchParams.get("__r");
+  let path = url.pathname.replace(/\/$/, "");
+  if (r === "queue-item")
+    path = `/api/admin/queue/${url.searchParams.get("__id") ?? ""}`;
+  else if (r) path = `/api/admin/${r}`;
+
+  try {
+    if (path === "/api/admin/stats" && req.method === "GET") {
+      const db = getDb();
+      const weekAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString();
+      const [total, weekly, pending, completed] = await Promise.all([
+        db.execute("SELECT COUNT(*) as cnt FROM posts"),
+        db.execute({
+          sql: "SELECT COUNT(*) as cnt FROM posts WHERE published_at >= ?",
+          args: [weekAgo],
+        }),
+        db.execute(
+          "SELECT COUNT(*) as cnt FROM post_queue WHERE status = 'pending'",
+        ),
+        db.execute(
+          "SELECT COUNT(*) as cnt FROM post_queue WHERE status = 'completed'",
+        ),
+      ]);
+      return res.json({
+        totalPosts: Number(asRow<CountRow>(total.rows[0]).cnt),
+        thisWeekPosts: Number(asRow<CountRow>(weekly.rows[0]).cnt),
+        pendingQueue: Number(asRow<CountRow>(pending.rows[0]).cnt),
+        completedQueue: Number(asRow<CountRow>(completed.rows[0]).cnt),
+      });
+    }
+
+    if (path === "/api/admin/posts" && req.method === "GET") {
+      const db = getDb();
+      const thumbnailFilter = url.searchParams.get("thumbnail");
+      const limit = parseBoundedInt(
+        url.searchParams.get("limit"),
+        DEFAULT_POST_LIMIT,
+        MAX_POST_LIMIT,
+      );
+      const offset = parseBoundedInt(
+        url.searchParams.get("offset"),
+        0,
+        Number.MAX_SAFE_INTEGER,
+      );
+      const where =
+        thumbnailFilter === "missing"
+          ? "WHERE thumbnail_url IS NULL OR TRIM(thumbnail_url) = ''"
+          : "";
+      const rows = await db.execute({
+        sql: `SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts ${where} ORDER BY published_at DESC LIMIT ? OFFSET ?`,
+        args: [limit, offset],
+      });
+      return res.json(rows.rows);
+    }
+
+    if (path === "/api/admin/queue" && req.method === "GET") {
+      const db = getDb();
+      const rows = await db.execute(
+        "SELECT * FROM post_queue ORDER BY created_at DESC",
+      );
+      return res.json(rows.rows);
+    }
+
+    if (path === "/api/admin/queue" && req.method === "POST") {
+      const { items } = req.body as { items: Array<{ title: string }> };
+      const db = getDb();
+      for (const item of items) {
+        await db.execute({
+          sql: "INSERT INTO post_queue (id, title, status, created_at) VALUES (?, ?, 'pending', ?)",
+          args: [crypto.randomUUID(), item.title, new Date().toISOString()],
+        });
+      }
+      return res.json({ success: true, count: items.length });
+    }
+
+    if (path === "/api/admin/update-post" && req.method === "POST") {
+      const { id, slug, title, content_html, excerpt, thumbnail_url } =
+        req.body as {
+          id: string;
+          slug?: string;
+          title?: string;
+          content_html?: unknown;
+          excerpt?: string;
+          thumbnail_url?: string;
+        };
+      const normalizedContent =
+        content_html === undefined ? null : normalizeContentHtml(content_html);
+      if (content_html !== undefined && !normalizedContent) {
+        return res.status(400).json({ error: "Invalid content_html" });
+      }
+      const db = getDb();
+      const now = new Date().toISOString();
+      await db.execute({
+        sql: `UPDATE posts SET slug = COALESCE(?, slug), title = COALESCE(?, title), content_html = COALESCE(?, content_html), excerpt = COALESCE(?, excerpt), thumbnail_url = COALESCE(?, thumbnail_url), updated_at = ? WHERE id = ?`,
+        args: [
+          slug ?? null,
+          title ?? null,
+          normalizedContent,
+          excerpt ?? null,
+          thumbnail_url ?? null,
+          now,
+          id,
+        ],
+      });
+      return res.json({ success: true });
+    }
+
+    const queueItemMatch = path.match(/^\/api\/admin\/queue\/([^/]+)$/);
+    if (queueItemMatch) {
+      const id = queueItemMatch[1];
+      if (req.method === "PATCH") {
+        const { status } = req.body as { status: string };
+        const db = getDb();
+        await db.execute({
+          sql: "UPDATE post_queue SET status = ? WHERE id = ?",
+          args: [status, id],
+        });
+        return res.json({ success: true });
+      }
+      if (req.method === "DELETE") {
+        const db = getDb();
+        await db.execute({
+          sql: "DELETE FROM post_queue WHERE id = ?",
+          args: [id],
+        });
+        return res.json({ success: true });
+      }
+    }
+
+    if (path === "/api/admin/posts" && req.method === "POST") {
+      const {
+        id,
+        slug,
+        title,
+        content_html,
+        excerpt,
+        thumbnail_url,
+        published_at,
+      } = req.body as {
+        id: string;
+        slug: string;
+        title: string;
+        content_html: unknown;
+        excerpt: string;
+        thumbnail_url: string | null;
+        published_at: string;
+      };
+      const normalizedContent = normalizeContentHtml(content_html);
+      if (!normalizedContent) {
+        return res.status(400).json({ error: "Invalid content_html" });
+      }
+      const db = getDb();
+      const now = published_at || new Date().toISOString();
+      await db.execute({
+        sql: "INSERT INTO posts (id, slug, title, content_html, excerpt, thumbnail_url, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        args: [
+          id,
+          slug,
+          title,
+          normalizedContent,
+          excerpt,
+          thumbnail_url ?? null,
+          now,
+          now,
+        ],
+      });
+      // Mark queue item as completed if queue_id provided
+      const { queue_id } = req.body as { queue_id?: string };
+      if (queue_id) {
+        await db.execute({
+          sql: "UPDATE post_queue SET status = 'completed' WHERE id = ?",
+          args: [queue_id],
+        });
+      }
+      return res.json({ success: true, slug });
+    }
+
+    if (path === "/api/admin/settings" && req.method === "GET") {
+      const db = getDb();
+      const rows = await db.execute("SELECT key, value FROM settings");
+      const out: Record<string, string> = {};
+      for (const row of asRows<SettingRow>(rows.rows)) out[row.key] = row.value;
+      return res.json(out);
+    }
+
+    if (path === "/api/admin/settings" && req.method === "POST") {
+      const { key, value } = req.body as { key: string; value: string };
+      const db = getDb();
+      await db.execute({
+        sql: "INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        args: [key, value],
+      });
+      return res.json({ success: true });
+    }
+
+    // IndexNow: ping Bing/Yandex/Seznam with all post URLs
+    if (path === "/api/admin/indexnow" && req.method === "POST") {
+      const INDEXNOW_KEY = "7f4e2b9d1a8c3f6e0d5b4a2c7e9f1d3b";
+      const BASE = "https://cartain.kr";
+      const db = getDb();
+      const rows = await db.execute(
+        "SELECT slug FROM posts ORDER BY published_at DESC LIMIT 500",
+      );
+      const urlList = asRows<SlugRow>(rows.rows).map(
+        (r) => `${BASE}/magazine/${r.slug}`,
+      );
+      urlList.unshift(
+        BASE,
+        `${BASE}/magazine`,
+        `${BASE}/calculator`,
+        `${BASE}/about`,
+        `${BASE}/contact`,
+        `${BASE}/privacy`,
+        `${BASE}/terms`,
+      );
+
+      const payload = {
+        host: "cartain.kr",
+        key: INDEXNOW_KEY,
+        keyLocation: `${BASE}/${INDEXNOW_KEY}.txt`,
+        urlList,
+      };
+
+      const response = await fetch("https://api.indexnow.org/indexnow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify(payload),
+      });
+
+      return res.json({
+        success: response.ok,
+        status: response.status,
+        count: urlList.length,
+      });
+    }
+
+    return res.status(404).json({ error: "Not found" });
+  } catch (e) {
+    console.error("[API/admin]", e);
+    return res.status(500).json({ error: String(e) });
+  }
+}
