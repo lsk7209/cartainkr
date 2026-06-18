@@ -160,6 +160,32 @@ const Index = () => {
           </div>
         </section>
 
+        <section className="py-14 px-4">
+          <div className="container max-w-5xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+              자동차 비용을 볼 때 함께 확인할 자료
+            </h2>
+            <p className="max-w-3xl text-sm leading-7 text-muted-foreground mb-6">
+              카테인은 차량 구매와 유지비를 빠르게 계산하도록 돕지만, 세금·보험·등록·중고차 이력은 시점과 차량 조건에
+              따라 달라집니다. 계산 결과를 그대로 확정 비용으로 보지 말고, 공식 조회 서비스와 실제 견적을 함께 확인하세요.
+            </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <a href="https://www.car365.go.kr" target="_blank" rel="noopener noreferrer" className="rounded-xl border border-border bg-card p-5 text-sm leading-6 hover:border-primary">
+                <strong className="block text-foreground">자동차365</strong>
+                차량 등록, 정비, 중고차 이력과 관련한 공공 정보를 확인합니다.
+              </a>
+              <a href="https://www.molit.go.kr" target="_blank" rel="noopener noreferrer" className="rounded-xl border border-border bg-card p-5 text-sm leading-6 hover:border-primary">
+                <strong className="block text-foreground">국토교통부</strong>
+                자동차 제도와 안전 관련 공식 안내를 확인합니다.
+              </a>
+              <a href="https://www.fss.or.kr" target="_blank" rel="noopener noreferrer" className="rounded-xl border border-border bg-card p-5 text-sm leading-6 hover:border-primary">
+                <strong className="block text-foreground">금융감독원</strong>
+                자동차 보험과 금융 상품 안내를 비교 전 확인합니다.
+              </a>
+            </div>
+          </div>
+        </section>
+
         {/* ── Latest Posts (6개) ───────────────────────────── */}
         <section className="py-16 px-4">
           <div className="container max-w-5xl mx-auto">

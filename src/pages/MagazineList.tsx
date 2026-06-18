@@ -164,6 +164,20 @@ const MagazineList = () => {
             )}
           </header>
 
+          <section className="mb-10 rounded-xl border border-border bg-card p-6">
+            <h2 className="text-xl font-bold text-foreground mb-2">매거진 활용 기준</h2>
+            <p className="text-sm leading-7 text-muted-foreground">
+              매거진 글은 자동차 구매, 유지비, 보험, 세금 의사결정을 돕는 일반 정보입니다.
+              차량별 실제 비용은 연식, 주행거리, 사고 이력, 보험 조건, 지역 등록 기준에 따라 달라지므로
+              글을 읽은 뒤 공식 조회와 실제 견적을 함께 확인하는 흐름을 권장합니다.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm font-medium">
+              <a href="https://www.car365.go.kr" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">자동차365</a>
+              <a href="https://www.molit.go.kr" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">국토교통부</a>
+              <a href="https://www.fss.or.kr" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">금융감독원</a>
+            </div>
+          </section>
+
           {/* Posts Grid */}
           {isLoadingAny ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
