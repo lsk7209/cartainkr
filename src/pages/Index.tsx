@@ -209,6 +209,24 @@ const Index = () => {
         </section>
 
         {/* ── Latest Posts (6개) ───────────────────────────── */}
+        <section className="py-14 px-4">
+          <div className="container max-w-5xl mx-auto">
+            <div className="rounded-2xl border border-border bg-card p-6 text-sm leading-7 text-muted-foreground">
+              <h2 className="mb-3 text-xl font-bold text-foreground">자동차 비용 정보를 읽을 때 확인할 기준</h2>
+              <p>
+                카테인의 자동차 유지비 계산과 매거진 글은 특정 차량, 금융 상품, 보험 상품 가입을 보장하지 않는 참고 자료입니다.
+                실제 구매 조건은 제조사 할인, 판매사 견적, 금융 수수료, 보험 산출 결과, 거주 지역 보조금, 차량 등록 시점에 따라
+                달라질 수 있습니다. 사용자는 계산 결과를 확정 금액으로 보지 말고 후보 차량을 비교하기 위한 기준값으로 활용해야 합니다.
+              </p>
+              <p className="mt-3">
+                중고차를 검토할 때는 판매 글의 장점보다 성능점검기록부, 보험 이력, 소유자 변경, 리콜 여부, 정비 영수증, 타이어와
+                브레이크 상태를 먼저 확인하는 것이 안전합니다. 신차와 전기차는 출고 대기, 보조금 잔여 예산, 충전 환경, 배터리 보증,
+                장거리 운행 패턴까지 함께 봐야 하며 계약 직전에는 자동차365, 보험개발원, 제조사 공식 견적을 다시 대조해야 합니다.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section className="py-16 px-4">
           <div className="container max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-8">
