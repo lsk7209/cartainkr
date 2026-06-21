@@ -29,6 +29,7 @@ export default async function handler(
     const BASE = "https://cartain.kr";
     const staticUrls = [
       { loc: BASE, priority: "1.0" },
+      { loc: `${BASE}/blog`, priority: "0.9" },
       { loc: `${BASE}/magazine`, priority: "0.9" },
       { loc: `${BASE}/calculator`, priority: "0.8" },
       { loc: `${BASE}/about`, priority: "0.5" },

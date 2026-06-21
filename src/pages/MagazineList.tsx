@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Calendar, Clock, ArrowRight, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -14,6 +14,7 @@ import { stripMarkdown } from "@/lib/textUtils";
 import { BASE_URL, CURRENT_YEAR, POSTS_PER_PAGE } from "@/lib/constants";
 
 const MagazineList = () => {
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState(searchParams.get("q") || "");
   const searchQuery = searchParams.get("q") || "";
@@ -24,6 +25,7 @@ const MagazineList = () => {
   const { data: searchResults = [], isLoading: searchLoading } = useSearchPosts(searchQuery);
 
   const isSearchMode = searchQuery.length >= 2;
+  const archivePath = location.pathname === "/blog" ? "/blog" : "/magazine";
   const posts = useMemo(
     () => (isSearchMode ? searchResults : (data?.posts || [])),
     [data?.posts, isSearchMode, searchResults],
@@ -59,7 +61,7 @@ const MagazineList = () => {
         ? `자동차 구매 가이드 & 유지비 절약 팁 - ${currentPage}페이지 | 카테인 매거진`
         : '자동차 구매 가이드 & 유지비 절약 팁 | 카테인 매거진',
     description: `신차·중고차 구매 가이드부터 자동차세·보험료 절약 팁, 연비 비교까지. ${CURRENT_YEAR}년 최신 자동차 정보를 전문 에디터가 쉽고 정확하게 정리합니다. 카테인 매거진에서 무료로 확인하세요.`,
-    canonicalUrl: currentPage > 1 ? `${BASE_URL}/magazine?page=${currentPage}` : `${BASE_URL}/magazine`,
+    canonicalUrl: currentPage > 1 ? `${BASE_URL}${archivePath}?page=${currentPage}` : `${BASE_URL}${archivePath}`,
     ogType: 'website',
     keywords: ['자동차 구매 가이드', '자동차 유지비', '자동차 보험', '중고차 구매', '신차 구매'],
   });
@@ -72,7 +74,7 @@ const MagazineList = () => {
     const collectionSchema = generateCollectionPageSchema(
       '자동차 매거진 - 카테인',
       '자동차 구매 가이드, 유지비 절약 팁, 보험 정보까지. 전문가가 알려주는 실용적인 자동차 정보.',
-      `${BASE_URL}/magazine`,
+      `${BASE_URL}${archivePath}`,
       posts.map(post => ({
         title: post.title,
         url: `${BASE_URL}/magazine/${post.slug}`,
@@ -90,7 +92,7 @@ const MagazineList = () => {
     ]));
     
     return data;
-  }, [posts]);
+  }, [archivePath, posts]);
 
   const handlePageChange = (page: number) => {
     const next: Record<string, string> = page > 1 ? { page: String(page) } : {};

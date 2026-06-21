@@ -62,6 +62,7 @@ const App = () => (
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/blog" element={<MagazineList />} />
             <Route path="/magazine" element={<MagazineList />} />
             <Route path="/magazine/:slug" element={<MagazineDetail />} />
             <Route path="/calculator" element={<Calculator />} />
