@@ -36,6 +36,13 @@ const STATIC_ROUTES: StaticRoute[] = [
     ogType: "website",
   },
   {
+    path: "/blog",
+    title: "Cartain Blog | car buying and ownership guides",
+    description:
+      "Cartain blog collects car buying guides, ownership cost explainers, insurance notes, tax checks, EV guidance, and practical maintenance articles.",
+    ogType: "website",
+  },
+  {
     path: "/calculator",
     title: "자동차 유지비 계산기 | 월 비용·할부·보험료 무료 계산",
     description:
@@ -124,7 +131,7 @@ function routeFallbackHtml(route: StaticRoute) {
     `<a href="/about">카테인 소개</a> | ` +
     `<a href="/contact">문의하기</a></nav>`;
 
-  if (route.path === "/magazine") {
+  if (route.path === "/magazine" || route.path === "/blog") {
     return `<noscript><div style="padding:2rem;font-family:sans-serif;max-width:960px;margin:0 auto;line-height:1.75;color:#1f2937"><h1>${escapeHtml(route.title)}</h1><p>${escapeHtml(route.description)}</p><p>카테인 매거진은 자동차 구매를 준비하는 사람, 이미 차량을 운행하는 사람, 전기차와 하이브리드 전환을 고민하는 사람을 위한 실용 자동차 정보 모음입니다. 단순한 차종 소개보다 실제 지출에 영향을 주는 유지비, 보험료, 세금, 정비비, 감가상각, 보조금 조건을 중심으로 설명합니다.</p><h2>자동차 매거진 주요 주제</h2><ul><li>신차와 중고차 구매 전 확인해야 할 계약, 견적, 감가 기준</li><li>자동차세, 보험료, 유류비, 정비비를 포함한 월 유지비 절약 방법</li><li>전기차 보조금, 충전비, 겨울 주행거리, 배터리 관리 기준</li><li>초보 운전자와 가족용 차량을 위한 차종 선택 체크리스트</li><li>리스, 장기렌트, 할부 구매를 비교할 때 놓치기 쉬운 총비용 항목</li></ul><h2>글을 읽는 순서</h2><p>처음 방문했다면 유지비 계산과 구매 전 점검 글부터 읽고, 관심 차종이 정해졌다면 차종별 월 비용 비교 글로 이동하세요. 각 글은 실제 소비자 관점에서 비용 항목과 주의할 점을 분리해 설명합니다. 자동차 제도와 세금은 시점에 따라 달라질 수 있으므로 글의 작성일과 업데이트 기준을 함께 확인하는 것이 좋습니다.</p><h2>카테인 콘텐츠 기준</h2><p>카테인은 광고 문구처럼 장점만 나열하지 않고 구매 전 확인해야 할 단점과 비용 리스크를 함께 적습니다. 보험료와 세금처럼 개인 조건에 따라 달라지는 항목은 확정 금액으로 단정하지 않고 비교 기준과 확인 방법을 안내합니다. 중요한 결정 전에는 제조사, 보험사, 공공기관의 최신 자료를 함께 확인하도록 권장합니다.</p><p>매거진 글을 읽은 뒤 실제 월 비용이 궁금하다면 자동차 유지비 계산기로 이동해 차량 가격, 할부 조건, 주행거리, 보험료를 직접 입력해 보세요. 이렇게 하면 단순 차량 가격이 아니라 매달 부담할 총비용 기준으로 더 현실적인 결정을 할 수 있습니다.</p>${commonLinks}</div></noscript>`;
   }
 
