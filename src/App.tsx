@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import AdSenseScript from "@/components/AdSenseScript";
+import CoupangAffiliateBanner from "@/components/CoupangAffiliateBanner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 
@@ -74,6 +75,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <CoupangAffiliateBanner />
         </Suspense>
         </ErrorBoundary>
       </BrowserRouter>
