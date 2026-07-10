@@ -21,6 +21,7 @@ export default function CoupangAffiliateBanner() {
   });
 
   return (
+    <div data-banner-measurement data-banner-measurement-base={DASHBOARD_BASE} data-banner-site-key={SITE_KEY} data-banner-slot-key={SLOT_KEY}>
     <aside aria-label="쿠팡 파트너스 추천" style={{ margin: "24px auto", maxWidth: 960, padding: "0 16px" }}>
       <a href={`${DASHBOARD_BASE}/api/banner-management/click?${params.toString()}`} target="_blank" rel="sponsored nofollow noopener noreferrer" style={{ alignItems: "center", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 8, color: "#111827", display: "flex", gap: 12, justifyContent: "center", minHeight: 92, padding: 12, textDecoration: "none" }}>
         <span style={{ color: "#9a3412", fontSize: 12, fontWeight: 700 }}>광고</span>
@@ -28,5 +29,7 @@ export default function CoupangAffiliateBanner() {
       </a>
       <p style={{ color: "#6b7280", fontSize: 12, lineHeight: 1.5, margin: "8px 0 0" }}>{DISCLOSURE}</p>
     </aside>
+    <script src={`${DASHBOARD_BASE}/banner-measurement.js`} defer />
+    </div>
   );
 }
