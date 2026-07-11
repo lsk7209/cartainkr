@@ -15,6 +15,14 @@ const normalizeContentHtml = (value: unknown) => {
 };
 type SettingRow = { key: string; value: string };
 type SlugRow = { slug: string };
+type UpdatePostBody = {
+  id?: string;
+  slug?: string;
+  title?: string;
+  content_html?: unknown;
+  excerpt?: string;
+  thumbnail_url?: string;
+};
 
 function parseBoundedInt(value: string | null, fallback: number, max: number) {
   if (!value) return fallback;
@@ -29,6 +37,18 @@ function asRow<T>(row: unknown) {
 
 function asRows<T>(rows: unknown) {
   return rows as T[];
+}
+
+function parseUpdatePostBody(body: unknown): UpdatePostBody | null {
+  if (body && typeof body === "object") return body as UpdatePostBody;
+  if (typeof body !== "string") return null;
+
+  try {
+    const parsed = JSON.parse(body) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as UpdatePostBody) : null;
+  } catch {
+    return null;
+  }
 }
 
 // 정적 파일명(api/admin.ts)으로 두고, 하위 경로는 vercel.json rewrites가
@@ -120,15 +140,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (path === "/api/admin/update-post" && req.method === "POST") {
-      const { id, slug, title, content_html, excerpt, thumbnail_url } =
-        req.body as {
-          id: string;
-          slug?: string;
-          title?: string;
-          content_html?: unknown;
-          excerpt?: string;
-          thumbnail_url?: string;
-        };
+      const body = parseUpdatePostBody(req.body);
+      if (!body?.id?.trim()) {
+        return res.status(400).json({ error: "A post id is required" });
+      }
+
+      const { id, slug, title, content_html, excerpt, thumbnail_url } = body;
       const normalizedContent =
         content_html === undefined ? null : normalizeContentHtml(content_html);
       if (content_html !== undefined && !normalizedContent) {
@@ -136,7 +153,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       const db = getDb();
       const now = new Date().toISOString();
-      await db.execute({
+      const result = await db.execute({
         sql: `UPDATE posts SET slug = COALESCE(?, slug), title = COALESCE(?, title), content_html = COALESCE(?, content_html), excerpt = COALESCE(?, excerpt), thumbnail_url = COALESCE(?, thumbnail_url), updated_at = ? WHERE id = ?`,
         args: [
           slug ?? null,
@@ -148,7 +165,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           id,
         ],
       });
-      return res.json({ success: true });
+      if (result.rowsAffected !== 1) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+      return res.json({ success: true, updatedAt: now });
     }
 
     const queueItemMatch = path.match(/^\/api\/admin\/queue\/([^/]+)$/);
