@@ -111,7 +111,10 @@ function renderStaticArticleRoot(row: PrerenderPostRow) {
   const image = row.thumbnail_url
     ? `<img src="${escapeAttribute(row.thumbnail_url)}" alt="${title}" style="width:100%;border-radius:12px;margin-bottom:24px;" />`
     : "";
-  const body = sanitizeStaticArticleHtml(row.content_html ?? "");
+  const body = sanitizeStaticArticleHtml(row.content_html ?? "").replace(
+    /<h1\b[^>]*>[\s\S]*?<\/h1>/gi,
+    "",
+  );
 
   return `<div id="root"><main style="padding:2rem;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:960px;margin:0 auto;line-height:1.75;color:#1f2937;"><article><nav aria-label="Breadcrumb" style="font-size:13px;color:#6b7280;margin-bottom:12px;"><a href="/">홈</a> › <a href="/magazine">매거진</a></nav><h1 style="font-size:2rem;font-weight:800;margin-bottom:12px;">${title}</h1><p style="font-size:14px;color:#6b7280;margin-bottom:24px;"><time datetime="${publishedDate}">${publishedDate}</time></p>${image}<div class="magazine-body">${body || `<p>${description}</p>`}</div><nav aria-label="Related content" style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;"><a href="/calculator">자동차 유지비 계산기</a> · <a href="/magazine">매거진 전체 보기</a></nav></article></main></div>`;
 }

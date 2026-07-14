@@ -1,10 +1,10 @@
 # STATUS
 
-Current State: READY_FOR_REVIEW
-Current Phase: Phase 3 — PR and production verification
-Completed: Fresh GSC/live audit, source trace, targeted static-shell repair, lint, production build, and local diff validation.
-In Progress: Reviewable commit/PR preparation.
-Remaining: PR merge, Git-connected Vercel deployment, and live target HTML verification.
-Blocked: Local DB-backed article output is unavailable because local Turso values are placeholders. Vercel build environment must provide its existing variables.
-Last Verification: `npm run lint` and `npm run build` passed on 2026-07-14; target article artifact was correctly identified as unavailable without DB credentials.
-Next Action: Commit only code and harness/continuity files, open PR, then verify the merged production artifact.
+Current State: IN_PROGRESS
+Current Phase: Production regression repair
+Completed: PR #1 merged and Vercel production deployment completed; live response confirmed article-specific initial HTML.
+In Progress: Remove the stored article body's redundant H1 from the static shell.
+Remaining: Lint/build, follow-up PR/merge/deployment, and one-H1 live assertion.
+Blocked: Local DB-backed artifact remains unavailable because local Turso values are placeholders.
+Last Verification: Production response on 2026-07-14 had target-specific content but two H1s: shell title plus stored article title.
+Next Action: Apply one-line content normalization and redeploy.
