@@ -1,13 +1,19 @@
 # Handoff
 
-## 2026-07-14 Cartain Search Metadata Repair
+## Current Goal
 
-- Confirmed defect: the public article `new-car-release-schedule-2026-second-half` ranked at average position 6.93 for `2026년 신차 출시 일정`, but its public `<title>` contained replacement characters.
-- Data repair: the post title was restored through the authenticated existing admin API, with title-only scope. The final stored title is `2026년 하반기 신차 출시 일정 | 국산·수입 신차 총정리`.
-- Cache repair: article pages now use `s-maxage=300` and `stale-while-revalidate=900` so DB-backed metadata does not remain stale for a day or more.
-- Deployment: GitHub commits `ba7392d` and `9640f31` were pushed to `main`; the Git-connected Vercel production deployment for `9640f31` is Ready.
-- Live verification: the article returns HTTP 200, one correct title suffix (`- 자동차 정보 | 카테인`), self-canonical URL, and `index, follow` robots.
+Repair Cartain article static HTML so search crawlers receive the actual article rather than generic site copy.
 
-## Next Safe Step
+## Completed
 
-Observe the page/query metrics for at least one Search Console reporting window before another title change. Do not treat a ranking or revenue outcome as proven immediately.
+- Diagnosed the target 2026 new-car release page: its live static HTML had generic root content and duplicate H1s despite correct metadata.
+- Updated `vite.config.ts` to build an article-specific static root and to consume Vercel process-level Turso variables.
+- Passed lint and a production build without local database credentials.
+
+## Next Step
+
+After merge, confirm the Vercel build reports pre-rendered article pages, then fetch the target page and verify exactly one H1, article-specific body, canonical, and Article JSON-LD. Do not edit release-schedule claims until official sources support them.
+
+## Evidence
+
+See `.goal-harness/new-car-release-ctr-2026-07-14/EVIDENCE.md`.
