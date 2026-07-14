@@ -1,5 +1,5 @@
 # Status
 
-State: complete
+State: editorial release pending rebuild
 
-The static article-shell fix is merged and production-verified. The remaining work is source-backed editorial refresh, not a technical delivery blocker.
+The static article-shell fix remains production-verified. A source-backed editorial replacement was accepted by the production content API on 2026-07-14; its GitHub/Vercel rebuild and live verification remain pending.

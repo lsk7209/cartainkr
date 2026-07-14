@@ -10,10 +10,15 @@ Repair Cartain article static HTML so search crawlers receive the actual article
 - Updated `vite.config.ts` to build an article-specific static root, consume Vercel process-level Turso variables, and remove any stored article H1 from the static body.
 - Merged PRs #1 and #2 and verified the Vercel production response: 200, one exact H1, target-specific initial content, self-canonical, and Article JSON-LD.
 
+## Current Editorial Release
+
+- A source-backed repair for `new-car-release-schedule-2026-second-half` has been sent to the production content API. It removes unsupported monthly launch rows and estimated prices, links to Hyundai-owned price/catalog pages, and states an explicit update standard.
+- The pre-edit body is preserved in `.goal-harness/new-car-release-source-repair-2026-07-14/ROLLBACK.html`.
+
 ## Next Step
 
-Do not edit release-schedule claims until official sources support them. The next editorial revision should cite manufacturer sources and clearly separate confirmed, expected, and unknown releases.
+Merge the reviewable content-source commit, then verify the GitHub-triggered Vercel rebuild. The public API/static response must show the replacement content before the editorial repair is marked complete.
 
 ## Evidence
 
-See `.goal-harness/new-car-release-ctr-2026-07-14/EVIDENCE.md`.
+See `.goal-harness/new-car-release-ctr-2026-07-14/EVIDENCE.md` and `.goal-harness/new-car-release-source-repair-2026-07-14/EVIDENCE.md`.
