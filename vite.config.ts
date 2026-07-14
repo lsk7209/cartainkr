@@ -97,6 +97,40 @@ function stripHtml(value: string) {
   return value.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
 }
 
+function sanitizeStaticArticleHtml(value: string) {
+  return value
+    .replace(/<\/?(?:script|style|iframe|object|embed)[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(href|src)\s*=\s*(["'])\s*javascript:[\s\S]*?\2/gi, "");
+}
+
+function renderStaticArticleRoot(row: PrerenderPostRow) {
+  const title = escapeHtml(row.title);
+  const description = escapeHtml(stripHtml(row.excerpt ?? row.title));
+  const publishedDate = escapeHtml(row.published_at.slice(0, 10));
+  const image = row.thumbnail_url
+    ? `<img src="${escapeAttribute(row.thumbnail_url)}" alt="${title}" style="width:100%;border-radius:12px;margin-bottom:24px;" />`
+    : "";
+  const body = sanitizeStaticArticleHtml(row.content_html ?? "");
+
+  return `<div id="root"><main style="padding:2rem;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:960px;margin:0 auto;line-height:1.75;color:#1f2937;"><article><nav aria-label="Breadcrumb" style="font-size:13px;color:#6b7280;margin-bottom:12px;"><a href="/">홈</a> › <a href="/magazine">매거진</a></nav><h1 style="font-size:2rem;font-weight:800;margin-bottom:12px;">${title}</h1><p style="font-size:14px;color:#6b7280;margin-bottom:24px;"><time datetime="${publishedDate}">${publishedDate}</time></p>${image}<div class="magazine-body">${body || `<p>${description}</p>`}</div><nav aria-label="Related content" style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;"><a href="/calculator">자동차 유지비 계산기</a> · <a href="/magazine">매거진 전체 보기</a></nav></article></main></div>`;
+}
+
+function replaceAppShellWithStaticArticle(indexHtml: string, articleRoot: string) {
+  const rootStart = indexHtml.indexOf('<div id="root">');
+  const noScriptStart = indexHtml.indexOf("<noscript>", rootStart);
+  const noScriptEnd = indexHtml.indexOf("</noscript>", noScriptStart);
+  if (rootStart === -1 || noScriptStart === -1 || noScriptEnd === -1) {
+    throw new Error("Unable to locate the app shell for article pre-rendering");
+  }
+
+  return (
+    indexHtml.slice(0, rootStart) +
+    articleRoot +
+    indexHtml.slice(noScriptEnd + "</noscript>".length)
+  );
+}
+
 function routeFallbackHtml(route: StaticRoute) {
   const qualityText =
     `<h2>카테인 정보 활용 가이드</h2>` +
@@ -426,7 +460,10 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
             buildArticleStructuredData(row, opts.siteUrl, desc),
           );
 
-          const articleHtml = indexHtml
+          const articleHtml = replaceAppShellWithStaticArticle(
+            indexHtml,
+            renderStaticArticleRoot(row),
+          )
             .replace(/\s*<link rel="canonical" href="[^"]+" \/>\n?/, "\n")
             .replace(/(<title>)[^<]*/, `$1${safeTitle} - 자동차 정보 | 카테인`)
             .replace(
@@ -456,10 +493,6 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
             .replace(
               "</head>",
               `  <link rel="canonical" href="${pageUrl}" />\n  ${structuredData}\n  </head>`,
-            )
-            .replace(
-              APP_NOSCRIPT_REGEX,
-              `<noscript><div style="padding:2rem;max-width:800px;margin:0 auto;font-family:sans-serif"><h1>${escapeHtml(title)}</h1><p>${escapeHtml(desc)}</p><p>이 페이지를 보려면 JavaScript를 활성화해 주세요.</p><p><a href="/">홈</a> | <a href="/magazine">매거진</a></p></div></noscript>`,
             );
 
           const articleDir = path.join(distDir, "magazine", slug);
@@ -485,8 +518,8 @@ export default defineConfig(({ mode }) => {
   const siteUrl = (env.VITE_SITE_URL || env.SITE_URL || "https://cartain.kr")
     .replace(/\/$/, "")
     .replace("https://www.cartain.kr", "https://cartain.kr");
-  const tursoUrl = env.TURSO_URL ?? "";
-  const tursoToken = env.TURSO_TOKEN ?? "";
+  const tursoUrl = process.env.TURSO_URL ?? env.TURSO_URL ?? "";
+  const tursoToken = process.env.TURSO_TOKEN ?? env.TURSO_TOKEN ?? "";
 
   return {
     server: {
