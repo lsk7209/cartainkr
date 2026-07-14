@@ -22,7 +22,7 @@ Level: 2 — fresh first-party GSC baseline, live public HTML audit, source trac
 | GSC opportunity | PASS | `2026년 신차 출시 일정`: 55 impressions, 1 click, average position 6.9273. |
 | Initial HTML relevance | FAIL — fixed in code | Live target had a generic Cartain root shell, two H1 elements, and only a target title/description noscript block. |
 | Static route root cause | PASS | `vite.config.ts` wrote article-specific metadata but retained the generic `index.html` root shell; it also read only file-loaded Turso values, not Vercel process variables. |
-| Static article rendering implementation | PASS (compile/lint) | Build now replaces the article app shell with sanitized target content and one H1, while preserving metadata/JSON-LD/client route behavior. |
+| Static article rendering implementation | PARTIAL — follow-up in progress | Production now receives article-specific initial content, but stored content carries its own H1 in addition to the shell H1. A scoped normalization removes that redundant H1. |
 | Local DB-backed output assertion | BLOCKED | Target `dist/magazine/.../index.html` is skipped when Turso credentials are unavailable locally. Vercel must provide its existing build variables for release validation. |
 | Content freshness | NEEDS EDITORIAL WORK | The volatile release-schedule article needs official manufacturer source links and clear confirmed/expected/unknown labels; no claim was changed automatically. |
 
@@ -38,4 +38,4 @@ Level: 2 — fresh first-party GSC baseline, live public HTML audit, source trac
 ## Completion Evidence
 
 - The source-level defect is isolated to build-time static article generation and has a reversible single-file fix.
-- Live deployment verification remains required before this audit can be marked fully accepted.
+- First production deployment confirmed target-specific content but exposed a duplicate H1 from stored article HTML; follow-up deployment verification remains required.
