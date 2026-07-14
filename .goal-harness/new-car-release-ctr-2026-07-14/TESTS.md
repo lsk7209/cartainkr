@@ -23,6 +23,6 @@
 
 ## Completion Checklist
 
-- [ ] Available checks have been run or marked N/A with reasons.
-- [ ] Failed checks have been fixed or documented as blocked.
-- [ ] Acceptance criteria have matching evidence.
+- [x] Available checks have been run or marked N/A with reasons.
+- [x] Failed checks have been fixed or documented as blocked.
+- [x] Acceptance criteria have matching evidence.
