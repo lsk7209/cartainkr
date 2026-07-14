@@ -5,16 +5,16 @@
 | Criteria | Status | Evidence |
 |---|---|---|
 | Fresh data establishes a valuable page-one CTR target. | PASS | GSC snapshot: 55 impressions, 1 click, position 6.9273 for `2026년 신차 출시 일정`. |
-| Initial article HTML is aligned with metadata and search intent. | PENDING DEPLOY | Code replaces generic shell/duplicate H1 with article title and sanitized body; requires Vercel build artifact proof. |
-| Existing metadata, canonical, JSON-LD, API, and client rendering stay intact. | PASS (local) | Only static shell construction changed; lint and Vite build pass. |
+| Initial article HTML is aligned with metadata and search intent. | PASS | Production response has the matching target title, exactly one H1, target-specific content, and no generic shell. |
+| Existing metadata, canonical, JSON-LD, API, and client rendering stay intact. | PASS | Production response retains self-canonical and Article JSON-LD; only static shell construction changed. |
 | No volatile automotive claim is changed without official evidence. | PASS | No post data or editorial content was written. |
 
 ## User Flow Criteria
 
 | Criteria | Status | Evidence |
 |---|---|---|
-| A crawler receives one target-specific H1 and article body before JavaScript. | PENDING DEPLOY | Must be checked from the Vercel build artifact/live response. |
-| A normal user retains the existing React route and post API behavior. | PASS (source review) | No route/API/client component was modified. |
+| A crawler receives one target-specific H1 and article body before JavaScript. | PASS | Live HTML assertion passed after Vercel production deployment. |
+| A normal user retains the existing React route and post API behavior. | PASS | No route/API/client component was modified. |
 
 | Criteria | Status | Evidence |
 |---|---|---|
@@ -40,4 +40,4 @@
 
 ## Acceptance Status
 
-PENDING — local code validation passed; production artifact and live response verification are required after PR merge.
+ACCEPTED — PRs #1 and #2 are merged; Vercel production deployment and live response verification passed.

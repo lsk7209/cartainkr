@@ -1,10 +1,10 @@
 # STATUS
 
-Current State: IN_PROGRESS
-Current Phase: Production regression repair
-Completed: PR #1 merged and Vercel production deployment completed; live response confirmed article-specific initial HTML.
-In Progress: Remove the stored article body's redundant H1 from the static shell.
-Remaining: Lint/build, follow-up PR/merge/deployment, and one-H1 live assertion.
-Blocked: Local DB-backed artifact remains unavailable because local Turso values are placeholders.
-Last Verification: Production response on 2026-07-14 had target-specific content but two H1s: shell title plus stored article title.
-Next Action: Apply one-line content normalization and redeploy.
+Current State: DONE
+Current Phase: Complete — production verified
+Completed: Fresh GSC/live audit; static article shell repair; lint/build; PR #1 and #2 merge; Vercel production deployment; one-H1, canonical, schema, and target-content live assertions.
+In Progress: None.
+Remaining: No technical change remains for this issue.
+Blocked: None. The remaining release-schedule content-quality task needs separate official-source editorial research.
+Last Verification: Live `https://cartain.kr/magazine/new-car-release-schedule-2026-second-half` passed all assertions on 2026-07-14.
+Next Action: Treat source-cited, confirmed/expected/unknown release data as a separate editorial improvement.
