@@ -17,7 +17,7 @@ Repair Cartain article static HTML so search crawlers receive the actual article
 
 ## Next Step
 
-Merge the reviewable content-source commit, then verify the GitHub-triggered Vercel rebuild. The public API/static response must show the replacement content before the editorial repair is marked complete.
+Monitor Search Console impressions/click-through rate for the corrected page before making another title or content change. Add future model-specific dates or prices only when a manufacturer-owned source supports each claim.
 
 ## Evidence
 

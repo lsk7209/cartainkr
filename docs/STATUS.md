@@ -1,5 +1,5 @@
 # Status
 
-State: editorial release pending rebuild
+State: complete
 
-The static article-shell fix remains production-verified. A source-backed editorial replacement was accepted by the production content API on 2026-07-14; its GitHub/Vercel rebuild and live verification remain pending.
+The static article-shell fix remains production-verified. The source-backed editorial replacement and UTF-8 excerpt correction are live, with public API and rendered-page assertions passing after GitHub/Vercel releases.
