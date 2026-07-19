@@ -13,6 +13,16 @@ const normalizeContentHtml = (value: unknown) => {
   if (!content || content === "[object Object]") return null;
   return value;
 };
+
+const hasEncodingCorruption = (...values: Array<string | null | undefined>) =>
+  values.some((value) => typeof value === "string" && value.includes("\uFFFD"));
+
+const encodingCorruptionResponse = (res: VercelResponse) =>
+  res.status(400).json({
+    error:
+      "Post contains replacement characters and was rejected to prevent mojibake from being published.",
+  });
+
 type SettingRow = { key: string; value: string };
 type SlugRow = { slug: string };
 type UpdatePostBody = {
@@ -151,6 +161,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (content_html !== undefined && !normalizedContent) {
         return res.status(400).json({ error: "Invalid content_html" });
       }
+      if (hasEncodingCorruption(title, excerpt, normalizedContent)) {
+        return encodingCorruptionResponse(res);
+      }
       const db = getDb();
       const now = new Date().toISOString();
       const result = await db.execute({
@@ -214,6 +227,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const normalizedContent = normalizeContentHtml(content_html);
       if (!normalizedContent) {
         return res.status(400).json({ error: "Invalid content_html" });
+      }
+      if (hasEncodingCorruption(title, excerpt, normalizedContent)) {
+        return encodingCorruptionResponse(res);
       }
       const db = getDb();
       const now = published_at || new Date().toISOString();
