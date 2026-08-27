@@ -109,6 +109,9 @@ Independent reliability review identified three findings. The admin key now stay
 | `npm audit --omit=dev` | PASS | Zero runtime advisories |
 | Terra/medium recovery review | PASS WITH RESIDUAL | No code BLOCKER/HIGH; development-mode builder does not prove hosting runtime selection |
 | Sol/high recovery review | GO FOR PUSH | No code BLOCKER/HIGH; live smoke and exposed-token rotation remain external gates |
+| Explicit 16-file allowlist and staged secret scan | PASS | Zero forbidden filenames and zero credential/private-key/token pattern hits |
+| Local recovery commit | PASS | `e565192` (`fix: restore serverless runtime compatibility`) |
+| `git push origin main` | BLOCKED BY ENVIRONMENT | Rejected before execution: approval required while approvals are disabled; remote remained `167e523` |
 
 The local builder trace included the sanitizer/parser dependency chain, and its temporary output plus generated local package manifest were removed or restored after verification. Exact Node 22.12 imported those staged handlers, while production runtime selection remains a post-push external verification gate. The fix preserves `sanitize-html@2.17.7` and narrows the project/CI runtime to Node `^22.12.0`; no sanitizer behavior, database row, credential, or hosting setting changed.
 

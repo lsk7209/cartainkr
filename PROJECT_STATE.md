@@ -6,16 +6,16 @@ Maintain a Korean automotive information site built with Vite, React, TypeScript
 
 ## Current Work
 
-Production serverless recovery on 2026-08-28: the posts, admin and SSR outage was isolated to an incompatible serverless Node floor, repaired locally with an exact runtime contract, and verified with real entry bundling. Independent review and GitHub push are in progress; live recovery remains pending the external rollout.
+Production serverless recovery on 2026-08-28: the posts, admin and SSR outage was isolated to an incompatible serverless Node floor, repaired locally with an exact runtime contract, verified with real entry bundling, and approved by independent review. GitHub push is blocked by the execution environment; live recovery remains pending the external rollout.
 
 ## Repository Baseline
 
 - Remote: `https://github.com/lsk7209/cartainkr.git`
 - Branch: `main`
 - Reviewed commit: `81448ff`
-- Local implementation commit: `8371f79`.
-- GitHub push was authorized but the current execution environment rejected the external write because approval was unavailable. Hosting deployment and external service mutations remain outside this handoff.
-- The prior commits are now confirmed on `origin/main` at `167e523`; a new recovery commit is pending.
+- Prior implementation commit: `8371f79`; prior handoff commits are confirmed on `origin/main` at `167e523`.
+- Local recovery commit: `e565192` (`fix: restore serverless runtime compatibility`). The execution environment rejected `git push` before remote contact because approvals are disabled; `origin/main` remains `167e523` until the user runs the recorded command.
+- Hosting deployment and external service mutations remain outside this handoff.
 
 ## Implemented Improvements
 
@@ -63,7 +63,7 @@ Production serverless recovery on 2026-08-28: the posts, admin and SSR outage wa
 
 ## Next Actions
 
-1. Complete Terra/Sol review, resolve substantiated findings, and push the allowlisted recovery commit to GitHub only.
+1. From `D:\web\cartainkr`, run `git push origin main`; verify `git rev-parse HEAD` equals `git ls-remote origin refs/heads/main`.
 2. After the external rollout, recheck posts/admin/SSR status without mutating Vercel settings.
 3. Revoke the exposed Turso read-write token and replace operational diagnostics with a read-only token.
 4. Apply the Supabase permission migration only under separate approval, then verify production search/conversion signals and remeasure on 2026-09-11.

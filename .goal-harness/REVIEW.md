@@ -52,6 +52,8 @@ Changes are limited to consent/measurement, calculator correctness, dependency/t
 - [ ] GitHub remote SHA matches the local verified commit.
 - [ ] It is accurate to set status to DONE.
 
+The reviewed recovery is committed locally as `e565192`. The environment rejected `git push` before contacting GitHub, so the completion gate remains open despite the code-level GO decision.
+
 ## Serverless Recovery Review
 
 - Luna/max root-cause lane reproduced the CommonJS-to-ESM import failure below Node 22.12 and confirmed the runtime floor as the smallest fix that retains current sanitizer security updates.

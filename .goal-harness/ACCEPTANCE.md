@@ -18,12 +18,12 @@
 | Affiliate network requests wait for consent | PASS | component rendering tests and generated-artifact checks |
 | Admin publishing writes are atomic and retry-safe | PASS | deterministic queue IDs, libSQL write batches, identity checks and handler tests |
 | CI reproduces artifact and runtime security gates | PASS | `verify:build` and `npm audit --omit=dev` run after build |
-| GitHub handoff is verified | PENDING | local commit and remote SHA must match |
+| GitHub handoff is verified | BLOCKED | local recovery commit `e565192`; execution policy rejected `git push` before remote contact |
 | Production serverless failure has a red-capable reproduction | PASS | two rounds: posts/admin/SSR 500; sitemap/RSS/root 200 |
 | Root cause is demonstrated by local module/bundle evidence | PASS | Node 20.18/22.11 `ERR_REQUIRE_ESM`; Node 20.19/22.12 pass; pre-fix engine-contract test failed |
 | Affected API entries initialize under the deployment-compatible module format | PASS LOCALLY | local `@vercel/node` builder materializes/imports five handlers; exact Node 22.12 verifier passes |
 | Stored-content and slug/path defenses remain intact | PASS | full 42-test suite, including adversarial sanitizer and containment tests |
-| Recovery commit is on `origin/main` | PENDING | local and remote SHA equality required |
+| Recovery commit is on `origin/main` | BLOCKED | run `git push origin main` from an authenticated user shell, then verify local/remote SHA equality |
 
 ## Final Report Requirements
 
