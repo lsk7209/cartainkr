@@ -7,6 +7,7 @@
 | Historical Vercel OIDC token rotation is unverified | Old credential may remain valid | Medium | Verify/revoke in the external account with separate authority | EXTERNAL |
 | Calculator completion lifecycle lacks browser-level event-order test | KPI could regress without a component/E2E failure | Medium | Existing validation/formula/event tests; add tracking-mocked component/E2E coverage | OPEN MEDIUM |
 | Development-only dependency audit reports advisories | Local tooling exposure | Low | Runtime audit is zero; schedule isolated toolchain remediation | ACCEPTED |
+| Local commits are not yet on GitHub | Remote does not contain the verified improvements | High until pushed | Run the exact push command from an authenticated user shell and verify remote SHA | OPEN EXTERNAL |
 
 ## Risk Notices
 

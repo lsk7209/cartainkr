@@ -13,7 +13,8 @@ Repository review plus search-entry, conversion, security, consent, routing, dep
 - Remote: `https://github.com/lsk7209/cartainkr.git`
 - Branch: `main`
 - Reviewed commit: `81448ff`
-- GitHub push was authorized after local verification; hosting deployment and external service mutations remain outside this handoff.
+- Local implementation commit: `8371f79`.
+- GitHub push was authorized but the current execution environment rejected the external write because approval was unavailable. Hosting deployment and external service mutations remain outside this handoff.
 
 ## Implemented Improvements
 
@@ -54,7 +55,7 @@ Repository review plus search-entry, conversion, security, consent, routing, dep
 
 ## Next Actions
 
-1. Verify the pushed GitHub SHA, then stop; no hosting mutation is part of this task.
+1. Run `git push origin main` from an authenticated user shell and verify the remote SHA matches local HEAD; no hosting mutation is part of this task.
 2. Apply the Supabase permission migration only after verifying the live function and role grants under separate approval.
 3. Confirm historical OIDC token revocation/rotation in the external account.
 4. After a separately authorized release, verify ordinary-user and crawler article URLs, sitemap, consent behavior, and `calculator_completed` in production.

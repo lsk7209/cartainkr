@@ -71,6 +71,9 @@ Independent reliability review identified three findings. The admin key now stay
 | Admin handler tests | PASS | Atomic retry-stable queue batch, malformed input rejection, post/queue batch and collision rejection |
 | Sol/high follow-up review | PASS | Both reliability findings resolved; no BLOCKER/HIGH |
 | Terra/medium follow-up review | PASS WITH RESIDUAL | Prior SSR/CI/consent gaps resolved; calculator browser-level conversion lifecycle remains a MEDIUM test gap |
+| Explicit allowlist and staged secret scan | PASS | 70 files; no forbidden filenames, private keys, GitHub tokens, JWTs or bearer literals; one credential-shaped URL was an intentional sanitizer test fixture |
+| Local implementation commit | PASS | `8371f79` (`feat: harden search and conversion experience`) |
+| `git push origin main` | BLOCKED BY ENVIRONMENT | External-write approval was unavailable; remote remained at the reviewed baseline during the attempt |
 
 ### External Boundaries
 
