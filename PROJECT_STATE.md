@@ -6,15 +6,15 @@ Maintain a Korean automotive information site built with Vite, React, TypeScript
 
 ## Current Work
 
-Production serverless recovery on 2026-08-28: the posts, admin and SSR outage was isolated to an incompatible serverless Node floor, repaired locally with an exact runtime contract, verified with real entry bundling, and approved by independent review. GitHub push is blocked by the execution environment; live recovery remains pending the external rollout.
+Production serverless recovery on 2026-08-28: the first Node-floor repair reached GitHub and passed CI/deployment status, but the public posts, admin and SSR functions still failed during module initialization. The follow-up removes the CommonJS-to-ESM-only parser seam, adds production-mode Vercel function execution gates, and is committed locally pending GitHub push and public verification.
 
 ## Repository Baseline
 
 - Remote: `https://github.com/lsk7209/cartainkr.git`
 - Branch: `main`
-- Reviewed commit: `81448ff`
-- Prior implementation commit: `8371f79`; prior handoff commits are confirmed on `origin/main` at `167e523`.
-- Local recovery commit: `e565192` (`fix: restore serverless runtime compatibility`). The execution environment rejected `git push` before remote contact because approvals are disabled; `origin/main` remains `167e523` until the user runs the recorded command.
+- Current local and remote baseline: `ac12c2879000bc484c7a5a719d3d762eda79fd6d` on `main`.
+- First recovery commits `e565192` and `ac12c28` were pushed by the user; GitHub Quality and the linked production deployment record passed.
+- Local follow-up commit: `cbd5dc0` (`fix: remove serverless sanitizer module seam`); `origin/main` remains `ac12c28` until the user pushes.
 - Hosting deployment and external service mutations remain outside this handoff.
 
 ## Implemented Improvements
@@ -34,25 +34,28 @@ Production serverless recovery on 2026-08-28: the posts, admin and SSR outage wa
 - Admin queue and post/queue writes use atomic, retry-safe libSQL batches with collision checks.
 - Mutating bulk publishing/backfill workflows and obsolete Netlify configuration removed; reviewed local scripts remain separately gated.
 - Quality CI, deterministic build-artifact verification and real project README added.
-- Serverless runtime narrowed to Node `^22.12.0`, matching `sanitize-html@2.17.7`; CI now exercises the exact 22.12.0 floor.
-- All five top-level API entries are packaged by the installed `@vercel/node` builder, materialized in isolated temporary directories and imported by `npm run verify:serverless`.
+- Serverless runtime remains pinned to Node `^22.12.0`; CI exercises the exact 22.12.0 floor.
+- `sanitize-html` is pinned to `2.17.5`, which retains its security fixes while using the CommonJS-compatible `htmlparser2@10.1.0` export required by the affected serverless module graph.
+- All six top-level API entries are installed and traced in an external temporary fixture by the production-mode `@vercel/node` builder, materialized, imported and safely invoked by `npm run verify:serverless`.
+- `/api/release` returns only a no-store 12-character public Git commit fingerprint so the custom domain can be tied to the intended rollout without exposing runtime secrets.
 
 ## Validation
 
 - `npm run lint`: passed.
 - `npm run typecheck`: passed.
-- `npm test`: 12 files and 42 tests passed.
+- `npm test`: 13 files and 46 tests passed.
 - `npm run build`: passed with 2,586 modules; article prerender was skipped because Turso credentials were not present.
 - `npm audit --omit=dev`: zero vulnerabilities.
 - `npm run verify:build`: seven route artifacts have one H1, matching canonical/ko hreflang/robots, no pre-consent third-party origin, required privacy disclosures and crawler rules.
-- `npm run verify:serverless`: all five locally built Vercel handlers initialized with their traced files; the same verifier and focused regression passed on exact Node 22.12.0.
-- The verifier covers local Vercel dependency tracing plus exact-runtime import; hosting production runtime selection and live endpoints remain post-push checks.
-- Sol/high final follow-up found no unresolved BLOCKER/HIGH; Terra/medium confirmed SSR/consent/CI gaps resolved.
-- Recovery review: Terra/medium and Sol/high found no code-level BLOCKER/HIGH and approved commit/push; live endpoint recovery remains unverified until rollout.
+- `npm run verify:serverless`: production-mode dependency install and tracing selected `nodejs22.x` for six handlers on exact Node 22.12.0; admin returned 401, posts OPTIONS returned 204, release returned 200 and static SSR returned 200.
+- The CommonJS/ESM dependency regression was observed red on `sanitize-html@2.17.7`, then passed with `2.17.5`; Node 20.18.1, 22.11.0 and 22.12.0 probes also loaded and sanitized the Cartain allowlist vectors.
+- Adversarial sanitizer tests cover forbidden URL attributes, decimal/hex entity schemes, `srcset`, raw-text SVG/MathML mutation payloads and SMIL animation attributes.
+- `npm audit --omit=dev`: zero vulnerabilities.
+- Cost-first dependency, regression-design, test-evidence and final reliability/security reviews found no unresolved BLOCKER/HIGH.
 
 ## Current Risks
 
-- Production `/api/posts`, `/api/admin`, and `/api/ssr` remain failed until the GitHub change is rolled out; the local cause/fix is verified but live recovery is not yet claimed.
+- Production `/api/posts`, `/api/admin`, and `/api/ssr` still return `FUNCTION_INVOCATION_FAILED` on the current public deployment; the follow-up fix is not live and recovery is not yet claimed.
 - The user-supplied Turso read-write token was used only through masked process input and must be revoked/replaced; it is not stored in the repository.
 - Build success does not cover Turso-backed article prerender or production serverless routing.
 - The new Supabase permission migration is local-only until separately applied.
@@ -60,10 +63,12 @@ Production serverless recovery on 2026-08-28: the posts, admin and SSR outage wa
 - Existing production content includes large clusters of similar templated articles; bulk consolidation requires production data review and redirect decisions.
 - Full dependency audit retains development-tool advisories; production dependency audit is clean.
 - Calculator validation and event wiring are covered, but browser-level tests for exact `calculator_completed` event order/count remain open.
+- Failed local fixture experiments left the recoverable, secret-excluded `C:\Users\dlatj\AppData\Local\Temp\cartain-vercel-fixture-v2MZbm` directory; policy prevented recursive removal. Repository recovery backups remain at `D:\web\cartainkr-corrupt-git-20260828-082541`, `D:\web\cartainkr-recovery-files-20260828-0827`, and `D:\web\cartainkr-ac12-recovery.tar` until the user approves cleanup.
 
 ## Next Actions
 
-1. From `D:\web\cartainkr`, run `git push origin main`; verify `git rev-parse HEAD` equals `git ls-remote origin refs/heads/main`.
-2. After the external rollout, recheck posts/admin/SSR status without mutating Vercel settings.
+1. From `D:\web\cartainkr`, have the user run `git push origin main` and verify the remote SHA.
+2. Verify GitHub Quality, then confirm `/api/release` matches the pushed commit and recheck posts/admin/SSR without mutating Vercel settings.
 3. Revoke the exposed Turso read-write token and replace operational diagnostics with a read-only token.
-4. Apply the Supabase permission migration only under separate approval, then verify production search/conversion signals and remeasure on 2026-09-11.
+4. Remove the listed recovery/temp artifacts only after explicit cleanup approval.
+5. Apply the Supabase permission migration only under separate approval, then verify production search/conversion signals and remeasure on 2026-09-11.
