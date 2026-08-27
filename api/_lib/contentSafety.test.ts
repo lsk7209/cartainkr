@@ -29,6 +29,34 @@ describe("sanitizeArticleHtml", () => {
     expect(output).not.toMatch(/javascript:|data:text\/html/i);
   });
 
+  it("blocks URL-attribute and raw-text parser bypass payloads", () => {
+    const input = [
+      '<form action="javascript:alert(1)"><button formaction="javascript:alert(2)">go</button></form>',
+      '<object data="javascript:alert(3)"></object>',
+      '<video poster="javascript:alert(4)"></video>',
+      '<div background="javascript:alert(5)"></div>',
+      '<a ping="javascript:alert(6)" href="https://cartain.kr">safe link</a>',
+      '<svg><textarea><img src=x onerror=alert(7)></textarea></svg>',
+      '<math><xmp><img src=x onerror=alert(8)></xmp></math>',
+      '<textarea></textarea/><img src=x onerror=alert(9)>',
+      '<xmp><script>alert(10)</script><img src=x onerror=alert(11)></xmp>',
+      '<a href="java&#000000115;cript:alert(12)">decimal entity</a>',
+      '<a href="java&#x00000073;cript:alert(13)">hex entity</a>',
+      '<img srcset="javascript:alert(14) 1x" imagesrcset="javascript:alert(15) 1x">',
+      '<svg><animate attributeName="href" values="#safe;javascript:alert(16)"></animate></svg>',
+    ].join("");
+
+    const output = sanitizeArticleHtml(input);
+
+    expect(output).not.toMatch(
+      /<(?:script|form|button|object|video|svg|math|textarea|xmp|animate)\b/i,
+    );
+    expect(output).not.toMatch(
+      /\s(?:action|formaction|data|poster|background|ping|onerror|srcset|imagesrcset|attributeName|values)\s*=/i,
+    );
+    expect(output).not.toMatch(/javascript:/i);
+  });
+
   it("keeps useful article markup while demoting nested h1", () => {
     const output = sanitizeArticleHtml(
       '<h1>중복 제목</h1><h2>본문</h2><p>설명</p><a href="/calculator">계산</a>',

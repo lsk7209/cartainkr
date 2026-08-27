@@ -14,6 +14,7 @@ import { pathToFileURL } from "node:url";
 const require = createRequire(import.meta.url);
 const repositoryRoot = resolve(import.meta.dirname, "..");
 const apiDirectory = join(repositoryRoot, "api");
+const supportedNodeFloor = [22, 12, 0];
 
 const parseVersion = (value) => {
   const match = value.match(/(\d+)\.(\d+)\.(\d+)/);
@@ -40,26 +41,69 @@ const minimumVersion = (range) => {
 };
 
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
+const readPackageMetadata = async (specifier) => {
+  let directory = dirname(require.resolve(specifier));
+
+  while (true) {
+    try {
+      const metadata = await readJson(join(directory, "package.json"));
+      if (metadata.name === specifier) return metadata;
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+
+    const parent = dirname(directory);
+    if (parent === directory) {
+      throw new Error(`Cannot locate package.json for ${specifier}`);
+    }
+    directory = parent;
+  }
+};
 
 const projectPackage = await readJson(join(repositoryRoot, "package.json"));
-const sanitizerPackagePath = require.resolve("sanitize-html/package.json");
-const sanitizerPackage = await readJson(sanitizerPackagePath);
+const sanitizerPackage = await readPackageMetadata("sanitize-html");
+const parserPackage = await readPackageMetadata("htmlparser2");
 const projectRange = projectPackage.engines?.node;
-const sanitizerRange = sanitizerPackage.engines?.node;
 
-if (!projectRange || !sanitizerRange) {
-  throw new Error("Both the project and sanitize-html must declare a Node.js engine");
-}
-
-const requiredVersion = minimumVersion(sanitizerRange);
-if (compareVersions(minimumVersion(projectRange), requiredVersion) < 0) {
+if (!projectRange) throw new Error("The project must declare a Node.js engine");
+if (compareVersions(minimumVersion(projectRange), supportedNodeFloor) < 0) {
   throw new Error(
-    `Project engine ${projectRange} advertises a runtime older than sanitize-html ${sanitizerRange}`,
+    `Project engine ${projectRange} is older than the supported Vercel Node.js floor`,
   );
 }
-if (compareVersions(parseVersion(process.versions.node), requiredVersion) < 0) {
+
+for (const dependencyRange of [
+  sanitizerPackage.engines?.node,
+  parserPackage.engines?.node,
+].filter(Boolean)) {
+  if (
+    compareVersions(minimumVersion(projectRange), minimumVersion(dependencyRange)) <
+    0
+  ) {
+    throw new Error(
+      `Project engine ${projectRange} is older than dependency ${dependencyRange}`,
+    );
+  }
+}
+
+const parserHasCommonJsExport = Boolean(
+  parserPackage.exports?.["."]?.require ||
+    parserPackage.main?.includes("commonjs"),
+);
+if (sanitizerPackage.type !== "module" && !parserHasCommonJsExport) {
   throw new Error(
-    `Verification runtime ${process.versions.node} is older than sanitize-html ${sanitizerRange}`,
+    "sanitize-html is CommonJS but htmlparser2 has no require export",
+  );
+}
+
+if (
+  compareVersions(
+    parseVersion(process.versions.node),
+    minimumVersion(projectRange),
+  ) < 0
+) {
+  throw new Error(
+    `Verification runtime ${process.versions.node} is older than ${projectRange}`,
   );
 }
 
@@ -81,20 +125,27 @@ const entries = (await readdir(apiDirectory, { withFileTypes: true }))
 
 if (!entries.length) throw new Error("No serverless TypeScript entries found");
 
-const sourceFiles = await glob("**/*", { cwd: repositoryRoot });
-const packageManifest = join(
-  repositoryRoot,
-  ".vercel",
-  "node",
-  "package-manifest.json",
+const rootBuildFiles = new Set([
+  "package.json",
+  "package-lock.json",
+  "tsconfig.json",
+  "tsconfig.app.json",
+  "tsconfig.node.json",
+  "vercel.json",
+]);
+
+const includedSource = (name) =>
+  rootBuildFiles.has(name) || name.startsWith("api/") || name.startsWith("src/");
+
+const allSourceFiles = await glob("**/*", { cwd: repositoryRoot });
+const sourceFiles = Object.fromEntries(
+  Object.entries(allSourceFiles).filter(([name]) => includedSource(name)),
 );
-let previousManifest;
-let manifestExisted = true;
-try {
-  previousManifest = await readFile(packageManifest);
-} catch (error) {
-  if (error?.code !== "ENOENT") throw error;
-  manifestExisted = false;
+
+for (const requiredPath of ["package.json", "package-lock.json", ...entries]) {
+  if (!sourceFiles[requiredPath]) {
+    throw new Error(`Serverless fixture is missing ${requiredPath}`);
+  }
 }
 
 const readStream = (stream) =>
@@ -103,6 +154,14 @@ const readStream = (stream) =>
     stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
     stream.on("error", reject);
     stream.on("end", () => resolveStream(Buffer.concat(chunks)));
+  });
+
+const removeTree = (path) =>
+  rm(path, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 200,
   });
 
 const containedPath = (root, relativePath) => {
@@ -116,18 +175,113 @@ const containedPath = (root, relativePath) => {
   return target;
 };
 
+const createMockResponse = () => ({
+  statusCode: 200,
+  headers: new Map(),
+  body: undefined,
+  setHeader(name, value) {
+    this.headers.set(name.toLowerCase(), value);
+    return this;
+  },
+  status(code) {
+    this.statusCode = code;
+    return this;
+  },
+  json(body) {
+    this.body = body;
+    return this;
+  },
+  send(body) {
+    this.body = body;
+    return this;
+  },
+  end() {
+    return this;
+  },
+});
+
+const safeInvocations = {
+  "api/admin.ts": {
+    request: {
+      method: "GET",
+      url: "/api/admin/posts",
+      headers: { host: "cartain.kr" },
+    },
+    status: 401,
+  },
+  "api/posts.ts": {
+    request: {
+      method: "OPTIONS",
+      url: "/api/posts",
+      headers: { host: "cartain.kr" },
+    },
+    status: 204,
+  },
+  "api/release.ts": {
+    request: {
+      method: "GET",
+      url: "/api/release",
+      headers: { host: "cartain.kr" },
+    },
+    status: 200,
+  },
+  "api/ssr.ts": {
+    request: {
+      method: "GET",
+      url: "/api/ssr?p=/about",
+      headers: { host: "cartain.kr" },
+    },
+    status: 200,
+  },
+};
+
+const invokeSafeRoute = async (entry, handler) => {
+  const probe = safeInvocations[entry];
+  if (!probe) return;
+  const response = createMockResponse();
+  await handler(probe.request, response);
+  if (response.statusCode !== probe.status) {
+    throw new Error(
+      `${entry} returned ${response.statusCode}; expected ${probe.status}`,
+    );
+  }
+};
+
+const fixtureRoot = await mkdtemp(join(tmpdir(), "cartain-vercel-fixture-"));
+if (
+  fixtureRoot === repositoryRoot ||
+  fixtureRoot.startsWith(`${repositoryRoot}${sep}`)
+) {
+  throw new Error("Serverless fixture must be outside the source repository");
+}
+
+const previousInstallCompleted = process.env.VERCEL_INSTALL_COMPLETED;
+
 try {
-  for (const entry of entries) {
+  delete process.env.VERCEL_INSTALL_COMPLETED;
+  let buildFiles = sourceFiles;
+
+  for (const [index, entry] of entries.entries()) {
     const result = await buildVercelNode({
-      files: sourceFiles,
+      files: buildFiles,
       entrypoint: entry,
-      workPath: repositoryRoot,
-      repoRootPath: repositoryRoot,
+      workPath: fixtureRoot,
+      repoRootPath: fixtureRoot,
       config: {},
-      meta: { isDev: true, skipDownload: true },
+      meta: { isDev: false, skipDownload: index > 0 },
     });
+    if (index === 0) {
+      buildFiles = await glob("**/*", { cwd: fixtureRoot });
+      process.env.VERCEL_INSTALL_COMPLETED = "1";
+    }
+    if (result.output.runtime !== "nodejs22.x") {
+      throw new Error(
+        `${entry} selected ${result.output.runtime}; expected nodejs22.x`,
+      );
+    }
+
     const outputDirectory = await mkdtemp(
-      join(tmpdir(), "cartain-serverless-"),
+      join(tmpdir(), "cartain-serverless-output-"),
     );
 
     try {
@@ -144,19 +298,21 @@ try {
       if (typeof loaded.default !== "function") {
         throw new Error(`${entry} did not export a default handler`);
       }
+      await invokeSafeRoute(entry, loaded.default);
+      console.log(`Verified ${entry} as ${result.output.runtime}.`);
     } finally {
-      await rm(outputDirectory, { recursive: true, force: true });
+      await removeTree(outputDirectory);
     }
   }
 } finally {
-  if (manifestExisted) {
-    await mkdir(dirname(packageManifest), { recursive: true });
-    await writeFile(packageManifest, previousManifest);
+  if (previousInstallCompleted === undefined) {
+    delete process.env.VERCEL_INSTALL_COMPLETED;
   } else {
-    await rm(packageManifest, { force: true });
+    process.env.VERCEL_INSTALL_COMPLETED = previousInstallCompleted;
   }
+  await removeTree(fixtureRoot);
 }
 
 console.log(
-  `Serverless runtime verification passed for ${entries.length} entries on Node ${process.versions.node}.`,
+  `Production-mode serverless verification passed for ${entries.length} entries on Node ${process.versions.node}.`,
 );
