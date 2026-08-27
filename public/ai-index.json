@@ -2,8 +2,8 @@
   "site": "cartain.kr",
   "name": "카테인",
   "locale": "ko_KR",
-  "description": "자동차 유지비·구매·보험·세금 정보 플랫폼. 무료 계산기와 전문 매거진 제공.",
-  "lastUpdated": "2026-05-15",
+  "description": "자동차 유지비·구매·보험·세금 정보 플랫폼. 무료 계산기와 공식 확인 경로를 담은 매거진 제공.",
+  "lastUpdated": "2026-08-28",
   "feeds": {
     "rss": "https://cartain.kr/rss.xml",
     "sitemap": "https://cartain.kr/sitemap.xml",
@@ -14,21 +14,21 @@
     {
       "url": "https://cartain.kr",
       "title": "카테인 - 자동차 유지비 계산기 & 구매 가이드",
-      "description": "자동차 할부금·보험료·유류비를 무료로 계산하고 최신 자동차 구매 가이드를 확인하세요.",
+      "description": "자동차 할부금·보험료·유류비를 같은 입력 기준으로 계산하고 구매 전 확인할 비용과 공식 경로를 살펴보세요.",
       "type": "homepage",
       "keywords": ["자동차 유지비", "자동차 계산기", "자동차 구매 가이드"]
     },
     {
       "url": "https://cartain.kr/magazine",
       "title": "자동차 매거진 - 카테인",
-      "description": "자동차 구매, 유지비, 보험, 세금, 전기차 관련 전문 아티클 모음",
+      "description": "자동차 구매, 유지비, 보험, 세금, 전기차 관련 실용 아티클 모음",
       "type": "list",
       "keywords": ["자동차 매거진", "자동차 정보", "자동차 가이드"]
     },
     {
       "url": "https://cartain.kr/calculator",
       "title": "자동차 유지비 계산기 - 카테인",
-      "description": "할부금·연료비·보험료·자동차세를 입력하면 월 유지비와 연간 총비용을 자동 계산합니다.",
+      "description": "할부금·연료비·보험료·자동차세를 입력하면 비교용 월 예상 비용과 연간 환산값을 계산합니다.",
       "type": "tool",
       "keywords": ["자동차 유지비 계산기", "자동차 할부 계산", "월 유지비"]
     },

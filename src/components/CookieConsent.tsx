@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { X } from "lucide-react";
-
-const STORAGE_KEY = "cartain_cookie_consent";
+import {
+  CONSENT_CHANGE_EVENT,
+  getStoredMeasurementConsent,
+  initializeAnalytics,
+  storeMeasurementConsent,
+} from "@/lib/analytics";
 
 const updateConsent = (granted: boolean) => {
   if (typeof window.gtag !== "function") return;
@@ -19,24 +23,30 @@ const CookieConsent = () => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) {
+    const stored = getStoredMeasurementConsent();
+    if (stored === null) {
       const t = setTimeout(() => setVisible(true), 1500);
       return () => clearTimeout(t);
     }
     // Re-apply stored consent on page load
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "1") updateConsent(true);
+    if (stored === "1") {
+      updateConsent(true);
+      initializeAnalytics();
+    }
   }, []);
 
   const accept = () => {
-    localStorage.setItem(STORAGE_KEY, "1");
-    updateConsent(true);
+    const persisted = storeMeasurementConsent(true);
+    updateConsent(persisted);
+    if (persisted) initializeAnalytics();
+    window.dispatchEvent(new CustomEvent(CONSENT_CHANGE_EVENT, { detail: { granted: persisted } }));
     setVisible(false);
   };
 
   const decline = () => {
-    localStorage.setItem(STORAGE_KEY, "0");
+    storeMeasurementConsent(false);
     updateConsent(false);
+    window.dispatchEvent(new CustomEvent(CONSENT_CHANGE_EVENT, { detail: { granted: false } }));
     setVisible(false);
   };
 
@@ -52,7 +62,7 @@ const CookieConsent = () => {
         <p className="text-sm text-foreground font-medium mb-1">쿠키 사용 안내</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
           카테인은 서비스 개선 및 맞춤 광고 제공을 위해 쿠키를 사용합니다.{" "}
-          <Link to="/privacy" className="text-primary hover:underline" onClick={accept}>
+          <Link to="/privacy" className="text-primary hover:underline">
             개인정보처리방침
           </Link>
         </p>

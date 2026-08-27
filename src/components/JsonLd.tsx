@@ -1,3 +1,5 @@
+import { serializeJsonLd } from "@/lib/jsonLd";
+
 interface JsonLdProps {
   data: (object | null | undefined) | (object | null | undefined)[];
 }
@@ -13,7 +15,7 @@ const JsonLd = ({ data }: JsonLdProps) => {
         <script
           key={index}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(item) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(item) }}
         />
       ))}
     </>

@@ -1,6 +1,19 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getDb } from "./_lib/turso.js";
+import { getDb, POSTS_PER_PAGE } from "./_lib/turso.js";
 import { CACHE_CONTROL, setPublicCache } from "./_lib/cache.js";
+import {
+  escapeAttribute as escapeAttr,
+  escapeHtml,
+  parseArticleSlug,
+  sanitizeArticleHtml,
+  toSafeAbsoluteHttpUrl,
+} from "./_lib/contentSafety.js";
+import {
+  DEFAULT_ROBOTS_DIRECTIVE,
+  getMagazineSeoPolicy,
+  normalizeMagazinePage,
+  normalizeMagazineSearchQuery,
+} from "../src/lib/seoPolicy.js";
 
 /**
  * 봇/크롤러 전용 서버사이드 렌더링(SSR).
@@ -13,8 +26,6 @@ import { CACHE_CONTROL, setPublicCache } from "./_lib/cache.js";
 
 const BASE = "https://cartain.kr";
 const SITE_NAME = "카테인";
-const GA_ID = "G-N7JJFW6007";
-const ADSENSE_CLIENT = "ca-pub-3050601904412736";
 
 type PostRow = {
   id: string;
@@ -35,15 +46,13 @@ type SummaryRow = {
   published_at: string;
 };
 
-const escapeHtml = (s: string): string =>
-  s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-const escapeAttr = (s: string): string => escapeHtml(s).replace(/\n/g, " ");
+const serializeJsonLd = (value: object): string =>
+  JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 
 // 본문 마크다운 굵게/기울임 → HTML (클라이언트 markdownToHtml과 동일 규칙)
 const markdownToHtml = (html: string): string =>
@@ -51,13 +60,6 @@ const markdownToHtml = (html: string): string =>
     .replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>")
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>");
-
-// 자체 콘텐츠지만 방어적으로 실행 가능 요소만 제거
-const stripUnsafe = (html: string): string =>
-  html
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
-    .replace(/ on[a-z]+="[^"]*"/gi, "");
 
 const stripMarkdown = (text: string): string =>
   text
@@ -93,6 +95,7 @@ interface HeadOptions {
   publishedAt?: string;
   modifiedAt?: string;
   jsonLd?: object[];
+  robots?: string;
 }
 
 function renderHead(o: HeadOptions): string {
@@ -100,7 +103,7 @@ function renderHead(o: HeadOptions): string {
   const ogImage = o.ogImage || `${BASE}/og-image.png`;
   const jsonLdTags = (o.jsonLd ?? [])
     .map(
-      (d) => `<script type="application/ld+json">${JSON.stringify(d)}</script>`,
+      (d) => `<script type="application/ld+json">${serializeJsonLd(d)}</script>`,
     )
     .join("\n    ");
   return `<head>
@@ -109,7 +112,7 @@ function renderHead(o: HeadOptions): string {
     <title>${escapeHtml(o.title)}</title>
     <meta name="description" content="${escapeAttr(desc)}" />
     <meta name="author" content="${SITE_NAME}" />
-    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="robots" content="${escapeAttr(o.robots ?? DEFAULT_ROBOTS_DIRECTIVE)}" />
     <link rel="canonical" href="${escapeAttr(o.canonical)}" />
     <meta name="google-site-verification" content="ekGswLIaR5UyG_klPv0QvN8hsWGdZUp4QO0-Lq6jUj0" />
     <meta name="naver-site-verification" content="cf24492e3e46c01418236115b39f38be940ba349" />
@@ -127,10 +130,9 @@ function renderHead(o: HeadOptions): string {
     <meta name="twitter:description" content="${escapeAttr(desc)}" />
     <meta name="twitter:image" content="${escapeAttr(ogImage)}" />
     <link rel="alternate" hreflang="ko" href="${escapeAttr(o.canonical)}" />
+    <link rel="alternate" hreflang="x-default" href="${escapeAttr(o.canonical)}" />
     <link rel="alternate" type="application/rss+xml" title="카테인 RSS" href="${BASE}/rss.xml" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <script async src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}"></script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}" crossorigin="anonymous"></script>
     ${jsonLdTags}
   </head>`;
 }
@@ -175,32 +177,32 @@ ${bodyMain}
 
 async function renderArticle(slug: string): Promise<string | null> {
   const db = getDb();
-  // DB는 raw 한글 slug로 저장됨. 디코딩/인코딩 형태가 섞여 들어와도 매칭되도록 두 형태 모두 조회.
-  let encodedVariant = slug;
-  try {
-    encodedVariant = encodeURIComponent(slug);
-  } catch {
-    /* slug 그대로 사용 */
-  }
+  const requestedSlug = parseArticleSlug(slug);
+  if (!requestedSlug) return null;
+
+  // DB는 raw 한글 slug와 과거 percent-encoded slug가 섞여 있어 두 형태를 함께 조회한다.
   const rows = await db.execute({
     sql: "SELECT * FROM posts WHERE slug IN (?, ?) AND datetime(published_at) <= datetime('now') LIMIT 1",
-    args: [slug, encodedVariant],
+    args: [requestedSlug.decoded, requestedSlug.urlSegment],
   });
   const post = rows.rows[0] as unknown as PostRow | undefined;
   if (!post) return null;
 
-  const canonical = `${BASE}/magazine/${encodeURIComponent(post.slug)}`;
+  const postSlug = parseArticleSlug(post.slug);
+  if (!postSlug) return null;
+  const canonical = `${BASE}/magazine/${postSlug.urlSegment}`;
   const description = post.excerpt
     ? stripMarkdown(post.excerpt)
     : stripMarkdown(post.title);
-  const bodyHtml = stripUnsafe(markdownToHtml(post.content_html || ""));
+  const bodyHtml = sanitizeArticleHtml(markdownToHtml(post.content_html || ""));
+  const thumbnailUrl = toSafeAbsoluteHttpUrl(post.thumbnail_url, BASE);
 
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
     headline: post.title,
     description,
-    image: post.thumbnail_url || `${BASE}/og-image.png`,
+    image: thumbnailUrl || `${BASE}/og-image.png`,
     datePublished: post.published_at,
     dateModified: post.updated_at || post.published_at,
     author: { "@type": "Organization", name: SITE_NAME, url: `${BASE}/about` },
@@ -231,14 +233,14 @@ async function renderArticle(slug: string): Promise<string | null> {
     description,
     canonical,
     ogType: "article",
-    ogImage: post.thumbnail_url,
+    ogImage: thumbnailUrl,
     publishedAt: post.published_at,
     modifiedAt: post.updated_at || post.published_at,
     jsonLd: [articleSchema, breadcrumbSchema],
   });
 
-  const thumb = post.thumbnail_url
-    ? `<img src="${escapeAttr(post.thumbnail_url)}" alt="${escapeAttr(post.title)}" style="width:100%;border-radius:12px;margin-bottom:24px;" />`
+  const thumb = thumbnailUrl
+    ? `<img src="${escapeAttr(thumbnailUrl)}" alt="${escapeAttr(post.title)}" style="width:100%;border-radius:12px;margin-bottom:24px;" />`
     : "";
 
   const body = `<article>
@@ -247,7 +249,7 @@ async function renderArticle(slug: string): Promise<string | null> {
   </nav>
   <h1 style="font-size:2rem;font-weight:800;margin-bottom:12px;">${escapeHtml(post.title)}</h1>
   <p style="font-size:14px;color:#6b7280;margin-bottom:24px;">
-    <span>글쓴이 <a href="/about">카테인 에디터</a></span> ·
+    <span>글쓴이 <a href="/about">카테인 편집팀</a></span> ·
     <time datetime="${escapeAttr(post.published_at)}">${formatDate(post.published_at)}</time>
   </p>
   ${thumb}
@@ -270,7 +272,9 @@ function renderPostListItems(posts: SummaryRow[]): string {
   return `<ul style="list-style:none;padding:0;">
 ${posts
   .map((p) => {
-    const url = `/magazine/${encodeURIComponent(p.slug)}`;
+    const slug = parseArticleSlug(p.slug);
+    if (!slug) return "";
+    const url = `/magazine/${slug.urlSegment}`;
     const excerpt = p.excerpt
       ? escapeHtml(stripMarkdown(p.excerpt).slice(0, 120))
       : "";
@@ -339,21 +343,30 @@ async function renderHome(): Promise<string> {
   return htmlDocument(head, body);
 }
 
-async function renderMagazineList(): Promise<string> {
+async function renderMagazineList(searchQuery: string, page: number): Promise<string> {
   const db = getDb();
-  const rows = await db.execute(
-    "SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT 100",
-  );
+  const seoPolicy = getMagazineSeoPolicy(BASE, searchQuery, page);
+  const isSearch = seoPolicy.isSearch;
+  const rows = isSearch
+    ? await db.execute({
+        sql: "SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') AND (title LIKE ? OR excerpt LIKE ?) ORDER BY published_at DESC LIMIT 30",
+        args: [`%${searchQuery}%`, `%${searchQuery}%`],
+      })
+    : await db.execute({
+        sql: "SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT ? OFFSET ?",
+        args: [POSTS_PER_PAGE, (page - 1) * POSTS_PER_PAGE],
+      });
   const posts = rows.rows as unknown as SummaryRow[];
   const head = renderHead({
-    title: "자동차 매거진 | 카테인",
-    description:
-      "자동차 구매, 유지비, 보험, 세금, 전기차 정보를 한곳에서 확인하세요. 카테인 매거진의 최신 자동차 정보 모음입니다.",
-    canonical: `${BASE}/magazine`,
+    title: seoPolicy.title,
+    description: seoPolicy.description,
+    canonical: seoPolicy.canonicalUrl,
+    robots: seoPolicy.robots,
   });
   const body = `<section>
   <h1 style="font-size:2rem;font-weight:800;">자동차 매거진</h1>
   <p style="color:#374151;margin:12px 0 24px;">자동차 구매·유지비·보험·세금·전기차 정보를 한곳에서 확인하세요.</p>
+  ${isSearch ? `<p><strong>${escapeHtml(searchQuery)}</strong> 검색 결과</p>` : ""}
   ${renderPostListItems(posts)}
 </section>`;
   return htmlDocument(head, body);
@@ -378,7 +391,7 @@ function renderStaticPage(path: string): string | null {
     <li>전기차·친환경차 — 보조금, 충전, 세제 혜택</li>
   </ul>
   <h2>운영 원칙</h2>
-  <p>카테인은 광고나 협찬이 아닌, 실제 소비자 관점에서 도움이 되는 정보를 우선합니다. 모든 글은 공개된 공식 자료와 최신 제도를 바탕으로 작성하며, 제도 변경 시 업데이트합니다.</p>
+  <p>카테인은 실제 소비자가 비용과 조건을 비교하는 데 필요한 정보를 우선합니다. 수치와 제도를 인용할 때는 가능한 범위에서 기준 시점과 공식 확인 경로를 표시하고, 중요한 결정 전에는 최신 자료를 다시 확인하도록 안내합니다.</p>
   <p>문의는 <a href="/contact">문의 페이지</a>를 이용해 주세요.</p>`,
     },
     "/contact": {
@@ -404,16 +417,18 @@ function renderStaticPage(path: string): string | null {
   <h2>1. 수집하는 정보</h2>
   <p>사이트는 회원가입 없이 이용할 수 있으며, 별도의 개인정보를 직접 수집하지 않습니다. 다만 서비스 이용 과정에서 방문 기록, 쿠키, 기기·브라우저 정보가 자동으로 생성·수집될 수 있습니다.</p>
   <h2>2. 쿠키 및 제3자 광고</h2>
-  <p>본 사이트는 Google AdSense를 통한 광고를 게재합니다. Google과 같은 제3자 공급업체는 쿠키(DoubleClick DART 쿠키 포함)를 사용하여 이용자의 본 사이트 및 다른 사이트 방문 기록을 바탕으로 맞춤형 광고를 제공합니다.</p>
+  <p>본 사이트는 사용자가 쿠키에 동의한 경우에만 Google AdSense, Google Analytics와 쿠팡 파트너스 제휴 배너의 외부 이미지·측정 스크립트를 불러옵니다. 거부하더라도 계산기와 매거진의 핵심 기능은 계속 이용할 수 있습니다.</p>
   <ul>
     <li>이용자는 <a href="https://policies.google.com/technologies/ads" rel="noopener noreferrer" target="_blank">Google 광고 설정</a>에서 맞춤 광고를 비활성화할 수 있습니다.</li>
     <li>브라우저 설정에서 쿠키 저장을 거부할 수 있으나, 이 경우 일부 기능 이용에 제한이 있을 수 있습니다.</li>
   </ul>
   <h2>3. 웹 분석 도구</h2>
-  <p>사이트는 서비스 개선을 위해 Google Analytics를 사용합니다. 수집된 정보는 통계 분석 목적으로만 이용되며 개인을 식별하지 않습니다.</p>
-  <h2>4. 보유 및 이용 기간</h2>
-  <p>자동 수집된 정보는 분석 목적 달성 후 지체 없이 파기하거나 관련 법령이 정한 기간 동안 보관합니다.</p>
-  <h2>5. 문의</h2>
+  <p>사이트는 동의한 사용자의 서비스 이용 흐름을 개선하기 위해 Google Analytics를 사용하며, 계산 완료와 같은 집계 이벤트를 측정합니다.</p>
+  <h2>4. 콘텐츠 전송 서비스</h2>
+  <p>게시글 이미지와 웹 글꼴은 Supabase Storage와 jsDelivr를 통해 제공될 수 있으며, 콘텐츠 요청 과정에서 IP 주소, 요청 시각과 브라우저 정보가 처리될 수 있습니다.</p>
+  <h2>5. 보유 및 이용 기간</h2>
+  <p>브라우저의 동의 선택은 철회하거나 저장 정보를 삭제할 때까지 남습니다. 제3자 서비스에서 처리되는 정보는 각 사업자의 보유 정책을 따르며, 이메일 문의는 처리 목적 달성 후 삭제하되 법정 보존 의무가 있으면 해당 기간까지 보관할 수 있습니다.</p>
+  <h2>6. 문의</h2>
   <p>개인정보 관련 문의는 <a href="mailto:contact@cartain.kr">contact@cartain.kr</a>로 연락해 주세요. 본 방침은 법령·서비스 변경에 따라 개정될 수 있습니다.</p>`,
     },
     "/terms": {
@@ -432,29 +447,66 @@ function renderStaticPage(path: string): string | null {
   <p>본 약관은 관련 법령·서비스 변경에 따라 개정될 수 있으며, 변경 시 사이트에 공지합니다.</p>`,
     },
     "/calculator": {
-      title: "자동차 유지비 계산기 | 카테인",
+      title: "자동차 유지비 계산기 | 월 비용·할부·보험료 무료 계산",
       description:
-        "차량 가격, 연비, 보험료, 자동차세를 입력해 월 자동차 유지비를 계산해 보세요.",
+        "차량 가격, 선수금, 할부 금리, 연비, 주행거리와 보험료를 입력해 월·연간 자동차 유지비를 무료로 비교하세요.",
       body: `<h1>자동차 유지비 계산기</h1>
-  <p>차량 가격, 연비, 주행거리, 보험료, 자동차세 등을 입력하면 예상 월 유지비를 계산할 수 있는 도구입니다.</p>
+  <p>회원가입 없이 차량 가격, 선수금, 할부 기간과 금리, 연비, 월 주행거리, 유가, 보험료를 입력하면 예상 월 유지비와 연간 비용을 비교할 수 있습니다.</p>
+  <p><a href="#calculator-input">내 조건으로 월 유지비 계산하기</a></p>
   <h2>계산에 포함되는 항목</h2>
   <ul>
-    <li>연료비 — 월 주행거리와 연비, 유가 기준</li>
-    <li>자동차세 — 배기량 기준 연세액의 월 환산</li>
-    <li>보험료 — 연 보험료의 월 환산</li>
-    <li>정비·소모품 — 평균 유지 비용</li>
+    <li>월 할부금 — 차량 가격에서 선수금을 뺀 원금, 기간, 연 금리를 사용한 원리금균등상환 예상액</li>
+    <li>월 연료비 — 월 주행거리 ÷ 연비 × 입력한 연료 단가</li>
+    <li>월 보험료 — 사용자가 받은 연 보험료 견적을 월 단위로 환산한 값</li>
+    <li>자동차세 — 선택한 차종의 예시 세액 또는 사용자가 확인한 연세액의 월 환산값</li>
   </ul>
-  <p>계산기는 JavaScript 환경에서 동작합니다. 자동차 유지비에 관한 자세한 정보는 <a href="/magazine">매거진</a>에서 확인하세요.</p>`,
+  <h2>계산 순서</h2>
+  <ol id="calculator-input">
+    <li>차종 예시를 고르거나 차량 가격과 선수금을 직접 입력합니다.</li>
+    <li>실제 금융 견적의 할부 기간과 금리를 입력합니다.</li>
+    <li>평소 월 주행거리, 실주행 연비, 현재 연료 단가와 보험료를 입력합니다.</li>
+    <li>계산 결과에서 월 비용, 연간 비용과 항목별 비중을 확인합니다.</li>
+  </ol>
+  <h2>결과를 해석할 때 주의할 점</h2>
+  <p>결과는 입력값을 기준으로 한 비교용 예상치이며 확정 견적이 아닙니다. 주차비, 통행료, 정비·소모품, 취득세와 감가상각은 개인별 차이가 커 별도로 더해야 합니다. 전기차는 충전 장소와 요금제, 계절 효율을 반영한 실제 전비와 충전 단가를 사용하세요.</p>
+  <h2>기준과 공식 자료</h2>
+  <p>자동차세와 연납 공제는 <a href="https://www.wetax.go.kr" rel="noopener noreferrer">위택스</a>, 차량 이력과 등록 정보는 <a href="https://www.car365.go.kr" rel="noopener noreferrer">자동차365</a>, 연료 가격은 <a href="https://www.opinet.co.kr" rel="noopener noreferrer">오피넷</a>에서 최신 값을 확인할 수 있습니다.</p>
+  <h2>자주 묻는 질문</h2>
+  <h3>계산 결과가 실제 청구액과 다른 이유는 무엇인가요?</h3>
+  <p>금융 수수료, 운전자별 보험료, 실제 연비, 지역별 세금과 주차·통행·정비비가 입력값과 다를 수 있기 때문입니다. 계약 전 실제 견적과 고지서를 다시 확인하세요.</p>
+  <h3>0% 금리도 계산할 수 있나요?</h3>
+  <p>가능합니다. 0% 금리에서는 남은 원금을 할부 개월 수로 나눈 값을 월 할부금으로 계산합니다.</p>
+  <p>계산기는 JavaScript 환경에서 동작합니다. 비용 항목을 더 자세히 확인하려면 <a href="/magazine">자동차 매거진</a>을 함께 참고하세요.</p>`,
     },
   };
 
   const page = pages[path];
   if (!page) return null;
   const canonical = `${BASE}${path}`;
+  const calculatorJsonLd = path === "/calculator" ? [
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "자동차 유지비 계산기",
+      applicationCategory: "FinanceApplication",
+      operatingSystem: "Web",
+      url: canonical,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "홈", item: BASE },
+        { "@type": "ListItem", position: 2, name: "유지비 계산기", item: canonical },
+      ],
+    },
+  ] : undefined;
   const head = renderHead({
     title: page.title,
     description: page.description,
     canonical,
+    jsonLd: calculatorJsonLd,
   });
   return htmlDocument(head, `<section>\n  ${page.body}\n</section>`);
 }
@@ -466,6 +518,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // middleware가 원본 경로를 ?p= 로 전달(/api/ssr로 rewrite되므로 pathname은 못 씀)
   const rawPath = url.searchParams.get("p") || url.pathname;
   const path = rawPath.replace(/\/+$/, "") || "/";
+  const searchQuery = normalizeMagazineSearchQuery(url.searchParams.get("q"));
+  const page = normalizeMagazinePage(url.searchParams.get("page"));
 
   try {
     let html: string | null = null;
@@ -473,7 +527,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (path === "/") {
       html = await renderHome();
     } else if (path === "/magazine") {
-      html = await renderMagazineList();
+      html = await renderMagazineList(searchQuery, page);
       setPublicCache(res, CACHE_CONTROL.POSTS_LIST);
     } else if (path.startsWith("/magazine/")) {
       const slug = safeDecode(path.slice("/magazine/".length));
@@ -491,6 +545,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         title: "페이지를 찾을 수 없습니다 | 카테인",
         description: "요청하신 페이지를 찾을 수 없습니다.",
         canonical: `${BASE}${path}`,
+        robots: "noindex, nofollow",
       });
       const body = `<section>
   <h1>페이지를 찾을 수 없습니다</h1>

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getDb, POSTS_PER_PAGE } from "./_lib/turso.js";
 import { setCors } from "./_lib/auth.js";
 import { CACHE_CONTROL, setPublicCache } from "./_lib/cache.js";
+import { parseArticleSlug } from "./_lib/contentSafety.js";
 
 type CountRow = { cnt: string | number };
 
@@ -99,11 +100,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // GET /api/posts/:slug
     const slugMatch = path.match(/^\/api\/posts\/([^/]+)$/);
     if (slugMatch && req.method === "GET") {
-      const slug = decodeURIComponent(slugMatch[1]);
+      const slug = parseArticleSlug(slugMatch[1]);
+      if (!slug) return res.status(404).json({ error: "Not found" });
       const db = getDb();
       const rows = await db.execute({
-        sql: "SELECT * FROM posts WHERE slug = ? AND datetime(published_at) <= datetime('now') LIMIT 1",
-        args: [slug],
+        sql: "SELECT * FROM posts WHERE slug IN (?, ?) AND datetime(published_at) <= datetime('now') LIMIT 1",
+        args: [slug.decoded, slug.urlSegment],
       });
       if (!rows.rows[0]) return res.status(404).json({ error: "Not found" });
       setPublicCache(res, CACHE_CONTROL.POST_DETAIL);

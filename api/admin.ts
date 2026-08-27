@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { createHash } from "node:crypto";
 import { getDb } from "./_lib/turso.js";
 import { requireAdmin, setCors } from "./_lib/auth.js";
+import { parseArticleSlug } from "./_lib/contentSafety.js";
 
 const DEFAULT_POST_LIMIT = 100;
 const MAX_POST_LIMIT = 500;
@@ -25,6 +27,7 @@ const encodingCorruptionResponse = (res: VercelResponse) =>
 
 type SettingRow = { key: string; value: string };
 type SlugRow = { slug: string };
+type PostIdentityRow = { id: string; slug: string; title: string };
 type UpdatePostBody = {
   id?: string;
   slug?: string;
@@ -60,6 +63,14 @@ function parseUpdatePostBody(body: unknown): UpdatePostBody | null {
     return null;
   }
 }
+
+const stableQueueItemId = (titles: string[], index: number) => {
+  const hex = createHash("sha256")
+    .update(JSON.stringify(titles))
+    .update(`:${index}`)
+    .digest("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+};
 
 // 정적 파일명(api/admin.ts)으로 두고, 하위 경로는 vercel.json rewrites가
 // `?__r=<route>` (queue item은 `?__r=queue-item&__id=`) 쿼리로 넘겨준다.
@@ -138,15 +149,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (path === "/api/admin/queue" && req.method === "POST") {
-      const { items } = req.body as { items: Array<{ title: string }> };
-      const db = getDb();
-      for (const item of items) {
-        await db.execute({
-          sql: "INSERT INTO post_queue (id, title, status, created_at) VALUES (?, ?, 'pending', ?)",
-          args: [crypto.randomUUID(), item.title, new Date().toISOString()],
-        });
+      const body = req.body as { items?: unknown } | null;
+      if (!Array.isArray(body?.items) || body.items.length === 0 || body.items.length > MAX_POST_LIMIT) {
+        return res.status(400).json({ error: `items must contain 1-${MAX_POST_LIMIT} entries` });
       }
-      return res.json({ success: true, count: items.length });
+      const titles = body.items.map((item) =>
+        item && typeof item === "object" && "title" in item && typeof item.title === "string"
+          ? item.title.trim()
+          : "",
+      );
+      if (titles.some((title) => !title || title.length > 200)) {
+        return res.status(400).json({ error: "Every queue title must contain 1-200 characters" });
+      }
+      const db = getDb();
+      const createdAt = new Date().toISOString();
+      const results = await db.batch(
+        titles.map((title, index) => ({
+          sql: "INSERT INTO post_queue (id, title, status, created_at) VALUES (?, ?, 'pending', ?) ON CONFLICT(id) DO NOTHING",
+          args: [stableQueueItemId(titles, index), title, createdAt],
+        })),
+        "write",
+      );
+      const count = results.reduce((sum, result) => sum + result.rowsAffected, 0);
+      return res.json({ success: true, count, duplicates: titles.length - count });
     }
 
     if (path === "/api/admin/update-post" && req.method === "POST") {
@@ -156,6 +181,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const { id, slug, title, content_html, excerpt, thumbnail_url } = body;
+      const safeSlug = slug === undefined ? null : parseArticleSlug(slug);
+      if (slug !== undefined && !safeSlug) {
+        return res.status(400).json({ error: "Invalid slug" });
+      }
       const normalizedContent =
         content_html === undefined ? null : normalizeContentHtml(content_html);
       if (content_html !== undefined && !normalizedContent) {
@@ -169,7 +198,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const result = await db.execute({
         sql: `UPDATE posts SET slug = COALESCE(?, slug), title = COALESCE(?, title), content_html = COALESCE(?, content_html), excerpt = COALESCE(?, excerpt), thumbnail_url = COALESCE(?, thumbnail_url), updated_at = ? WHERE id = ?`,
         args: [
-          slug ?? null,
+          safeSlug?.decoded ?? null,
           title ?? null,
           normalizedContent,
           excerpt ?? null,
@@ -224,6 +253,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         thumbnail_url: string | null;
         published_at: string;
       };
+      if (
+        typeof id !== "string" ||
+        !id.trim() ||
+        typeof slug !== "string" ||
+        typeof title !== "string" ||
+        !title.trim()
+      ) {
+        return res.status(400).json({ error: "id, slug, and title are required" });
+      }
       const normalizedContent = normalizeContentHtml(content_html);
       if (!normalizedContent) {
         return res.status(400).json({ error: "Invalid content_html" });
@@ -231,30 +269,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (hasEncodingCorruption(title, excerpt, normalizedContent)) {
         return encodingCorruptionResponse(res);
       }
+      const safeSlug = parseArticleSlug(slug);
+      if (!safeSlug) {
+        return res.status(400).json({ error: "Invalid slug" });
+      }
       const db = getDb();
       const now = published_at || new Date().toISOString();
-      await db.execute({
-        sql: "INSERT INTO posts (id, slug, title, content_html, excerpt, thumbnail_url, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        args: [
-          id,
-          slug,
-          title,
-          normalizedContent,
-          excerpt,
-          thumbnail_url ?? null,
-          now,
-          now,
-        ],
-      });
-      // Mark queue item as completed if queue_id provided
       const { queue_id } = req.body as { queue_id?: string };
-      if (queue_id) {
-        await db.execute({
-          sql: "UPDATE post_queue SET status = 'completed' WHERE id = ?",
-          args: [queue_id],
+      const insertSql = queue_id
+        ? "INSERT INTO posts (id, slug, title, content_html, excerpt, thumbnail_url, published_at, updated_at) SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM post_queue WHERE id = ?) ON CONFLICT(id) DO NOTHING"
+        : "INSERT INTO posts (id, slug, title, content_html, excerpt, thumbnail_url, published_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING";
+      const insertArgs = [
+        id,
+        safeSlug.decoded,
+        title,
+        normalizedContent,
+        excerpt,
+        thumbnail_url ?? null,
+        now,
+        now,
+        ...(queue_id ? [queue_id] : []),
+      ];
+      const statements = [
+        { sql: insertSql, args: insertArgs },
+        ...(queue_id
+          ? [{
+              sql: "UPDATE post_queue SET status = 'completed' WHERE id = ? AND EXISTS (SELECT 1 FROM posts WHERE id = ? AND slug = ? AND title = ?)",
+              args: [queue_id, id, safeSlug.decoded, title],
+            }]
+          : []),
+        {
+          sql: "SELECT id, slug, title FROM posts WHERE id = ? LIMIT 1",
+          args: [id],
+        },
+      ];
+      const results = await db.batch(statements, "write");
+      const identityResult = results.at(-1);
+      const identity = identityResult?.rows[0] as unknown as PostIdentityRow | undefined;
+      if (!identity) {
+        return res.status(queue_id ? 404 : 409).json({
+          error: queue_id ? "Queue item not found" : "Post could not be created",
         });
       }
-      return res.json({ success: true, slug });
+      if (identity.slug !== safeSlug.decoded || identity.title !== title) {
+        return res.status(409).json({ error: "Post id already belongs to different content" });
+      }
+      if (queue_id && results[1]?.rowsAffected !== 1) {
+        return res.status(409).json({ error: "Queue item could not be completed" });
+      }
+      return res.json({ success: true, slug: safeSlug.decoded });
     }
 
     if (path === "/api/admin/settings" && req.method === "GET") {

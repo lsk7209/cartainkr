@@ -17,14 +17,8 @@ const NotFound = () => {
   useSEO({
     title: '페이지를 찾을 수 없습니다 (404) | 카테인',
     description: '요청하신 페이지가 존재하지 않습니다. 카테인 홈으로 이동하거나 매거진을 확인해보세요.',
+    robots: 'noindex, nofollow',
   });
-
-  useEffect(() => {
-    document.querySelector('meta[name="robots"]')?.setAttribute('content', 'noindex, nofollow');
-    return () => {
-      document.querySelector('meta[name="robots"]')?.setAttribute('content', 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1');
-    };
-  }, []);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') {

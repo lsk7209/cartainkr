@@ -9,7 +9,7 @@ import { next, rewrite } from "@vercel/edge";
  */
 
 const BOT_UA =
-  /bot|crawl|spider|slurp|mediapartners|adsbot|googlebot|bingbot|yeti|daum|naver|facebookexternalhit|twitterbot|whatsapp|telegram|slack|discord|embedly|lighthouse|inspectiontool/i;
+  /bot|crawl|spider|slurp|mediapartners|adsbot|googlebot|bingbot|chatgpt|google-extended|anthropic-ai|oai-search|yeti|daum|naver|facebookexternalhit|twitterbot|whatsapp|telegram|slack|discord|embedly|lighthouse|inspectiontool/i;
 
 export const config = {
   matcher: [
@@ -31,5 +31,9 @@ export default function middleware(request: Request) {
   const url = new URL(request.url);
   const dest = new URL("/api/ssr", url);
   dest.searchParams.set("p", url.pathname);
+  for (const key of ["q", "page"]) {
+    const value = url.searchParams.get(key);
+    if (value) dest.searchParams.set(key, value);
+  }
   return rewrite(dest);
 }

@@ -2,7 +2,16 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "node:fs/promises";
-import { componentTagger } from "lovable-tagger";
+import {
+  escapeAttribute,
+  escapeHtml,
+  parseArticleSlug,
+  replaceCapturedValue,
+  resolveArticleOutputDirectory,
+  sanitizeArticleHtml,
+  toSafeAbsoluteHttpUrl,
+  toSafeSiteOrigin,
+} from "./api/_lib/contentSafety.js";
 
 interface SeoPluginOptions {
   siteUrl: string;
@@ -10,7 +19,7 @@ interface SeoPluginOptions {
   tursoToken?: string;
 }
 
-type PrerenderPostRow = {
+export type PrerenderPostRow = {
   slug: string;
   title: string;
   excerpt: string | null;
@@ -19,6 +28,28 @@ type PrerenderPostRow = {
   updated_at: string | null;
   content_html: string | null;
 };
+
+function toPrerenderPostRow(row: unknown): PrerenderPostRow | null {
+  if (!row || typeof row !== "object") return null;
+  const value = row as Record<string, unknown>;
+  if (
+    typeof value.slug !== "string" ||
+    typeof value.title !== "string" ||
+    typeof value.published_at !== "string"
+  ) {
+    return null;
+  }
+
+  return {
+    slug: value.slug,
+    title: value.title,
+    excerpt: typeof value.excerpt === "string" ? value.excerpt : null,
+    thumbnail_url: typeof value.thumbnail_url === "string" ? value.thumbnail_url : null,
+    published_at: value.published_at,
+    updated_at: typeof value.updated_at === "string" ? value.updated_at : null,
+    content_html: typeof value.content_html === "string" ? value.content_html : null,
+  };
+}
 
 type StaticRoute = {
   path: string;
@@ -33,13 +64,6 @@ const STATIC_ROUTES: StaticRoute[] = [
     title: "자동차 매거진 | 카테인",
     description:
       "자동차 구매, 유지비, 보험, 세금, 전기차 정보를 한곳에서 확인하세요.",
-    ogType: "website",
-  },
-  {
-    path: "/blog",
-    title: "Cartain Blog | car buying and ownership guides",
-    description:
-      "Cartain blog collects car buying guides, ownership cost explainers, insurance notes, tax checks, EV guidance, and practical maintenance articles.",
     ogType: "website",
   },
   {
@@ -79,42 +103,19 @@ const STATIC_ROUTES: StaticRoute[] = [
   },
 ];
 
-const APP_NOSCRIPT_REGEX =
-  /<noscript>\s*<div style="padding:2rem;[\s\S]*?<\/div>\s*<\/noscript>/;
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function escapeAttribute(value: string) {
-  return escapeHtml(value).replace(/"/g, "&quot;");
-}
-
 function stripHtml(value: string) {
   return value.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
 }
 
-function sanitizeStaticArticleHtml(value: string) {
-  return value
-    .replace(/<\/?(?:script|style|iframe|object|embed)[^>]*>/gi, "")
-    .replace(/\son\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/\s(href|src)\s*=\s*(["'])\s*javascript:[\s\S]*?\2/gi, "");
-}
-
-function renderStaticArticleRoot(row: PrerenderPostRow) {
+function renderStaticArticleRoot(row: PrerenderPostRow, siteUrl: string) {
   const title = escapeHtml(row.title);
   const description = escapeHtml(stripHtml(row.excerpt ?? row.title));
   const publishedDate = escapeHtml(row.published_at.slice(0, 10));
-  const image = row.thumbnail_url
-    ? `<img src="${escapeAttribute(row.thumbnail_url)}" alt="${title}" style="width:100%;border-radius:12px;margin-bottom:24px;" />`
+  const thumbnailUrl = toSafeAbsoluteHttpUrl(row.thumbnail_url, siteUrl);
+  const image = thumbnailUrl
+    ? `<img src="${escapeAttribute(thumbnailUrl)}" alt="${escapeAttribute(row.title)}" style="width:100%;border-radius:12px;margin-bottom:24px;" />`
     : "";
-  const body = sanitizeStaticArticleHtml(row.content_html ?? "").replace(
-    /<h1\b[^>]*>[\s\S]*?<\/h1>/gi,
-    "",
-  );
+  const body = sanitizeArticleHtml(row.content_html ?? "");
 
   return `<div id="root"><main style="padding:2rem;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:960px;margin:0 auto;line-height:1.75;color:#1f2937;"><article><nav aria-label="Breadcrumb" style="font-size:13px;color:#6b7280;margin-bottom:12px;"><a href="/">홈</a> › <a href="/magazine">매거진</a></nav><h1 style="font-size:2rem;font-weight:800;margin-bottom:12px;">${title}</h1><p style="font-size:14px;color:#6b7280;margin-bottom:24px;"><time datetime="${publishedDate}">${publishedDate}</time></p>${image}<div class="magazine-body">${body || `<p>${description}</p>`}</div><nav aria-label="Related content" style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;"><a href="/calculator">자동차 유지비 계산기</a> · <a href="/magazine">매거진 전체 보기</a></nav></article></main></div>`;
 }
@@ -160,13 +161,17 @@ function routeFallbackHtml(route: StaticRoute) {
     `<h2>검토 결과를 정리하는 방법</h2>` +
     `<p>여러 차량을 비교할 때는 후보별 장점과 단점을 같은 기준으로 적어 두는 것이 좋습니다. 차량 가격, 월 납입금, 보험료, 세금, 연료비, 정비비, 보증 기간, 중고차 감가 위험을 한 표에 정리하면 단순한 인상이나 광고 문구에 흔들릴 가능성이 줄어듭니다. 카테인은 이런 비교 과정을 돕기 위해 계산기와 설명 글을 연결하고, 사용자가 직접 확인해야 할 공식 자료와 실제 견적의 중요성을 반복해서 안내합니다.</p>` +
     `<p>구매 결정을 미루고 정보를 다시 확인하는 것도 좋은 선택일 수 있습니다. 자동차 시장은 할인 조건, 출고 대기, 보조금 잔여 예산, 중고차 시세, 보험료 조건에 따라 빠르게 달라집니다. 오늘 계산한 결과가 한 달 뒤에도 그대로 맞는다고 볼 수 없으므로, 계약 직전에는 최신 조건으로 다시 비교하는 습관이 필요합니다.</p>`;
-  const commonLinks =
-    qualityText +
+  const primaryLinks =
     `<nav aria-label="카테인 주요 링크"><a href="/">홈</a> | ` +
     `<a href="/magazine">자동차 매거진</a> | ` +
     `<a href="/calculator">자동차 유지비 계산기</a> | ` +
     `<a href="/about">카테인 소개</a> | ` +
     `<a href="/contact">문의하기</a></nav>`;
+  const commonLinks = qualityText + primaryLinks;
+
+  if (route.path === "/privacy") {
+    return `<noscript><div style="padding:2rem;font-family:sans-serif;max-width:960px;margin:0 auto;line-height:1.75;color:#1f2937"><h1>${escapeHtml(route.title)}</h1><p>${escapeHtml(route.description)}</p><h2>동의 전 선택형 외부 서비스 차단</h2><p>카테인은 이용자가 동의하기 전에는 Google Analytics, Google AdSense 및 쿠팡 파트너스 제휴 배너의 외부 이미지·측정 스크립트를 불러오지 않습니다. 거부하더라도 계산기와 매거진의 핵심 기능은 계속 이용할 수 있습니다.</p><h2>동의 후 처리될 수 있는 정보</h2><p>동의한 경우 방문 페이지, 접속 시각, 브라우저·기기 정보, IP 주소와 광고·분석 식별자가 각 제3자 서비스의 정책에 따라 처리될 수 있습니다. 쿠팡 파트너스 배너는 제휴 광고 표시와 클릭·노출 집계를 위해 현재 페이지 주소와 접속 정보를 배너 운영 서버로 전송할 수 있습니다.</p><h2>필수 콘텐츠 전송</h2><p>게시글 이미지와 웹 글꼴은 Supabase Storage와 jsDelivr를 통해 제공될 수 있으며, 콘텐츠 요청 과정에서 IP 주소, 요청 시각과 브라우저 정보가 처리될 수 있습니다.</p><p><a href="/privacy">JavaScript 환경에서 전체 개인정보처리방침과 동의 철회 기능을 확인하세요.</a></p>${primaryLinks}</div></noscript>`;
+  }
 
   if (route.path === "/magazine" || route.path === "/blog") {
     return `<noscript><div style="padding:2rem;font-family:sans-serif;max-width:960px;margin:0 auto;line-height:1.75;color:#1f2937"><h1>${escapeHtml(route.title)}</h1><p>${escapeHtml(route.description)}</p><p>카테인 매거진은 자동차 구매를 준비하는 사람, 이미 차량을 운행하는 사람, 전기차와 하이브리드 전환을 고민하는 사람을 위한 실용 자동차 정보 모음입니다. 단순한 차종 소개보다 실제 지출에 영향을 주는 유지비, 보험료, 세금, 정비비, 감가상각, 보조금 조건을 중심으로 설명합니다.</p><h2>자동차 매거진 주요 주제</h2><ul><li>신차와 중고차 구매 전 확인해야 할 계약, 견적, 감가 기준</li><li>자동차세, 보험료, 유류비, 정비비를 포함한 월 유지비 절약 방법</li><li>전기차 보조금, 충전비, 겨울 주행거리, 배터리 관리 기준</li><li>초보 운전자와 가족용 차량을 위한 차종 선택 체크리스트</li><li>리스, 장기렌트, 할부 구매를 비교할 때 놓치기 쉬운 총비용 항목</li></ul><h2>글을 읽는 순서</h2><p>처음 방문했다면 유지비 계산과 구매 전 점검 글부터 읽고, 관심 차종이 정해졌다면 차종별 월 비용 비교 글로 이동하세요. 각 글은 실제 소비자 관점에서 비용 항목과 주의할 점을 분리해 설명합니다. 자동차 제도와 세금은 시점에 따라 달라질 수 있으므로 글의 작성일과 업데이트 기준을 함께 확인하는 것이 좋습니다.</p><h2>카테인 콘텐츠 기준</h2><p>카테인은 광고 문구처럼 장점만 나열하지 않고 구매 전 확인해야 할 단점과 비용 리스크를 함께 적습니다. 보험료와 세금처럼 개인 조건에 따라 달라지는 항목은 확정 금액으로 단정하지 않고 비교 기준과 확인 방법을 안내합니다. 중요한 결정 전에는 제조사, 보험사, 공공기관의 최신 자료를 함께 확인하도록 권장합니다.</p><p>매거진 글을 읽은 뒤 실제 월 비용이 궁금하다면 자동차 유지비 계산기로 이동해 차량 가격, 할부 조건, 주행거리, 보험료를 직접 입력해 보세요. 이렇게 하면 단순 차량 가격이 아니라 매달 부담할 총비용 기준으로 더 현실적인 결정을 할 수 있습니다.</p>${commonLinks}</div></noscript>`;
@@ -180,10 +185,20 @@ function routeFallbackHtml(route: StaticRoute) {
 }
 
 function createJsonLdScript(data: object | object[]) {
-  return `<script type="application/ld+json">${JSON.stringify(data).replace(
-    /<\/script/gi,
-    "<\\/script",
-  )}</script>`;
+  const serialized = JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
+  return `<script type="application/ld+json">${serialized}</script>`;
+}
+
+function routeStaticRoot(route: StaticRoute) {
+  const fallback = routeFallbackHtml(route)
+    .replace(/^<noscript>/, "")
+    .replace(/<\/noscript>$/, "");
+  return fallback.replace(/^<div /, '<div id="root" ');
 }
 
 function extractFaqs(html: string) {
@@ -207,9 +222,9 @@ function buildArticleStructuredData(
   row: PrerenderPostRow,
   siteUrl: string,
   description: string,
+  articleUrl: string,
+  imageUrl: string,
 ) {
-  const articleUrl = `${siteUrl}/magazine/${row.slug}`;
-  const imageUrl = row.thumbnail_url || `${siteUrl}/og-image.png`;
   const text = row.content_html ? stripHtml(row.content_html) : "";
   const wordCount = text ? text.split(/\s+/).length : undefined;
   const article = {
@@ -231,8 +246,8 @@ function buildArticleStructuredData(
     dateModified: row.updated_at || row.published_at,
     inLanguage: "ko-KR",
     author: {
-      "@type": "Person",
-      name: "카테인 에디터",
+      "@type": "Organization",
+      name: "카테인",
       url: `${siteUrl}/about`,
     },
     publisher: {
@@ -309,37 +324,80 @@ function injectRouteMeta(
   route: StaticRoute,
   siteUrl: string,
 ) {
-  const pageUrl = `${siteUrl}${route.path}`;
+  const pageUrl = escapeAttribute(`${siteUrl}${route.path}`);
   const safeTitle = escapeAttribute(route.title);
   const safeDescription = escapeAttribute(route.description);
 
-  return indexHtml
-    .replace(/\s*<link rel="canonical" href="[^"]+" \/>\n?/, "\n")
-    .replace(/(<title>)[^<]*/, `$1${safeTitle}`)
-    .replace(
-      /(<meta name="description" content=")[^"]*/,
-      `$1${safeDescription}`,
-    )
-    .replace(/(<meta property="og:title" content=")[^"]*/, `$1${safeTitle}`)
-    .replace(
-      /(<meta property="og:description" content=")[^"]*/,
-      `$1${safeDescription}`,
-    )
-    .replace(/(<meta property="og:type" content=")[^"]*/, `$1${route.ogType}`)
-    .replace(/(<meta property="og:url" content=")[^"]*/, `$1${pageUrl}`)
-    .replace(/(<meta name="twitter:title" content=")[^"]*/, `$1${safeTitle}`)
-    .replace(
-      /(<meta name="twitter:description" content=")[^"]*/,
-      `$1${safeDescription}`,
-    )
-    .replace(
-      "</head>",
-      `  <link rel="canonical" href="${pageUrl}" />\n  </head>`,
-    )
-    .replace(
-      APP_NOSCRIPT_REGEX,
-      routeFallbackHtml(route),
-    );
+  let html = replaceAppShellWithStaticArticle(indexHtml, routeStaticRoot(route))
+    .replace(/\s*<link rel="canonical" href="[^"]+" \/>\n?/, "\n");
+  html = replaceCapturedValue(html, /(<title>)[^<]*/, safeTitle);
+  html = replaceCapturedValue(html, /(<meta name="description" content=")[^"]*/, safeDescription);
+  html = replaceCapturedValue(html, /(<meta property="og:title" content=")[^"]*/, safeTitle);
+  html = replaceCapturedValue(html, /(<meta property="og:description" content=")[^"]*/, safeDescription);
+  html = replaceCapturedValue(html, /(<meta property="og:type" content=")[^"]*/, route.ogType);
+  html = replaceCapturedValue(html, /(<meta property="og:url" content=")[^"]*/, pageUrl);
+  html = replaceCapturedValue(html, /(<meta name="twitter:title" content=")[^"]*/, safeTitle);
+  html = replaceCapturedValue(html, /(<meta name="twitter:description" content=")[^"]*/, safeDescription);
+  html = replaceCapturedValue(html, /(<link rel="alternate" hreflang="ko" href=")[^"]*/, pageUrl);
+  html = replaceCapturedValue(html, /(<link rel="alternate" hreflang="x-default" href=")[^"]*/, pageUrl);
+  return html.replace(
+    "</head>",
+    () => `  <link rel="canonical" href="${pageUrl}" />\n  </head>`,
+  );
+}
+
+export function renderPrerenderedArticle(
+  indexHtml: string,
+  row: PrerenderPostRow,
+  siteUrl: string,
+): { html: string; urlSegment: string } | null {
+  const safeSiteUrl = toSafeSiteOrigin(siteUrl);
+  const safeSlug = parseArticleSlug(row.slug);
+  if (!safeSiteUrl || !safeSlug || !row.title) return null;
+
+  const pageUrl = `${safeSiteUrl}/magazine/${safeSlug.urlSegment}`;
+  const rawExcerpt = row.excerpt ?? row.title;
+  const description = stripHtml(sanitizeArticleHtml(rawExcerpt))
+    .slice(0, 160)
+    .trim();
+  const imageUrl = toSafeAbsoluteHttpUrl(row.thumbnail_url, safeSiteUrl) ??
+    `${safeSiteUrl}/og-image.png`;
+  const pageTitle = `${row.title} - 자동차 정보 | 카테인`;
+  const safeTitleText = escapeHtml(pageTitle);
+  const safeTitleAttr = escapeAttribute(pageTitle);
+  const safeDescription = escapeAttribute(description);
+  const safePageUrl = escapeAttribute(pageUrl);
+  const safeImageUrl = escapeAttribute(imageUrl);
+  const structuredData = createJsonLdScript(
+    buildArticleStructuredData(
+      row,
+      safeSiteUrl,
+      description,
+      pageUrl,
+      imageUrl,
+    ),
+  );
+
+  let html = replaceAppShellWithStaticArticle(
+    indexHtml,
+    renderStaticArticleRoot(row, safeSiteUrl),
+  ).replace(/\s*<link rel="canonical" href="[^"]+" \/>\n?/, "\n");
+  html = replaceCapturedValue(html, /(<title>)[^<]*/, safeTitleText);
+  html = replaceCapturedValue(html, /(<meta name="description" content=")[^"]*/, safeDescription);
+  html = replaceCapturedValue(html, /(<meta property="og:title" content=")[^"]*/, safeTitleAttr);
+  html = replaceCapturedValue(html, /(<meta property="og:description" content=")[^"]*/, safeDescription);
+  html = replaceCapturedValue(html, /(<meta property="og:type" content=")[^"]*/, "article");
+  html = replaceCapturedValue(html, /(<meta property="og:url" content=")[^"]*/, safePageUrl);
+  html = replaceCapturedValue(html, /(<meta property="og:image" content=")[^"]*/, safeImageUrl);
+  html = replaceCapturedValue(html, /(<meta name="twitter:title" content=")[^"]*/, safeTitleAttr);
+  html = replaceCapturedValue(html, /(<meta name="twitter:description" content=")[^"]*/, safeDescription);
+  html = replaceCapturedValue(html, /(<meta name="twitter:image" content=")[^"]*/, safeImageUrl);
+  html = html.replace(
+    "</head>",
+    () => `  <link rel="canonical" href="${safePageUrl}" />\n  ${structuredData}\n  </head>`,
+  );
+
+  return { html, urlSegment: safeSlug.urlSegment };
 }
 
 async function writeStaticRouteFiles(
@@ -371,31 +429,31 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
         `Disallow: /admin\n\n` +
         `# GEO: explicitly allow AI-assistant crawlers for content citation\n` +
         `User-agent: GPTBot\n` +
-        `Allow: /\n\n` +
+        `Allow: /\nDisallow: /admin\n\n` +
         `User-agent: ChatGPT-User\n` +
-        `Allow: /\n\n` +
+        `Allow: /\nDisallow: /admin\n\n` +
         `User-agent: Google-Extended\n` +
-        `Allow: /\n\n` +
+        `Allow: /\nDisallow: /admin\n\n` +
         `User-agent: ClaudeBot\n` +
-        `Allow: /\n\n` +
+        `Allow: /\nDisallow: /admin\n\n` +
         `User-agent: PerplexityBot\n` +
-        `Allow: /\n\n` +
+        `Allow: /\nDisallow: /admin\n\n` +
         `User-agent: Applebot-Extended\n` +
-        `Allow: /\n\n` +
+        `Allow: /\nDisallow: /admin\n\n` +
         `User-agent: Yeti\n` +
-        `Allow: /\n\n` +
+        `Allow: /\nDisallow: /admin\n\n` +
         `User-agent: Daumoa\n` +
-        `Allow: /\n\n` +
+        `Allow: /\nDisallow: /admin\n\n` +
         `User-agent: OAI-SearchBot\n` +
-        `Allow: /\n\n` +
+        `Allow: /\nDisallow: /admin\n\n` +
         `User-agent: anthropic-ai\n` +
-        `Allow: /\n\n` +
+        `Allow: /\nDisallow: /admin\n\n` +
         `# Disallow scraper bots\n` +
         `User-agent: Bytespider\n` +
         `Disallow: /\n\n` +
         `Sitemap: ${opts.siteUrl}/sitemap.xml\n`;
 
-      const publicDir = path.resolve(__dirname, "public");
+      const publicDir = path.resolve(import.meta.dirname, "public");
       await fs.mkdir(publicDir, { recursive: true });
       await fs.writeFile(path.join(publicDir, "robots.txt"), robotsTxt, "utf8");
       console.log("[generate-seo-files] robots.txt generated");
@@ -406,7 +464,7 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
       // Vercel serves static files before applying rewrites, so these pre-rendered
       // pages will be served directly (with article-specific OG tags) instead of
       // the generic index.html.
-      const distDir = path.resolve(__dirname, "dist");
+      const distDir = path.resolve(import.meta.dirname, "dist");
       let indexHtml: string;
       try {
         indexHtml = await fs.readFile(
@@ -445,64 +503,23 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
         );
 
         let count = 0;
-        for (const row of result.rows as PrerenderPostRow[]) {
-          const { slug, title, excerpt, thumbnail_url } = row;
+        for (const rawRow of result.rows) {
+          const row = toPrerenderPostRow(rawRow);
+          if (!row) continue;
+          const { slug, title } = row;
           if (!slug || !title) continue;
 
-          const pageUrl = `${opts.siteUrl}/magazine/${slug}`;
-          const rawExcerpt = (excerpt ?? title) as string;
-          const desc = rawExcerpt
-            .replace(/<[^>]+>/g, "")
-            .slice(0, 160)
-            .trim();
-          const img =
-            (thumbnail_url as string | null) ?? `${opts.siteUrl}/og-image.png`;
-          const safeTitle = title.replace(/"/g, "&quot;");
-          const safeDesc = desc.replace(/"/g, "&quot;");
-          const structuredData = createJsonLdScript(
-            buildArticleStructuredData(row, opts.siteUrl, desc),
-          );
+          const output = resolveArticleOutputDirectory(distDir, slug);
+          const rendered = renderPrerenderedArticle(indexHtml, row, opts.siteUrl);
+          if (!output || !rendered) {
+            console.warn("[seo-plugin] Skipping article with invalid slug");
+            continue;
+          }
 
-          const articleHtml = replaceAppShellWithStaticArticle(
-            indexHtml,
-            renderStaticArticleRoot(row),
-          )
-            .replace(/\s*<link rel="canonical" href="[^"]+" \/>\n?/, "\n")
-            .replace(/(<title>)[^<]*/, `$1${safeTitle} - 자동차 정보 | 카테인`)
-            .replace(
-              /(<meta name="description" content=")[^"]*/,
-              `$1${safeDesc}`,
-            )
-            .replace(
-              /(<meta property="og:title" content=")[^"]*/,
-              `$1${safeTitle} - 자동차 정보 | 카테인`,
-            )
-            .replace(
-              /(<meta property="og:description" content=")[^"]*/,
-              `$1${safeDesc}`,
-            )
-            .replace(/(<meta property="og:type" content=")[^"]*/, "$1article")
-            .replace(/(<meta property="og:url" content=")[^"]*/, `$1${pageUrl}`)
-            .replace(/(<meta property="og:image" content=")[^"]*/, `$1${img}`)
-            .replace(
-              /(<meta name="twitter:title" content=")[^"]*/,
-              `$1${safeTitle} - 자동차 정보 | 카테인`,
-            )
-            .replace(
-              /(<meta name="twitter:description" content=")[^"]*/,
-              `$1${safeDesc}`,
-            )
-            .replace(/(<meta name="twitter:image" content=")[^"]*/, `$1${img}`)
-            .replace(
-              "</head>",
-              `  <link rel="canonical" href="${pageUrl}" />\n  ${structuredData}\n  </head>`,
-            );
-
-          const articleDir = path.join(distDir, "magazine", slug);
-          await fs.mkdir(articleDir, { recursive: true });
+          await fs.mkdir(output.directory, { recursive: true });
           await fs.writeFile(
-            path.join(articleDir, "index.html"),
-            articleHtml,
+            path.join(output.directory, "index.html"),
+            rendered.html,
             "utf-8",
           );
           count++;
@@ -518,9 +535,13 @@ function generateSeoFilesPlugin(opts: SeoPluginOptions): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const siteUrl = (env.VITE_SITE_URL || env.SITE_URL || "https://cartain.kr")
+  const configuredSiteUrl = (env.VITE_SITE_URL || env.SITE_URL || "https://cartain.kr")
     .replace(/\/$/, "")
     .replace("https://www.cartain.kr", "https://cartain.kr");
+  const siteUrl = toSafeSiteOrigin(configuredSiteUrl);
+  if (!siteUrl) {
+    throw new Error("VITE_SITE_URL/SITE_URL must be an absolute HTTP(S) origin without a path, query, or credentials");
+  }
   const tursoUrl = process.env.TURSO_URL ?? env.TURSO_URL ?? "";
   const tursoToken = process.env.TURSO_TOKEN ?? env.TURSO_TOKEN ?? "";
 
@@ -532,34 +553,16 @@ export default defineConfig(({ mode }) => {
     plugins: [
       generateSeoFilesPlugin({ siteUrl, tursoUrl, tursoToken }),
       react(),
-      mode === "development" && componentTagger(),
     ].filter(Boolean),
     optimizeDeps: {
       include: ["lucide-react", "date-fns", "clsx", "tailwind-merge"],
     },
     build: {
       chunkSizeWarningLimit: 600,
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            "vendor-react": ["react", "react-dom", "react-router-dom"],
-            "vendor-query": ["@tanstack/react-query"],
-            "vendor-charts": ["recharts"],
-            "vendor-ui": ["lucide-react", "date-fns", "clsx", "tailwind-merge"],
-            "vendor-radix": [
-              "@radix-ui/react-dialog",
-              "@radix-ui/react-dropdown-menu",
-              "@radix-ui/react-select",
-              "@radix-ui/react-tabs",
-              "@radix-ui/react-tooltip",
-            ],
-          },
-        },
-      },
     },
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        "@": path.resolve(import.meta.dirname, "./src"),
       },
     },
   };

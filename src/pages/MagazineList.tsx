@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Calendar, Clock, ArrowRight, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -11,21 +11,26 @@ import { getPostThumbnailUrl, getResponsiveSrcSet } from "@/lib/imageUtils";
 import { usePaginatedPosts, useSearchPosts } from "@/hooks/usePosts";
 import { formatDate } from "@/lib/dateUtils";
 import { stripMarkdown } from "@/lib/textUtils";
-import { BASE_URL, CURRENT_YEAR, POSTS_PER_PAGE } from "@/lib/constants";
+import { BASE_URL, POSTS_PER_PAGE } from "@/lib/constants";
+import { trackEvent } from "@/lib/analytics";
+import {
+  getMagazineSeoPolicy,
+  normalizeMagazinePage,
+  normalizeMagazineSearchQuery,
+} from "@/lib/seoPolicy";
 
 const MagazineList = () => {
-  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState(searchParams.get("q") || "");
-  const searchQuery = searchParams.get("q") || "";
+  const searchQuery = normalizeMagazineSearchQuery(searchParams.get("q"));
   // Page state persisted in URL (?page=N) so back-button and sharing work
-  const currentPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+  const currentPage = normalizeMagazinePage(searchParams.get("page"));
 
   const { data, isLoading } = usePaginatedPosts(currentPage);
   const { data: searchResults = [], isLoading: searchLoading } = useSearchPosts(searchQuery);
 
   const isSearchMode = searchQuery.length >= 2;
-  const archivePath = location.pathname === "/blog" ? "/blog" : "/magazine";
+  const archivePath = "/magazine";
   const posts = useMemo(
     () => (isSearchMode ? searchResults : (data?.posts || [])),
     [data?.posts, isSearchMode, searchResults],
@@ -53,15 +58,21 @@ const MagazineList = () => {
     setSearchInput(searchParams.get("q") || "");
   }, [searchParams]);
 
+  useEffect(() => {
+    if (isSearchMode) trackEvent("search_submit", { query_length: searchQuery.length });
+  }, [isSearchMode, searchQuery]);
+
+  const seoPolicy = useMemo(
+    () => getMagazineSeoPolicy(BASE_URL, searchQuery, currentPage),
+    [currentPage, searchQuery],
+  );
+
   // Apply SEO meta tags
   useSEO({
-    title: isSearchMode
-      ? `"${searchQuery}" 검색 결과 | 카테인 매거진`
-      : currentPage > 1
-        ? `자동차 구매 가이드 & 유지비 절약 팁 - ${currentPage}페이지 | 카테인 매거진`
-        : '자동차 구매 가이드 & 유지비 절약 팁 | 카테인 매거진',
-    description: `신차·중고차 구매 가이드부터 자동차세·보험료 절약 팁, 연비 비교까지. ${CURRENT_YEAR}년 최신 자동차 정보를 전문 에디터가 쉽고 정확하게 정리합니다. 카테인 매거진에서 무료로 확인하세요.`,
-    canonicalUrl: currentPage > 1 ? `${BASE_URL}${archivePath}?page=${currentPage}` : `${BASE_URL}${archivePath}`,
+    title: seoPolicy.title,
+    description: seoPolicy.description,
+    canonicalUrl: seoPolicy.canonicalUrl,
+    robots: seoPolicy.robots,
     ogType: 'website',
     keywords: ['자동차 구매 가이드', '자동차 유지비', '자동차 보험', '중고차 구매', '신차 구매'],
   });
@@ -73,7 +84,7 @@ const MagazineList = () => {
     // CollectionPage + ItemList schema
     const collectionSchema = generateCollectionPageSchema(
       '자동차 매거진 - 카테인',
-      '자동차 구매 가이드, 유지비 절약 팁, 보험 정보까지. 전문가가 알려주는 실용적인 자동차 정보.',
+      '자동차 구매 가이드, 유지비 절약 팁, 보험 정보를 공식 확인 경로와 함께 정리한 실용적인 자동차 정보.',
       `${BASE_URL}${archivePath}`,
       posts.map(post => ({
         title: post.title,
@@ -135,7 +146,7 @@ const MagazineList = () => {
               자동차 매거진
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
-              자동차 구매 가이드, 유지비 절약 팁, 보험 정보까지 전문가가 알려드립니다
+              자동차 구매, 유지비와 보험 조건을 비교하는 기준을 확인하세요
             </p>
             {/* Search bar */}
             <div className="relative max-w-lg mx-auto">

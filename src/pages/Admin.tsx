@@ -19,8 +19,6 @@ import { formatDate } from "@/lib/dateUtils";
 import { getPostThumbnailUrl } from "@/lib/imageUtils";
 import type { PostSummary } from "@/types/post";
 
-const STORAGE_KEY = "cartainkr_admin_key";
-
 interface PostQueue {
   id: string;
   title: string;
@@ -55,7 +53,7 @@ const Admin = () => {
     };
   }, []);
 
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY) ?? "");
+  const [apiKey, setApiKey] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [keyInput, setKeyInput] = useState("");
@@ -66,22 +64,13 @@ const Admin = () => {
   const [posts, setPosts] = useState<PostSummary[]>([]);
   const [stats, setStats] = useState<Stats>({ totalPosts: 0, pendingQueue: 0, completedQueue: 0, thisWeekPosts: 0 });
 
-  // Auto-verify stored key on mount
-  useEffect(() => {
-    if (apiKey) verifyKey(apiKey);
-    // Stored-key verification should only run once on initial admin mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const verifyKey = async (key: string) => {
     setIsLoading(true);
     try {
       await api.admin.stats(key);
-      localStorage.setItem(STORAGE_KEY, key);
       setApiKey(key);
       setIsAuthenticated(true);
     } catch {
-      localStorage.removeItem(STORAGE_KEY);
       setApiKey("");
       setIsAuthenticated(false);
       setAuthError("API 키가 올바르지 않습니다.");
@@ -96,7 +85,6 @@ const Admin = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEY);
     setApiKey("");
     setIsAuthenticated(false);
     setKeyInput("");

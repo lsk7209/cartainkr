@@ -1,6 +1,0 @@
-# Sitemap & RSS → Supabase Edge Functions (CF Worker 배포 후 교체 예정)
-/sitemap.xml    https://tczuttsjfttqvcmdawbo.supabase.co/functions/v1/sitemap    200
-/rss.xml        https://tczuttsjfttqvcmdawbo.supabase.co/functions/v1/rss        200
-
-# SPA catch-all
-/*    /index.html    200

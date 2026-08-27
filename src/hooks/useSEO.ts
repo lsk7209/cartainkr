@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { BASE_URL } from "@/lib/constants";
+import { resolveRobotsDirective } from "@/lib/seoPolicy";
 
 interface SEOProps {
   title: string;
@@ -11,6 +12,7 @@ interface SEOProps {
   modifiedAt?: string;
   author?: string;
   keywords?: string[];
+  robots?: string;
 }
 
 export const useSEO = ({
@@ -23,6 +25,7 @@ export const useSEO = ({
   modifiedAt,
   author,
   keywords,
+  robots,
 }: SEOProps) => {
   useEffect(() => {
     // Naver truncates <title> at 40 chars and meta description at 80 chars in search results.
@@ -58,6 +61,7 @@ export const useSEO = ({
     if (author) {
       setMeta("author", author);
     }
+    setMeta("robots", resolveRobotsDirective(robots));
 
     // Open Graph tags — full title, Google-length description
     setMeta("og:title", title, true);
@@ -148,6 +152,7 @@ export const useSEO = ({
     modifiedAt,
     author,
     keywords,
+    robots,
   ]);
 
   // Remove og:image tags when the current page doesn't supply one
@@ -205,8 +210,8 @@ export const generateArticleSchema = (post: {
     dateModified: post.updated_at || post.published_at,
     inLanguage: "ko-KR",
     author: {
-      "@type": "Person",
-      name: "카테인 에디터",
+      "@type": "Organization",
+      name: "카테인",
       url: `${baseUrl}/about`,
     },
     publisher: {
@@ -372,41 +377,13 @@ export const generateOrganizationSchema = () => {
       height: 630,
     },
     description:
-      "자동차 구매, 유지비, 세금 계산 등 스마트한 자동차 정보를 제공하는 전문 플랫폼입니다.",
+      "자동차 구매, 유지비와 세금 계산에 필요한 비교 기준과 확인 경로를 제공하는 정보 플랫폼입니다.",
     contactPoint: {
       "@type": "ContactPoint",
       email: "contact@cartain.kr",
       contactType: "customer service",
       availableLanguage: ["Korean"],
     },
-    sameAs: ["https://twitter.com/cartain_kr"],
-  };
-};
-
-// Person schema for author EEAT signal
-export const generateAuthorSchema = () => {
-  const baseUrl = BASE_URL;
-
-  return {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "@id": `${baseUrl}/#author`,
-    name: "카테인 에디터",
-    url: `${baseUrl}/about`,
-    worksFor: {
-      "@type": "Organization",
-      "@id": `${baseUrl}/#organization`,
-      name: "카테인",
-    },
-    knowsAbout: [
-      "자동차",
-      "자동차 구매",
-      "자동차 보험",
-      "자동차 유지비",
-      "자동차세",
-      "중고차",
-      "전기차",
-    ],
   };
 };
 

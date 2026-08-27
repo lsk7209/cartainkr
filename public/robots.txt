@@ -7,33 +7,43 @@ Disallow: /admin
 # GEO: explicitly allow AI-assistant crawlers for content citation
 User-agent: GPTBot
 Allow: /
+Disallow: /admin
 
 User-agent: ChatGPT-User
 Allow: /
+Disallow: /admin
 
 User-agent: Google-Extended
 Allow: /
+Disallow: /admin
 
 User-agent: ClaudeBot
 Allow: /
+Disallow: /admin
 
 User-agent: PerplexityBot
 Allow: /
+Disallow: /admin
 
 User-agent: Applebot-Extended
 Allow: /
+Disallow: /admin
 
 User-agent: Yeti
 Allow: /
+Disallow: /admin
 
 User-agent: Daumoa
 Allow: /
+Disallow: /admin
 
 User-agent: OAI-SearchBot
 Allow: /
+Disallow: /admin
 
 User-agent: anthropic-ai
 Allow: /
+Disallow: /admin
 
 # Disallow scraper bots
 User-agent: Bytespider

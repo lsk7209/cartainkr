@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useSEO, generateSoftwareApplicationSchema, generateBreadcrumbSchema, generateHowToSchema, generateFAQSchema } from "@/hooks/useSEO";
 import { BASE_URL } from "@/lib/constants";
+import { calculateMonthlyLoanPayment, validateCostInputs } from "@/lib/calculator";
+import { trackCalculatorUse, trackPrimaryConversion } from "@/lib/analytics";
 
 type CalculatorStep = "input" | "loading" | "result";
 type CalculatorMode = "single" | "compare";
@@ -123,7 +125,7 @@ const CALCULATOR_FAQS = [
   },
   {
     question: '자동차 할부 금리는 보통 얼마인가요?',
-    answer: '2024년 기준 국내 자동차 할부 금리는 캐피털 금융사 기준 연 5~9% 수준입니다. 제조사 금융 프로그램(현대캐피탈, 기아캐피탈 등)은 특정 모델·기간에 저금리 프로모션(2~4%)을 운영하기도 합니다. 신용도와 계약 조건에 따라 금리가 달라지므로 여러 금융사를 비교하는 것이 유리합니다.',
+    answer: '자동차 할부 금리는 신용도, 선수금, 기간, 금융사와 제조사 프로모션에 따라 달라집니다. 광고의 최저 금리만 보지 말고 같은 차량 가격과 기간을 기준으로 총 이자, 중도상환수수료, 부대비용을 함께 비교하세요. 계산기에는 실제 받은 견적의 금리를 입력하는 것이 가장 정확합니다.',
   },
   {
     question: '같은 차라도 유지비가 다른 이유는 무엇인가요?',
@@ -131,7 +133,7 @@ const CALCULATOR_FAQS = [
   },
   {
     question: '전기차와 휘발유차의 유지비는 얼마나 차이가 나나요?',
-    answer: '월 1,500km 주행 기준, 휘발유차(연비 12km/L, 유가 1,700원)의 유류비는 약 21만 원인 반면 전기차(전비 6km/kWh, 완속 단가 180원)의 충전비는 약 4.5만 원으로 약 16만 원 차이가 납니다. 자동차세도 전기차는 연 13만 원으로 대형 내연기관차 대비 수십만 원 절약됩니다. 단, 전기차 차량 가격이 높아 총 소유 비용(TCO)은 개별 조건에 따라 다릅니다.',
+    answer: '차이는 월 주행거리, 실제 연비·전비, 유가, 충전 장소와 요금제에 따라 달라집니다. 같은 주행거리를 기준으로 에너지 비용을 비교한 뒤 차량 가격, 보조금, 보험료, 자동차세, 충전기 설치 가능 여부와 배터리 보증까지 포함해 총소유비용을 확인하세요.',
   },
 ];
 
@@ -238,12 +240,8 @@ const Calculator = () => {
     const carPrice = preset.carPrice;
     const downPayment = Math.round(carPrice * 0.3);
     const loanAmount = carPrice - downPayment;
-    const monthlyRate = formData.interestRate / 100 / 12;
     const numPayments = formData.loanTerm;
-
-    const monthlyPayment =
-      (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
-      (Math.pow(1 + monthlyRate, numPayments) - 1);
+    const monthlyPayment = calculateMonthlyLoanPayment(loanAmount, formData.interestRate, numPayments);
 
     const totalInterest = monthlyPayment * numPayments - loanAmount;
     const monthlyFuel = (formData.monthlyMileage / preset.fuelEfficiency) * formData.fuelPrice;
@@ -270,12 +268,8 @@ const Calculator = () => {
       setCompareResults(results);
     } else {
       const loanAmount = formData.carPrice - formData.downPayment;
-      const monthlyRate = formData.interestRate / 100 / 12;
       const numPayments = formData.loanTerm;
-
-      const monthlyPayment =
-        (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
-        (Math.pow(1 + monthlyRate, numPayments) - 1);
+      const monthlyPayment = calculateMonthlyLoanPayment(loanAmount, formData.interestRate, numPayments);
 
       const totalInterest = monthlyPayment * numPayments - loanAmount;
       const monthlyFuel = (formData.monthlyMileage / formData.fuelEfficiency) * formData.fuelPrice;
@@ -296,6 +290,12 @@ const Calculator = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const validationError = validateCostInputs(formData);
+    if (validationError) {
+      toast({ title: "입력값을 확인해주세요", description: validationError, variant: "destructive" });
+      return;
+    }
+    trackCalculatorUse("ownership_cost", "started");
     setStep("loading");
   };
 
@@ -308,13 +308,20 @@ const Calculator = () => {
       });
       return;
     }
+    const validationError = validateCostInputs(formData);
+    if (validationError) {
+      toast({ title: "입력값을 확인해주세요", description: validationError, variant: "destructive" });
+      return;
+    }
     setStep("loading");
+    trackCalculatorUse("ownership_cost_compare", "started");
   };
 
   const handleLoadingComplete = useCallback(() => {
     calculateResult();
     setStep("result");
-  }, [calculateResult]);
+    trackPrimaryConversion(mode, mode === "compare" ? comparePresets.length : 1);
+  }, [calculateResult, comparePresets.length, mode]);
 
   const handleSaveReceipt = async () => {
     if (!receiptRef.current) return;
@@ -330,6 +337,7 @@ const Calculator = () => {
       link.download = `카테인_유지비_${mode === "compare" ? "비교" : "계산"}결과_${new Date().toISOString().slice(0, 10)}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
+      trackCalculatorUse(mode === "compare" ? "ownership_cost_compare" : "ownership_cost", "receipt_downloaded");
       
       toast({
         title: "저장 완료",
@@ -418,7 +426,7 @@ const Calculator = () => {
                   </span>
                 </h1>
                 <p className="text-muted-foreground animate-fade-in" style={{ animationDelay: "0.2s" }}>
-                  내 차의 실제 월 유지비를 정확하게 분석해드려요
+                  내 조건을 입력해 예상 월 유지비를 항목별로 비교해보세요
                 </p>
               </div>
 

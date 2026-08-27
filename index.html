@@ -4,9 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- DNS Prefetch / Preconnect for critical third-party origins -->
-    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
-    <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin>
+    <!-- Preconnect only for content-delivery origins used before optional consent. -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://tczuttsjfttqvcmdawbo.supabase.co" crossorigin>
     <link rel="dns-prefetch" href="https://tczuttsjfttqvcmdawbo.supabase.co">
@@ -27,18 +25,6 @@
         wait_for_update: 500,
         region: ['AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI','FR','GB','GR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK','IS','LI','NO']
       });
-      // Korean visitors — analytics OK without explicit consent (PIPA § 58-2 exception)
-      gtag('consent', 'default', {
-        analytics_storage: 'granted',
-        region: ['KR']
-      });
-    </script>
-
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-N7JJFW6007"></script>
-    <script>
-      gtag('js', new Date());
-      gtag('config', 'G-N7JJFW6007', { anonymize_ip: true });
     </script>
 
     <title>자동차 유지비 계산기·구매 가이드 | 카테인</title>
@@ -81,9 +67,6 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
     <link rel="apple-touch-icon" href="/icon-192x192.png" />
-
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3050601904412736" crossorigin="anonymous"></script>
 
     <!-- Pretendard Font (non-blocking) -->
     <link rel="preload" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" onload="this.onload=null;this.rel='stylesheet'">

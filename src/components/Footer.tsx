@@ -129,7 +129,7 @@ const Footer = forwardRef<HTMLElement>((_, ref) => {
             <div className="text-sm text-muted-foreground text-center md:text-left">
               <p>© {currentYear} 카테인. All rights reserved.</p>
               <p className="mt-1">
-                사업자: 카테인 | 이메일: contact@cartain.kr
+                운영: 카테인 | 이메일: contact@cartain.kr
               </p>
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">

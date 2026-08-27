@@ -6,7 +6,7 @@
 export const BASE_URL = "https://cartain.kr";
 
 // 페이지네이션
-export const POSTS_PER_PAGE = 9;
+export const POSTS_PER_PAGE = 12;
 
 // 현재 연도
 export const CURRENT_YEAR = new Date().getFullYear();

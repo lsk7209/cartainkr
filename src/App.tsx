@@ -3,11 +3,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { usePageTracking } from "@/hooks/usePageTracking";
 import AdSenseScript from "@/components/AdSenseScript";
 import CoupangAffiliateBanner from "@/components/CoupangAffiliateBanner";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import CookieConsent from "@/components/CookieConsent";
 import Index from "./pages/Index";
 
 const PageFallback = () => (
@@ -59,11 +60,12 @@ const App = () => (
       <BrowserRouter>
         <PageTracker />
         <AdSenseScript />
+        <CookieConsent />
         <ErrorBoundary>
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/blog" element={<MagazineList />} />
+            <Route path="/blog" element={<Navigate to="/magazine" replace />} />
             <Route path="/magazine" element={<MagazineList />} />
             <Route path="/magazine/:slug" element={<MagazineDetail />} />
             <Route path="/calculator" element={<Calculator />} />

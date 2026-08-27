@@ -16,6 +16,7 @@ import { formatDate, estimateReadTime } from "@/lib/dateUtils";
 import { buildToc } from "@/lib/tocUtils";
 import { markdownToHtml, stripMarkdown } from "@/lib/textUtils";
 import { BASE_URL } from "@/lib/constants";
+import { trackContentView, trackCTAClick, trackShare } from "@/lib/analytics";
 import type { PostDetail } from "@/types/post";
 import TableOfContents from "@/components/TableOfContents";
 import ReadingProgress from "@/components/ReadingProgress";
@@ -193,14 +194,20 @@ const MagazineDetail = () => {
           title: post?.title,
           url: window.location.href,
         });
+        trackShare("article", "native", post?.slug);
       } else {
         await navigator.clipboard.writeText(window.location.href);
+        trackShare("article", "clipboard", post?.slug);
         toast.success("링크가 복사되었습니다");
       }
     } catch (error) {
       console.error("Share failed:", error);
     }
   };
+
+  useEffect(() => {
+    if (post) trackContentView("article", post.slug, post.title);
+  }, [post]);
 
   if (isLoading) {
     return (
@@ -281,7 +288,7 @@ const MagazineDetail = () => {
               <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
                   <User className="w-4 h-4" />
-                  <Link to="/about" className="hover:text-primary transition-colors">카테인 에디터</Link>
+                  <Link to="/about" className="hover:text-primary transition-colors">카테인 편집팀</Link>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-4 h-4" />
@@ -338,6 +345,7 @@ const MagazineDetail = () => {
             <div className="flex flex-wrap gap-3">
               <Link
                 to="/calculator"
+                onClick={() => trackCTAClick("calculator", "article_end")}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
               >
                 <Calculator className="w-4 h-4" />

@@ -1,15 +1,15 @@
 import { Car, Users, Target, Award, BookOpen, CheckCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { useSEO, generateBreadcrumbSchema, generateOrganizationSchema, generateWebPageSchema, generateAuthorSchema } from "@/hooks/useSEO";
+import { useSEO, generateBreadcrumbSchema, generateOrganizationSchema, generateWebPageSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
 import { BASE_URL } from "@/lib/constants";
 
 const About = () => {
   
   useSEO({
-    title: '자동차 정보 전문 플랫폼 소개 | 카테인',
-    description: '카테인은 자동차 구매, 유지비, 보험, 세금 정보를 쉽고 정확하게 제공하는 자동차 정보 전문 플랫폼입니다. 전문 에디터가 작성한 신뢰할 수 있는 자동차 콘텐츠를 무료로 확인하세요.',
+    title: '카테인 소개 | 자동차 구매·유지비 정보',
+    description: '카테인은 자동차 구매와 유지비를 비교할 때 필요한 계산 기준, 주의사항과 공식 확인 경로를 정리하는 자동차 정보 플랫폼입니다.',
     canonicalUrl: `${BASE_URL}/about`,
     ogType: 'website',
     keywords: ['카테인', '자동차 정보', '자동차 플랫폼'],
@@ -17,8 +17,8 @@ const About = () => {
 
   const structuredData = [
     generateWebPageSchema(
-      '자동차 정보 전문 플랫폼 소개 | 카테인',
-      '카테인은 자동차 구매, 유지비, 보험, 세금 정보를 쉽고 정확하게 제공하는 자동차 정보 전문 플랫폼입니다.',
+      '카테인 소개 | 자동차 구매·유지비 정보',
+      '카테인은 자동차 구매와 유지비를 비교할 때 필요한 계산 기준, 주의사항과 공식 확인 경로를 정리하는 자동차 정보 플랫폼입니다.',
       `${BASE_URL}/about`,
       'AboutPage'
     ),
@@ -27,7 +27,6 @@ const About = () => {
       { name: '소개', url: `${BASE_URL}/about` },
     ]),
     generateOrganizationSchema(),
-    generateAuthorSchema(),
   ];
 
   return (
@@ -42,7 +41,7 @@ const About = () => {
               카테인 소개
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              자동차 구매와 유지비에 관한 신뢰할 수 있는 정보를 제공하는 전문 플랫폼입니다
+              자동차 구매와 유지비를 비교하는 기준과 확인 경로를 정리합니다
             </p>
           </header>
 
@@ -56,9 +55,9 @@ const About = () => {
                 <h2 className="text-2xl font-bold text-foreground">우리의 미션</h2>
               </div>
               <p className="text-muted-foreground leading-relaxed">
-                카테인은 자동차 구매를 계획하는 모든 분들이 올바른 결정을 내릴 수 있도록 
-                정확하고 투명한 정보를 제공합니다. 복잡한 세금, 보험, 유지비 정보를 
-                쉽고 명확하게 전달하여 소비자의 현명한 선택을 돕는 것이 우리의 목표입니다.
+                카테인은 자동차 구매를 앞둔 사람이 차량 가격만 보지 않고 할부, 보험, 세금,
+                연료·충전비와 정비비까지 함께 비교하도록 돕습니다. 계산 결과의 가정과 한계를 밝히고,
+                계약 전에 다시 확인해야 할 공식 경로를 함께 안내하는 것이 목표입니다.
               </p>
             </div>
           </section>
@@ -73,9 +72,9 @@ const About = () => {
                 <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center mx-auto mb-4">
                   <Award className="w-6 h-6 text-accent-foreground" />
                 </div>
-                <h3 className="font-bold text-foreground mb-2">신뢰성</h3>
+                <h3 className="font-bold text-foreground mb-2">근거 구분</h3>
                 <p className="text-sm text-muted-foreground">
-                  전문가가 검증한 정확한 정보만을 제공합니다
+                  변동 가능한 수치와 제도는 기준 시점과 확인 경로를 함께 안내합니다
                 </p>
               </div>
               <div className="bg-card rounded-xl border border-border p-6 text-center">
@@ -91,9 +90,9 @@ const About = () => {
                 <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center mx-auto mb-4">
                   <Car className="w-6 h-6 text-accent-foreground" />
                 </div>
-                <h3 className="font-bold text-foreground mb-2">전문성</h3>
+                <h3 className="font-bold text-foreground mb-2">투명성</h3>
                 <p className="text-sm text-muted-foreground">
-                  자동차 분야의 깊은 지식과 경험을 바탕으로 합니다
+                  계산의 가정, 정보의 한계와 제휴 광고 관계를 구분해 표시합니다
                 </p>
               </div>
             </div>
@@ -109,9 +108,9 @@ const About = () => {
                 <li className="flex items-start gap-3">
                   <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                   <div>
-                    <strong className="text-foreground">전문 매거진 콘텐츠</strong>
+                    <strong className="text-foreground">자동차 매거진</strong>
                     <p className="text-muted-foreground text-sm mt-1">
-                      자동차 구매 가이드, 세금 정보, 보험 팁 등 전문가가 작성한 깊이 있는 콘텐츠
+                      자동차 구매, 세금, 보험과 정비 조건을 확인하는 실용 가이드
                     </p>
                   </div>
                 </li>
@@ -127,9 +126,9 @@ const About = () => {
                 <li className="flex items-start gap-3">
                   <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></span>
                   <div>
-                    <strong className="text-foreground">최신 시장 정보</strong>
+                    <strong className="text-foreground">변동 정보 확인 안내</strong>
                     <p className="text-muted-foreground text-sm mt-1">
-                      자동차 시장 동향, 신차 출시 소식, 정책 변화 등 최신 정보 제공
+                      세금, 보조금과 시장 조건이 달라질 때 확인할 공식 경로 안내
                     </p>
                   </div>
                 </li>
@@ -148,28 +147,28 @@ const About = () => {
                   <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">정확성 우선</h3>
-                    <p className="text-sm text-muted-foreground">모든 수치와 제도 정보는 발행 시점의 공식 자료를 기준으로 작성합니다.</p>
+                    <p className="text-sm text-muted-foreground">수치와 제도를 인용할 때는 가능한 범위에서 기준 시점과 공식 확인 경로를 표시합니다.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="font-semibold text-foreground mb-1">정기 업데이트</h3>
-                    <p className="text-sm text-muted-foreground">법규·세율·보험료 변경 시 해당 콘텐츠를 즉시 수정합니다.</p>
+                    <h3 className="font-semibold text-foreground mb-1">변경 가능성 표시</h3>
+                    <p className="text-sm text-muted-foreground">법규·세율·보험료처럼 달라질 수 있는 정보는 계약 전 재확인을 안내합니다.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="font-semibold text-foreground mb-1">광고 독립성</h3>
-                    <p className="text-sm text-muted-foreground">광고 파트너의 영향 없이 독립적인 시각으로 정보를 제공합니다.</p>
+                    <h3 className="font-semibold text-foreground mb-1">광고 구분</h3>
+                    <p className="text-sm text-muted-foreground">제휴 광고는 광고임을 표시하고 계산·편집 정보와 구분합니다.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <BookOpen className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <div>
                     <h3 className="font-semibold text-foreground mb-1">출처 명시</h3>
-                    <p className="text-sm text-muted-foreground">통계·수치 인용 시 국토교통부, 보험개발원 등 공신력 있는 출처를 기재합니다.</p>
+                    <p className="text-sm text-muted-foreground">통계·수치를 인용하는 경우 독자가 원문을 확인할 수 있는 링크를 우선 제공합니다.</p>
                   </div>
                 </div>
               </div>
@@ -184,7 +183,7 @@ const About = () => {
                 자동차 정보의 새로운 기준
               </p>
               <div className="text-sm text-muted-foreground space-y-1">
-                <p>사업자: 카테인</p>
+                <p>운영: 카테인</p>
                 <p>이메일: <a href="mailto:contact@cartain.kr" className="text-primary hover:underline">contact@cartain.kr</a></p>
                 <p>© {new Date().getFullYear()} 카테인. All rights reserved.</p>
               </div>

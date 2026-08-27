@@ -3,8 +3,13 @@ import Footer from "@/components/Footer";
 import { useSEO, generateBreadcrumbSchema, generateWebPageSchema } from "@/hooks/useSEO";
 import JsonLd from "@/components/JsonLd";
 import { BASE_URL } from "@/lib/constants";
+import { storeMeasurementConsent } from "@/lib/analytics";
 
 const Privacy = () => {
+  const withdrawConsent = () => {
+    storeMeasurementConsent(false);
+    window.location.reload();
+  };
   
   useSEO({
     title: '개인정보처리방침 - 개인정보 수집 및 이용 안내 | 카테인',
@@ -16,7 +21,7 @@ const Privacy = () => {
   const structuredData = [
     generateWebPageSchema(
       '개인정보처리방침 | 카테인',
-      '카테인 개인정보처리방침. 수집 항목, 이용 목적, 보유 기간, 제3자 광고 서비스(Google AdSense·Analytics) 안내.',
+      '카테인 개인정보처리방침. 수집 항목, 이용 목적, 보유 기간, Google 및 쿠팡 파트너스 제3자 서비스 안내.',
       `${BASE_URL}/privacy`
     ),
     generateBreadcrumbSchema([
@@ -37,7 +42,7 @@ const Privacy = () => {
               개인정보처리방침
             </h1>
             <p className="text-muted-foreground">
-              시행일: 2025년 1월 1일 | 최종 수정일: 2026년 5월 7일
+              시행일: 2025년 1월 1일 | 최종 수정일: 2026년 8월 28일
             </p>
           </header>
 
@@ -77,11 +82,13 @@ const Privacy = () => {
               </h2>
               <div className="bg-muted/30 rounded-lg p-6">
                 <p className="text-foreground mb-4">
-                  회사는 서비스 제공을 위해 다음과 같은 개인정보를 수집할 수 있습니다.
+                  사이트는 회원가입이나 자체 문의 폼을 운영하지 않습니다. 다만 이용자가 분석·광고에 동의하면
+                  제3자 서비스 이용 과정에서 다음 정보가 처리될 수 있습니다.
                 </p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                  <li>필수항목: 서비스 이용 기록, 접속 로그, 쿠키, 접속 IP 정보</li>
-                  <li>선택항목: 이메일 주소 (뉴스레터 구독 시)</li>
+                  <li>동의 상태: 브라우저 로컬 저장소에 저장되는 동의·거부 선택</li>
+                  <li>제3자 처리 가능 정보: 방문 페이지, 접속 시각, 브라우저·기기 정보, IP 주소와 광고·분석 식별자</li>
+                  <li>이메일 문의 시: 이용자가 메일에 직접 기재한 이메일 주소와 문의 내용</li>
                 </ul>
               </div>
             </section>
@@ -92,14 +99,14 @@ const Privacy = () => {
               </h2>
               <div className="bg-muted/30 rounded-lg p-6">
                 <p className="text-muted-foreground leading-relaxed">
-                  회사는 법령에 따른 개인정보 보유·이용 기간 또는 정보주체로부터 
-                  개인정보를 수집 시에 동의받은 개인정보 보유·이용 기간 내에서 개인정보를 처리·보유합니다.
-                  각각의 개인정보 처리 및 보유 기간은 다음과 같습니다.
+                  동의 선택은 이용자가 철회하거나 브라우저 저장 정보를 삭제할 때까지 해당 브라우저에 남습니다.
+                  제3자 서비스에서 처리되는 정보는 각 사업자의 보유 정책을 따르며,
+                  이메일 문의 내용은 답변과 분쟁 대응에 필요한 기간 또는 관련 법령이 요구하는 기간까지만 보관합니다.
                 </p>
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground mt-4">
-                  <li>서비스 이용 기록: 3년</li>
-                  <li>접속 로그: 3개월</li>
-                  <li>뉴스레터 구독 정보: 구독 해지 시까지</li>
+                  <li>브라우저 동의 선택: 철회 또는 브라우저 저장 정보 삭제 시까지</li>
+                  <li>Google·제휴 배너 처리 정보: 각 서비스의 공개된 보유 정책에 따름</li>
+                  <li>이메일 문의: 처리 목적 달성 후 지체 없이 삭제하되 법정 보존 의무가 있으면 해당 기간까지</li>
                 </ul>
               </div>
             </section>
@@ -131,11 +138,17 @@ const Privacy = () => {
                   아주 작은 텍스트 파일로 이용자의 컴퓨터 하드디스크에 저장됩니다.
                 </p>
                 <p className="text-muted-foreground leading-relaxed mt-4">
-                  이용자는 쿠키 설치에 대한 선택권을 가지고 있습니다. 
-                  따라서, 이용자는 웹브라우저에서 옵션을 설정함으로써 
-                  모든 쿠키를 허용하거나, 쿠키가 저장될 때마다 확인을 거치거나, 
-                  아니면 모든 쿠키의 저장을 거부할 수도 있습니다.
+                  카테인은 첫 방문 시 동의 창을 제공하며, 이용자가 동의하기 전에는
+                  Google Analytics, Google AdSense 및 쿠팡 파트너스 제휴 배너의 외부 이미지·측정 스크립트를 불러오지 않습니다.
+                  거부하더라도 계산기와 매거진의 핵심 기능은 계속 이용할 수 있습니다.
                 </p>
+                <button
+                  type="button"
+                  onClick={withdrawConsent}
+                  className="mt-4 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                >
+                  분석·광고 동의 철회
+                </button>
               </div>
             </section>
 
@@ -184,15 +197,25 @@ const Privacy = () => {
                 <ul className="list-disc list-inside space-y-2 text-muted-foreground">
                   <li>
                     <strong className="text-foreground">Google AdSense</strong> — 광고 게재 서비스.
-                    Google은 이용자의 쿠키를 사용하여 관심 기반 광고를 제공할 수 있습니다.
+                    이용자가 동의한 경우 Google은 쿠키를 사용하여 광고를 제공할 수 있습니다.
                     이용자는 <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google 광고 설정</a>에서
                     개인 맞춤 광고를 비활성화할 수 있습니다.
                   </li>
                   <li>
                     <strong className="text-foreground">Google Analytics</strong> — 웹 분석 서비스.
-                    방문 통계 수집을 위해 익명 데이터를 처리합니다.
+                    이용자가 동의한 경우 방문 통계 분석을 위한 데이터를 처리합니다.
                     이용자는 <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Analytics 차단 플러그인</a>을 통해
                     수집을 거부할 수 있습니다.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">쿠팡 파트너스 배너</strong> — 제휴 광고 표시와 클릭·노출 집계 서비스.
+                    이용자가 동의한 경우에만 제휴 배너 이미지와 측정 스크립트를 불러오며,
+                    이 과정에서 현재 페이지 주소와 브라우저·접속 정보가 제휴 배너 운영 서버로 전달될 수 있습니다.
+                  </li>
+                  <li>
+                    <strong className="text-foreground">Supabase Storage·jsDelivr</strong> — 게시글 이미지와 웹 글꼴 제공에 사용하는 콘텐츠 전송 서비스.
+                    핵심 화면 자료를 전송하는 과정에서 IP 주소, 요청 시각과 브라우저 정보가 처리될 수 있으며,
+                    분석·맞춤 광고 동의와 관계없이 필요한 콘텐츠 제공 목적으로 요청될 수 있습니다.
                   </li>
                 </ul>
                 <p className="text-muted-foreground leading-relaxed mt-4">
