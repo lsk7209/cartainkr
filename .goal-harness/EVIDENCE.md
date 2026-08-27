@@ -82,3 +82,34 @@ Independent reliability review identified three findings. The admin key now stay
 - No Vercel command, setting, alias, environment mutation or deployment was performed.
 - Historical Vercel OIDC credential rotation/revocation remains unverified outside the repository.
 - GSC, Naver and GA4 production baselines were unavailable locally; remeasurement target is 2026-09-11.
+
+## 2026-08-28 Serverless Recovery Run
+
+| Command or check | Result | Notes |
+|---|---|---|
+| Production HTTP status matrix, two rounds | RED / REPRODUCED | `/api/posts/latest`, `/api/posts?__r=count`, `/api/admin/posts`, `/api/ssr` returned 500; sitemap, RSS and root returned 200 |
+| Direct Turso batch SELECT | PASS | Credential supplied via masked process input, never stored; 167 future posts and zero pending queue rows; no mutation |
+| Public API schedule lookup | BLOCKED BY OUTAGE | `FUNCTION_INVOCATION_FAILED` prevents public/admin schedule reads |
+
+### Root Cause and Recovery Evidence
+
+| Command or check | Result | Notes |
+|---|---|---|
+| `require('sanitize-html')` on Node 20.18.1 and 22.11.0 | RED / REPRODUCED | `ERR_REQUIRE_ESM` from CommonJS `sanitize-html` loading ESM-only `htmlparser2@12` |
+| Same dependency load on Node 20.19.5 and 22.12.0 | PASS | Matches the upstream `sanitize-html >=22.12.0` contract |
+| Pre-fix `api/serverlessRuntime.test.ts` | RED / EXPECTED | Project engine admitted a runtime below the sanitizer floor |
+| Post-fix focused test | PASS | Two runtime/entry initialization assertions |
+| `npm run verify:serverless` | PASS | Installed `@vercel/node` builder traced, materialized and imported all five top-level API handlers |
+| Exact Node 22.12 verifier and focused test | PASS | Deployment floor exercised directly |
+| `npm run lint` | PASS | No lint findings |
+| `npm run typecheck` | PASS | App, Vite config and API types |
+| `npm test` | PASS | 12 files, 42 tests |
+| `npm run build` | PASS | 2,586 modules and six generated static routes plus root |
+| `npm run verify:build` | PASS | Seven generated routes verified |
+| `npm audit --omit=dev` | PASS | Zero runtime advisories |
+| Terra/medium recovery review | PASS WITH RESIDUAL | No code BLOCKER/HIGH; development-mode builder does not prove hosting runtime selection |
+| Sol/high recovery review | GO FOR PUSH | No code BLOCKER/HIGH; live smoke and exposed-token rotation remain external gates |
+
+The local builder trace included the sanitizer/parser dependency chain, and its temporary output plus generated local package manifest were removed or restored after verification. Exact Node 22.12 imported those staged handlers, while production runtime selection remains a post-push external verification gate. The fix preserves `sanitize-html@2.17.7` and narrows the project/CI runtime to Node `^22.12.0`; no sanitizer behavior, database row, credential, or hosting setting changed.
+
+Secrets are recorded only as `[REDACTED]`. The user-supplied read-write token must be rotated after this work.

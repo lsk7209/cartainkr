@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": "^22.12.0"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "verify:build": "node scripts/verify-build.mjs",
+    "verify:serverless": "node scripts/verify-serverless-runtime.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false && npm run typecheck:api",

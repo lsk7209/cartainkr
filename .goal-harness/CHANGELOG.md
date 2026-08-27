@@ -23,3 +23,11 @@
 | `api/admin.ts` and handler tests | Atomic retry-stable queue and post/queue write batches | Prevent partial production writes and unsafe retries |
 | `scripts/verify-build.mjs` and quality workflow | Deterministic route artifact verification and runtime audit | Make search/privacy evidence reproducible in CI |
 | Hosting/workflows | Removed Netlify leftovers and mutating content workflows | Keep one hosting contract and reviewed publishing boundary |
+
+## Serverless Recovery
+
+| Area | Change | Reason |
+|---|---|---|
+| Node runtime contract | Narrowed the application engine to `^22.12.0` | Match the minimum supported by the retained sanitizer and prevent serverless module-init failure |
+| Quality CI | Pinned the verification job to Node 22.12.0 | Exercise the declared deployment floor instead of an unspecified 22.x patch |
+| Runtime regression | Added an engine-contract test and a five-entry `@vercel/node` builder/materialization verifier | Reproduce the deployment packaging seam outside normal Vitest transforms and prevent recurrence |

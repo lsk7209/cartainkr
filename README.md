@@ -14,6 +14,8 @@
 
 ## 로컬 실행
 
+Node.js 22.12 이상 23 미만이 필요합니다. 서버리스 의존성의 ESM 호환성을 위해 Node 20과 22.11 이하는 지원하지 않습니다.
+
 ```powershell
 npm ci
 npm run dev
@@ -27,6 +29,7 @@ npm run dev
 npm run lint
 npm run typecheck
 npm test
+npm run verify:serverless
 npm run build
 npm run verify:build
 npm audit --omit=dev

@@ -6,7 +6,7 @@ Maintain a Korean automotive information site built with Vite, React, TypeScript
 
 ## Current Work
 
-Repository review plus search-entry, conversion, security, consent, routing, dependency, testing, and documentation optimization on 2026-08-28.
+Production serverless recovery on 2026-08-28: the posts, admin and SSR outage was isolated to an incompatible serverless Node floor, repaired locally with an exact runtime contract, and verified with real entry bundling. Independent review and GitHub push are in progress; live recovery remains pending the external rollout.
 
 ## Repository Baseline
 
@@ -15,6 +15,7 @@ Repository review plus search-entry, conversion, security, consent, routing, dep
 - Reviewed commit: `81448ff`
 - Local implementation commit: `8371f79`.
 - GitHub push was authorized but the current execution environment rejected the external write because approval was unavailable. Hosting deployment and external service mutations remain outside this handoff.
+- The prior commits are now confirmed on `origin/main` at `167e523`; a new recovery commit is pending.
 
 ## Implemented Improvements
 
@@ -33,19 +34,26 @@ Repository review plus search-entry, conversion, security, consent, routing, dep
 - Admin queue and post/queue writes use atomic, retry-safe libSQL batches with collision checks.
 - Mutating bulk publishing/backfill workflows and obsolete Netlify configuration removed; reviewed local scripts remain separately gated.
 - Quality CI, deterministic build-artifact verification and real project README added.
+- Serverless runtime narrowed to Node `^22.12.0`, matching `sanitize-html@2.17.7`; CI now exercises the exact 22.12.0 floor.
+- All five top-level API entries are packaged by the installed `@vercel/node` builder, materialized in isolated temporary directories and imported by `npm run verify:serverless`.
 
 ## Validation
 
 - `npm run lint`: passed.
 - `npm run typecheck`: passed.
-- `npm test`: 11 files and 40 tests passed.
+- `npm test`: 12 files and 42 tests passed.
 - `npm run build`: passed with 2,586 modules; article prerender was skipped because Turso credentials were not present.
 - `npm audit --omit=dev`: zero vulnerabilities.
 - `npm run verify:build`: seven route artifacts have one H1, matching canonical/ko hreflang/robots, no pre-consent third-party origin, required privacy disclosures and crawler rules.
+- `npm run verify:serverless`: all five locally built Vercel handlers initialized with their traced files; the same verifier and focused regression passed on exact Node 22.12.0.
+- The verifier covers local Vercel dependency tracing plus exact-runtime import; hosting production runtime selection and live endpoints remain post-push checks.
 - Sol/high final follow-up found no unresolved BLOCKER/HIGH; Terra/medium confirmed SSR/consent/CI gaps resolved.
+- Recovery review: Terra/medium and Sol/high found no code-level BLOCKER/HIGH and approved commit/push; live endpoint recovery remains unverified until rollout.
 
 ## Current Risks
 
+- Production `/api/posts`, `/api/admin`, and `/api/ssr` remain failed until the GitHub change is rolled out; the local cause/fix is verified but live recovery is not yet claimed.
+- The user-supplied Turso read-write token was used only through masked process input and must be revoked/replaced; it is not stored in the repository.
 - Build success does not cover Turso-backed article prerender or production serverless routing.
 - The new Supabase permission migration is local-only until separately applied.
 - Historical Vercel OIDC credentials found in Git history require rotation verification outside the repository.
@@ -55,8 +63,7 @@ Repository review plus search-entry, conversion, security, consent, routing, dep
 
 ## Next Actions
 
-1. Run `git push origin main` from an authenticated user shell and verify the remote SHA matches local HEAD; no hosting mutation is part of this task.
-2. Apply the Supabase permission migration only after verifying the live function and role grants under separate approval.
-3. Confirm historical OIDC token revocation/rotation in the external account.
-4. After a separately authorized release, verify ordinary-user and crawler article URLs, sitemap, consent behavior, and `calculator_completed` in production.
-5. Add calculator component/E2E conversion lifecycle coverage and remeasure GSC/Naver/GA4 on 2026-09-11.
+1. Complete Terra/Sol review, resolve substantiated findings, and push the allowlisted recovery commit to GitHub only.
+2. After the external rollout, recheck posts/admin/SSR status without mutating Vercel settings.
+3. Revoke the exposed Turso read-write token and replace operational diagnostics with a read-only token.
+4. Apply the Supabase permission migration only under separate approval, then verify production search/conversion signals and remeasure on 2026-09-11.

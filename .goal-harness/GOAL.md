@@ -2,35 +2,33 @@
 
 ## Final Deliverable
 
-Improve CartainKR's technical reliability, organic-search visibility, AI-search retrievability, consent compliance, and calculator conversion path with locally verified code changes.
+Restore the deployed CartainKR post, admin, and crawler SSR serverless entrypoints from deterministic `FUNCTION_INVOCATION_FAILED` responses while preserving the stored-HTML, URL, slug, and output-path protections added in the prior optimization.
 
 ## User Value
 
-Search visitors should land on the intended page, understand the calculation method, complete a trustworthy ownership-cost calculation, and be measured only after consent.
+Search visitors, ordinary SPA users, and administrators must be able to reach their data-backed routes without serverless module-load failure, while untrusted article data remains unable to execute markup or escape generated paths.
 
 ## Required Features
 
-- Correct route-specific static and crawler HTML.
-- One canonical magazine route and usable article fallback.
-- Consent-gated analytics and advertising.
-- Stable calculator validation and conversion events.
-- Safe JSON-LD serialization and restricted schedule RPC.
-- Tests, typecheck, CI, run documentation, and evidence.
+- A red-capable check that distinguishes failing serverless entrypoints from working sitemap/RSS functions.
+- A confirmed root cause based on module/bundle evidence rather than deployment guesswork.
+- The smallest complete compatibility fix with sanitizer, URL, slug, and path-containment behavior preserved.
+- A regression check that loads or bundles real API entry modules outside Vitest-only transforms.
+- Full lint, app/API typecheck, unit/integration tests, production build, artifact verification, runtime audit, independent review, and GitHub remote verification.
 
 ## Non-Goals
 
-- No production deployment, database migration execution, Search Console submission, credential rotation, or bulk production-content deletion.
+- No Vercel CLI/API/settings/environment/domain/deployment operations, production database writes, migration execution, Search Console submission, credential rotation, or bulk content changes.
 
 ## Done Conditions
 
-- Lint, typecheck, tests, and build pass.
-- Production dependency audit reports zero vulnerabilities.
-- Generated static routes have one route-specific H1, matching canonical/hreflang, and no static GA/AdSense scripts.
-- Stored articles are sanitized in build and SSR paths, and slugs cannot escape the generated article directory.
-- Consent storage failures default denied while core calculator and content routes remain available.
-- The verified local commit is pushed to `origin/main` and the remote SHA matches.
-- Remaining production-only boundaries are documented.
+- The production failure matrix is reproducible and the code-level cause is demonstrated by a local pre-fix regression check.
+- All affected entry modules pass the new compatibility check after the fix.
+- Existing 40 tests plus new regression coverage pass, along with lint, typecheck, build, artifact verification, and `npm audit --omit=dev`.
+- No sanitizer, URL, slug, path-containment, consent, SEO, calculator, or admin-integrity regression is introduced.
+- Sol/high final review has no unresolved BLOCKER/HIGH finding.
+- The verified commit is pushed to `origin/main` and its remote SHA matches; hosting rollout remains external.
 
 ## User-Visible Result
 
-A safer, measurable calculator funnel and search-ready page output, with GitHub handoff authorized and hosting deployment remaining a separate workflow.
+Working data-backed magazine/admin/SSR code ready on GitHub for the existing hosting pipeline, with stored-content defenses and search/conversion improvements intact.

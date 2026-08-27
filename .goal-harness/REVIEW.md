@@ -51,3 +51,11 @@ Changes are limited to consent/measurement, calculator correctness, dependency/t
 - [x] Remaining production and account limitations are explicit.
 - [ ] GitHub remote SHA matches the local verified commit.
 - [ ] It is accurate to set status to DONE.
+
+## Serverless Recovery Review
+
+- Luna/max root-cause lane reproduced the CommonJS-to-ESM import failure below Node 22.12 and confirmed the runtime floor as the smallest fix that retains current sanitizer security updates.
+- Luna/max regression lane ruled out missing traced dependencies and recommended exercising real serverless builder output.
+- Terra/medium test review found no code-level BLOCKER/HIGH after the verifier moved to the installed `@vercel/node` builder. Residual MEDIUM: development-mode builder tracing does not prove the hosting platform's production runtime-selection branch.
+- Sol/high reliability review returned GO for commit/GitHub push and found no code-level BLOCKER/HIGH. Production recovery remains a post-rollout HTTP smoke gate.
+- External HIGH: the user-supplied Turso read-write token remains exposed in chat and must be revoked/reissued outside this repository. Repository scans found no copy of the token.
