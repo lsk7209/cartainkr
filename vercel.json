@@ -61,11 +61,11 @@
     },
     {
       "source": "/magazine/:slug",
-      "destination": "/index.html"
+      "destination": "/index"
     },
     {
-      "source": "/:path*",
-      "destination": "/index.html"
+      "source": "/((?!api/).*)",
+      "destination": "/index"
     }
   ],
   "headers": [

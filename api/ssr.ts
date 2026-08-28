@@ -86,6 +86,41 @@ const formatDate = (iso: string): string => {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
 };
 
+// 제목에서 내부 링크(관련 글) 매칭에 쓸 핵심 키워드 1~2개를 뽑는다.
+const KEYWORD_STOPWORDS = new Set([
+  "2026",
+  "2025",
+  "비용",
+  "가이드",
+  "방법",
+  "정리",
+  "비교",
+  "계산",
+  "총정리",
+  "완벽",
+  "체크리스트",
+]);
+const pickTitleKeywords = (title: string): string[] => {
+  const tokens = title
+    .split(/[\s·,:/()[\]"'’”“|~-]+/)
+    .map((t) => t.trim())
+    .filter(
+      (t) =>
+        t.length >= 2 &&
+        !/^\d+$/.test(t) &&
+        !KEYWORD_STOPWORDS.has(t),
+    );
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of tokens) {
+    if (seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+    if (out.length === 2) break;
+  }
+  return out;
+};
+
 interface HeadOptions {
   title: string;
   description: string;
@@ -96,6 +131,7 @@ interface HeadOptions {
   modifiedAt?: string;
   jsonLd?: object[];
   robots?: string;
+  linkTags?: string;
 }
 
 function renderHead(o: HeadOptions): string {
@@ -133,6 +169,7 @@ function renderHead(o: HeadOptions): string {
     <link rel="alternate" hreflang="x-default" href="${escapeAttr(o.canonical)}" />
     <link rel="alternate" type="application/rss+xml" title="카테인 RSS" href="${BASE}/rss.xml" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    ${o.linkTags ?? ""}
     ${jsonLdTags}
   </head>`;
 }
@@ -197,6 +234,43 @@ async function renderArticle(slug: string): Promise<string | null> {
   const bodyHtml = sanitizeArticleHtml(markdownToHtml(post.content_html || ""));
   const thumbnailUrl = toSafeAbsoluteHttpUrl(post.thumbnail_url, BASE);
 
+  // 관련 글: 제목 키워드로 매칭, 부족하면 최신 글로 채운다.
+  // 크롤러가 볼 수 있는 문맥 내부 링크로 크롤 깊이와 주제 연관도를 높인다.
+  const related: SummaryRow[] = [];
+  const seenSlugs = new Set([requestedSlug.decoded, requestedSlug.urlSegment, post.slug]);
+  const pushRelated = (rows: unknown[]) => {
+    for (const raw of rows as SummaryRow[]) {
+      if (related.length >= 5 || !raw?.slug || seenSlugs.has(raw.slug)) continue;
+      seenSlugs.add(raw.slug);
+      related.push(raw);
+    }
+  };
+  const keywords = pickTitleKeywords(post.title);
+  try {
+    if (keywords.length) {
+      const kwRows = await db.execute({
+        sql: `SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') AND slug NOT IN (?, ?) AND (${keywords
+          .map(() => "title LIKE ?")
+          .join(" OR ")}) ORDER BY published_at DESC LIMIT 6`,
+        args: [
+          requestedSlug.decoded,
+          requestedSlug.urlSegment,
+          ...keywords.map((k) => `%${k}%`),
+        ],
+      });
+      pushRelated(kwRows.rows);
+    }
+    if (related.length < 4) {
+      const recentRows = await db.execute({
+        sql: "SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') AND slug NOT IN (?, ?) ORDER BY published_at DESC LIMIT 8",
+        args: [requestedSlug.decoded, requestedSlug.urlSegment],
+      });
+      pushRelated(recentRows.rows);
+    }
+  } catch {
+    // 관련 글 조회 실패는 본문 렌더링을 막지 않는다.
+  }
+
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -229,7 +303,7 @@ async function renderArticle(slug: string): Promise<string | null> {
   };
 
   const head = renderHead({
-    title: `${post.title} - 자동차 정보 | 카테인`,
+    title: `${post.title} | 카테인`,
     description,
     canonical,
     ogType: "article",
@@ -254,8 +328,25 @@ async function renderArticle(slug: string): Promise<string | null> {
   </p>
   ${thumb}
   <div class="magazine-body">${bodyHtml}</div>
-  <nav aria-label="관련 콘텐츠" style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;">
-    <h2 style="font-size:1rem;">함께 읽으면 좋은 콘텐츠</h2>
+  ${
+    related.length
+      ? `<nav aria-label="관련 글" style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;">
+    <h2 style="font-size:1.1rem;">관련 자동차 정보 더 보기</h2>
+    <ul>
+${related
+  .map((p) => {
+    const s = parseArticleSlug(p.slug);
+    if (!s) return "";
+    return `      <li><a href="/magazine/${escapeAttr(s.urlSegment)}">${escapeHtml(p.title)}</a></li>`;
+  })
+  .filter(Boolean)
+  .join("\n")}
+    </ul>
+  </nav>`
+      : ""
+  }
+  <nav aria-label="추천 콘텐츠" style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;">
+    <h2 style="font-size:1.1rem;">함께 읽으면 좋은 콘텐츠</h2>
     <ul>
       <li><a href="/calculator">자동차 유지비 계산기로 월 비용 확인하기</a></li>
       <li><a href="/magazine">최신 자동차 구매 가이드 &amp; 유지비 정보 보기</a></li>
@@ -357,17 +448,71 @@ async function renderMagazineList(searchQuery: string, page: number): Promise<st
         args: [POSTS_PER_PAGE, (page - 1) * POSTS_PER_PAGE],
       });
   const posts = rows.rows as unknown as SummaryRow[];
+
+  // 페이지네이션: 크롤러가 전체 글 목록을 순회할 수 있도록 이전/다음/번호 링크를 노출한다.
+  let totalPages = 1;
+  if (!isSearch) {
+    try {
+      const countRows = await db.execute(
+        "SELECT COUNT(*) AS n FROM posts WHERE datetime(published_at) <= datetime('now')",
+      );
+      const total = Number(
+        (countRows.rows[0] as unknown as { n: number | string })?.n ?? 0,
+      );
+      totalPages = Math.max(1, Math.ceil(total / POSTS_PER_PAGE));
+    } catch {
+      totalPages = 1;
+    }
+  }
+  const pageUrl = (n: number) => (n <= 1 ? `${BASE}/magazine` : `${BASE}/magazine?page=${n}`);
+
   const head = renderHead({
     title: seoPolicy.title,
     description: seoPolicy.description,
     canonical: seoPolicy.canonicalUrl,
     robots: seoPolicy.robots,
+    linkTags:
+      !isSearch && totalPages > 1
+        ? [
+            page > 1
+              ? `<link rel="prev" href="${escapeAttr(pageUrl(page - 1))}" />`
+              : "",
+            page < totalPages
+              ? `<link rel="next" href="${escapeAttr(pageUrl(page + 1))}" />`
+              : "",
+          ]
+            .filter(Boolean)
+            .join("\n    ")
+        : undefined,
   });
+
+  const paginationNav =
+    !isSearch && totalPages > 1
+      ? (() => {
+          const windowStart = Math.max(1, page - 2);
+          const windowEnd = Math.min(totalPages, windowStart + 4);
+          const numbered: string[] = [];
+          for (let n = windowStart; n <= windowEnd; n += 1) {
+            numbered.push(
+              n === page
+                ? `<strong aria-current="page">${n}</strong>`
+                : `<a href="${escapeAttr(pageUrl(n))}">${n}</a>`,
+            );
+          }
+          return `<nav aria-label="페이지 이동" style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;display:flex;gap:10px;flex-wrap:wrap;">
+    ${page > 1 ? `<a href="${escapeAttr(pageUrl(page - 1))}" rel="prev">← 이전</a>` : ""}
+    ${numbered.join("\n    ")}
+    ${page < totalPages ? `<a href="${escapeAttr(pageUrl(page + 1))}" rel="next">다음 →</a>` : ""}
+  </nav>`;
+        })()
+      : "";
+
   const body = `<section>
   <h1 style="font-size:2rem;font-weight:800;">자동차 매거진</h1>
   <p style="color:#374151;margin:12px 0 24px;">자동차 구매·유지비·보험·세금·전기차 정보를 한곳에서 확인하세요.</p>
-  ${isSearch ? `<p><strong>${escapeHtml(searchQuery)}</strong> 검색 결과</p>` : ""}
+  ${isSearch ? `<p><strong>${escapeHtml(searchQuery)}</strong> 검색 결과</p>` : `<p style="font-size:13px;color:#6b7280;">${page}페이지 / 전체 ${totalPages}페이지</p>`}
   ${renderPostListItems(posts)}
+  ${paginationNav}
 </section>`;
   return htmlDocument(head, body);
 }
