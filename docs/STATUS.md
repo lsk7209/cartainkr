@@ -1,5 +1,5 @@
 # Status
 
-State: implementing
+State: complete
 
-The 2026-08-29 public content-integrity repair is locally verified and ready for a scoped commit. Remote `main` still matches the worktree base. Production deployment and public-response verification remain pending; no database rows were changed or deleted.
+The 2026-08-29 public content-integrity repair is production-verified at commit `0478d9c`. GitHub Actions, GitHub-recorded Production deployment, and live API/SSR/RSS/sitemap assertions all passed. The affected database rows were not changed or deleted; they are quarantined from public surfaces and future corrupted writes are rejected.
