@@ -94,6 +94,28 @@ describe("crawler SSR", () => {
     expect(state.body).toContain("<h2>Nested</h2>");
   });
 
+  it("returns a noindex 404 when a corrupted row bypasses the SQL gate", async () => {
+    dbMocks.execute.mockResolvedValue({
+      rows: [{
+        id: "post-corrupt",
+        title: "Broken \uFFFD title",
+        slug: "broken-article",
+        excerpt: "Broken excerpt",
+        content_html: "<p>Broken body</p>",
+        thumbnail_url: null,
+        published_at: "2026-08-28T00:00:00.000Z",
+        updated_at: null,
+      }],
+    });
+
+    const state = await render("/magazine/broken-article");
+
+    expect(state.statusCode).toBe(404);
+    expect(state.body).toContain('name="robots" content="noindex, nofollow"');
+    expect(state.body).not.toContain("Broken \uFFFD title");
+    expect(dbMocks.setPublicCache).not.toHaveBeenCalled();
+  });
+
   it("renders calculator metadata without querying the article database", async () => {
     const state = await render("/calculator");
 

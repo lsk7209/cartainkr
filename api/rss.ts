@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getDb } from "./_lib/turso.js";
 import { CACHE_CONTROL, setPublicCache } from "./_lib/cache.js";
+import { PUBLIC_POST_INTEGRITY_SQL } from "./_lib/contentSafety.js";
 
 type RssPostRow = {
   title: string;
@@ -27,7 +28,7 @@ export default async function handler(
   try {
     const db = getDb();
     const rows = await db.execute(
-      "SELECT title, slug, excerpt, published_at FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT 50",
+      `SELECT title, slug, excerpt, published_at FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT 50`,
     );
     const BASE = "https://cartain.kr";
     const items = (rows.rows as unknown as RssPostRow[])

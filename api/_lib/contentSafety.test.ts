@@ -1,13 +1,29 @@
 import { describe, expect, it } from "vitest";
 import {
   escapeAttribute,
+  hasEncodingCorruption,
   parseArticleSlug,
+  PUBLIC_POST_INTEGRITY_SQL,
   replaceCapturedValue,
   resolveArticleOutputDirectory,
   sanitizeArticleHtml,
   toSafeAbsoluteHttpUrl,
   toSafeSiteOrigin,
 } from "./contentSafety";
+
+describe("public content integrity", () => {
+  it("detects Unicode replacement characters without rejecting valid Korean", () => {
+    expect(hasEncodingCorruption("정상 한국어 제목", "정상 본문")).toBe(false);
+    expect(hasEncodingCorruption("깨진 \uFFFD 제목")).toBe(true);
+  });
+
+  it("keeps the public SQL gate aligned across title, excerpt, and body", () => {
+    expect(PUBLIC_POST_INTEGRITY_SQL).toContain("title");
+    expect(PUBLIC_POST_INTEGRITY_SQL).toContain("excerpt");
+    expect(PUBLIC_POST_INTEGRITY_SQL).toContain("content_html");
+    expect(PUBLIC_POST_INTEGRITY_SQL.match(/char\(65533\)/g)).toHaveLength(3);
+  });
+});
 
 describe("sanitizeArticleHtml", () => {
   it("removes executable markup and unsafe URL protocols", () => {

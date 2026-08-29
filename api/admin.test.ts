@@ -76,6 +76,19 @@ describe("admin write integrity", () => {
     expect(adminMocks.batch).not.toHaveBeenCalled();
   });
 
+  it("rejects corrupted queue titles before touching the database", async () => {
+    const state = await request("queue", {
+      items: [{ title: "Broken \uFFFD title" }],
+    });
+
+    expect(state.statusCode).toBe(400);
+    expect(state.json).toEqual({
+      error:
+        "Content contains replacement characters and was rejected to prevent mojibake from being published.",
+    });
+    expect(adminMocks.batch).not.toHaveBeenCalled();
+  });
+
   it("creates a post and completes its queue item in one write batch", async () => {
     adminMocks.batch.mockResolvedValue([
       { rowsAffected: 1, rows: [] },
@@ -118,5 +131,20 @@ describe("admin write integrity", () => {
     });
 
     expect(state.statusCode).toBe(409);
+  });
+
+  it("rejects corrupted post fields before touching the database", async () => {
+    const state = await request("posts", {
+      id: "post-corrupt",
+      slug: "broken-post",
+      title: "Safe title",
+      content_html: "<p>Broken \uFFFD body</p>",
+      excerpt: "Excerpt",
+      thumbnail_url: null,
+      published_at: "2026-08-28T00:00:00.000Z",
+    });
+
+    expect(state.statusCode).toBe(400);
+    expect(adminMocks.batch).not.toHaveBeenCalled();
   });
 });

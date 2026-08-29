@@ -1,5 +1,5 @@
 # Status
 
-State: complete
+State: implementing
 
-The static article-shell fix remains production-verified. The source-backed editorial replacement and UTF-8 excerpt correction are live, with public API and rendered-page assertions passing after GitHub/Vercel releases.
+The 2026-08-29 public content-integrity repair is locally verified and ready for a scoped commit. Remote `main` still matches the worktree base. Production deployment and public-response verification remain pending; no database rows were changed or deleted.

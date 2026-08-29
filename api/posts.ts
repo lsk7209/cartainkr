@@ -2,7 +2,11 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getDb, POSTS_PER_PAGE } from "./_lib/turso.js";
 import { setCors } from "./_lib/auth.js";
 import { CACHE_CONTROL, setPublicCache } from "./_lib/cache.js";
-import { parseArticleSlug } from "./_lib/contentSafety.js";
+import {
+  hasEncodingCorruption,
+  parseArticleSlug,
+  PUBLIC_POST_INTEGRITY_SQL,
+} from "./_lib/contentSafety.js";
 
 type CountRow = { cnt: string | number };
 
@@ -34,11 +38,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const db = getDb();
       const [rows, countRow] = await Promise.all([
         db.execute({
-          sql: "SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT ? OFFSET ?",
+          sql: `SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT ? OFFSET ?`,
           args: [POSTS_PER_PAGE, offset],
         }),
         db.execute(
-          "SELECT COUNT(*) as cnt FROM posts WHERE datetime(published_at) <= datetime('now')",
+          `SELECT COUNT(*) as cnt FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now')`,
         ),
       ]);
       setPublicCache(res, CACHE_CONTROL.POSTS_LIST);
@@ -51,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (path === "/api/posts/count" && req.method === "GET") {
       const db = getDb();
       const row = await db.execute(
-        "SELECT COUNT(*) as cnt FROM posts WHERE datetime(published_at) <= datetime('now')",
+        `SELECT COUNT(*) as cnt FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now')`,
       );
       setPublicCache(res, CACHE_CONTROL.POSTS_LIST);
       return res.json({
@@ -66,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
       const db = getDb();
       const rows = await db.execute({
-        sql: "SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT ?",
+        sql: `SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT ?`,
         args: [limit],
       });
       setPublicCache(res, CACHE_CONTROL.POSTS_LIST);
@@ -78,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (q.length < 2) return res.json([]);
       const db = getDb();
       const rows = await db.execute({
-        sql: "SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') AND (title LIKE ? OR excerpt LIKE ?) ORDER BY published_at DESC LIMIT 30",
+        sql: `SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now') AND (title LIKE ? OR excerpt LIKE ?) ORDER BY published_at DESC LIMIT 30`,
         args: [`%${q}%`, `%${q}%`],
       });
       setPublicCache(res, CACHE_CONTROL.POSTS_LIST);
@@ -90,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const limit = Math.min(6, parseInt(url.searchParams.get("limit") ?? "3"));
       const db = getDb();
       const rows = await db.execute({
-        sql: "SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE id != ? AND datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT ?",
+        sql: `SELECT id,title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND id != ? AND datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT ?`,
         args: [postId, limit],
       });
       setPublicCache(res, CACHE_CONTROL.POSTS_LIST);
@@ -104,12 +108,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!slug) return res.status(404).json({ error: "Not found" });
       const db = getDb();
       const rows = await db.execute({
-        sql: "SELECT * FROM posts WHERE slug IN (?, ?) AND datetime(published_at) <= datetime('now') LIMIT 1",
+        sql: `SELECT * FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND slug IN (?, ?) AND datetime(published_at) <= datetime('now') LIMIT 1`,
         args: [slug.decoded, slug.urlSegment],
       });
       if (!rows.rows[0]) return res.status(404).json({ error: "Not found" });
+      const post = rows.rows[0] as unknown as {
+        title?: string | null;
+        excerpt?: string | null;
+        content_html?: string | null;
+      };
+      if (
+        hasEncodingCorruption(post.title, post.excerpt, post.content_html)
+      ) {
+        return res.status(404).json({ error: "Not found" });
+      }
       setPublicCache(res, CACHE_CONTROL.POST_DETAIL);
-      return res.json(rows.rows[0]);
+      return res.json(post);
     }
 
     return res.status(404).json({ error: "Not found" });

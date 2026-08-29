@@ -1,5 +1,20 @@
 # Handoff
 
+## Current: Public content integrity repair (2026-08-29 23:17 KST)
+
+- User goal: audit and improve the managed SEO fleet, using the latest GitHub `main` as the source of truth for Cartain.
+- Source boundary: isolated worktree `D:\web\seo-worktrees\cartain-content-integrity-20260829`, branch `seo/cartain-content-integrity-20260829`, based on `origin/main` `17eaec7ddf6fc8d83762a7afb4fb1cccc73b5a36`. The dirty checkout at `D:\web\cartainkr` was not modified.
+- Confirmed defect: the public API exposed 9 published rows containing Unicode replacement characters (`U+FFFD`). A representative Googlebot article response contained 588 replacement characters. The affected rows remain in the database; no production DB write or delete was performed.
+- Implementation: reject replacement characters on queue and post writes; exclude corrupt rows from every public post query, crawler SSR, RSS, sitemap, and IndexNow submission; return a defense-in-depth noindex 404 if a corrupt detail row bypasses SQL filtering; redirect four common sitemap aliases to the canonical `/sitemap.xml` instead of returning the SPA shell with status 200.
+- Affected slugs: `car-guide-2026-20260605-274y`, `car-guide-7-20260605-sthr`, `car-guide-10-20260605-ee0t`, `car-guide-vs-2026-20260605-p3ih`, `car-guide-20260514-mt94`, `car-guide-2026-20260514-mptr`, `car-guide-vs-5-20260514-q12v`, `car-guide-20260514-c1pg`, and `car-guide-2026-20260514-xsnr`.
+- Fresh validation: focused Vitest 23/23; full Vitest 53/53; `npm run typecheck`; `npm run lint`; `npm run build`; build artifact verification 7/7 routes; serverless production-mode verification 6/6 entries; sitemap alias config assertion 4/4. All passed.
+- Side effects and rollback: only this worktree has code/document changes. `npm ci` installed local dependencies and reported 6 dependency audit findings (1 low, 2 moderate, 3 high); no dependency versions or lockfile were changed. Roll back the eventual commit if public behavior regresses.
+- Known separate risk: normal browser initial HTML still receives the SPA root shell while bot user agents receive route-aware SSR. This parity issue needs a dedicated rendering change so the interactive SPA is not disabled; it is not silently bundled into the integrity patch.
+- Deliberately not run: no Vercel CLI/API mutation, production DB mutation, content rewrite, IndexNow submission, or live deployment yet.
+- Single next step: review and commit the scoped diff, fast-forward remote `main`, then verify the Git-connected production deployment and public API/SSR/RSS/sitemap behavior.
+
+## Previous handoff (2026-07-14)
+
 ## Current Goal
 
 Repair Cartain article static HTML so search crawlers receive the actual article rather than generic site copy.

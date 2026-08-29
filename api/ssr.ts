@@ -4,7 +4,9 @@ import { CACHE_CONTROL, setPublicCache } from "./_lib/cache.js";
 import {
   escapeAttribute as escapeAttr,
   escapeHtml,
+  hasEncodingCorruption,
   parseArticleSlug,
+  PUBLIC_POST_INTEGRITY_SQL,
   sanitizeArticleHtml,
   toSafeAbsoluteHttpUrl,
 } from "./_lib/contentSafety.js";
@@ -219,11 +221,16 @@ async function renderArticle(slug: string): Promise<string | null> {
 
   // DB는 raw 한글 slug와 과거 percent-encoded slug가 섞여 있어 두 형태를 함께 조회한다.
   const rows = await db.execute({
-    sql: "SELECT * FROM posts WHERE slug IN (?, ?) AND datetime(published_at) <= datetime('now') LIMIT 1",
+    sql: `SELECT * FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND slug IN (?, ?) AND datetime(published_at) <= datetime('now') LIMIT 1`,
     args: [requestedSlug.decoded, requestedSlug.urlSegment],
   });
   const post = rows.rows[0] as unknown as PostRow | undefined;
-  if (!post) return null;
+  if (
+    !post ||
+    hasEncodingCorruption(post.title, post.excerpt, post.content_html)
+  ) {
+    return null;
+  }
 
   const postSlug = parseArticleSlug(post.slug);
   if (!postSlug) return null;
@@ -249,7 +256,7 @@ async function renderArticle(slug: string): Promise<string | null> {
   try {
     if (keywords.length) {
       const kwRows = await db.execute({
-        sql: `SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') AND slug NOT IN (?, ?) AND (${keywords
+        sql: `SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now') AND slug NOT IN (?, ?) AND (${keywords
           .map(() => "title LIKE ?")
           .join(" OR ")}) ORDER BY published_at DESC LIMIT 6`,
         args: [
@@ -262,7 +269,7 @@ async function renderArticle(slug: string): Promise<string | null> {
     }
     if (related.length < 4) {
       const recentRows = await db.execute({
-        sql: "SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') AND slug NOT IN (?, ?) ORDER BY published_at DESC LIMIT 8",
+        sql: `SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now') AND slug NOT IN (?, ?) ORDER BY published_at DESC LIMIT 8`,
         args: [requestedSlug.decoded, requestedSlug.urlSegment],
       });
       pushRelated(recentRows.rows);
@@ -382,7 +389,7 @@ ${posts
 async function renderHome(): Promise<string> {
   const db = getDb();
   const rows = await db.execute(
-    "SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT 12",
+    `SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT 12`,
   );
   const posts = rows.rows as unknown as SummaryRow[];
   const head = renderHead({
@@ -440,11 +447,11 @@ async function renderMagazineList(searchQuery: string, page: number): Promise<st
   const isSearch = seoPolicy.isSearch;
   const rows = isSearch
     ? await db.execute({
-        sql: "SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') AND (title LIKE ? OR excerpt LIKE ?) ORDER BY published_at DESC LIMIT 30",
+        sql: `SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now') AND (title LIKE ? OR excerpt LIKE ?) ORDER BY published_at DESC LIMIT 30`,
         args: [`%${searchQuery}%`, `%${searchQuery}%`],
       })
     : await db.execute({
-        sql: "SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT ? OFFSET ?",
+        sql: `SELECT title,slug,excerpt,thumbnail_url,published_at FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT ? OFFSET ?`,
         args: [POSTS_PER_PAGE, (page - 1) * POSTS_PER_PAGE],
       });
   const posts = rows.rows as unknown as SummaryRow[];
@@ -454,7 +461,7 @@ async function renderMagazineList(searchQuery: string, page: number): Promise<st
   if (!isSearch) {
     try {
       const countRows = await db.execute(
-        "SELECT COUNT(*) AS n FROM posts WHERE datetime(published_at) <= datetime('now')",
+        `SELECT COUNT(*) AS n FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now')`,
       );
       const total = Number(
         (countRows.rows[0] as unknown as { n: number | string })?.n ?? 0,

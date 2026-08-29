@@ -37,6 +37,19 @@ const ARTICLE_TAGS = [
   "img",
 ];
 
+export const PUBLIC_POST_INTEGRITY_SQL = [
+  "instr(COALESCE(title, ''), char(65533)) = 0",
+  "instr(COALESCE(excerpt, ''), char(65533)) = 0",
+  "instr(COALESCE(content_html, ''), char(65533)) = 0",
+].join(" AND ");
+
+export const hasEncodingCorruption = (
+  ...values: Array<string | null | undefined>
+): boolean =>
+  values.some(
+    (value) => typeof value === "string" && value.includes("\uFFFD"),
+  );
+
 export const escapeHtml = (value: string): string =>
   value
     .replace(/&/g, "&amp;")

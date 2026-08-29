@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getDb } from "./_lib/turso.js";
 import { CACHE_CONTROL, setPublicCache } from "./_lib/cache.js";
+import { PUBLIC_POST_INTEGRITY_SQL } from "./_lib/contentSafety.js";
 
 type SitemapPostRow = {
   slug: string;
@@ -24,7 +25,7 @@ export default async function handler(
   try {
     const db = getDb();
     const rows = await db.execute(
-      "SELECT slug, updated_at, published_at, thumbnail_url FROM posts WHERE datetime(published_at) <= datetime('now') ORDER BY published_at DESC",
+      `SELECT slug, updated_at, published_at, thumbnail_url FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} AND datetime(published_at) <= datetime('now') ORDER BY published_at DESC`,
     );
     const BASE = "https://cartain.kr";
     const staticUrls = [

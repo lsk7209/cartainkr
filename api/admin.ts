@@ -2,7 +2,11 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createHash } from "node:crypto";
 import { getDb } from "./_lib/turso.js";
 import { requireAdmin, setCors } from "./_lib/auth.js";
-import { parseArticleSlug } from "./_lib/contentSafety.js";
+import {
+  hasEncodingCorruption,
+  parseArticleSlug,
+  PUBLIC_POST_INTEGRITY_SQL,
+} from "./_lib/contentSafety.js";
 
 const DEFAULT_POST_LIMIT = 100;
 const MAX_POST_LIMIT = 500;
@@ -16,13 +20,10 @@ const normalizeContentHtml = (value: unknown) => {
   return value;
 };
 
-const hasEncodingCorruption = (...values: Array<string | null | undefined>) =>
-  values.some((value) => typeof value === "string" && value.includes("\uFFFD"));
-
 const encodingCorruptionResponse = (res: VercelResponse) =>
   res.status(400).json({
     error:
-      "Post contains replacement characters and was rejected to prevent mojibake from being published.",
+      "Content contains replacement characters and was rejected to prevent mojibake from being published.",
   });
 
 type SettingRow = { key: string; value: string };
@@ -160,6 +161,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
       if (titles.some((title) => !title || title.length > 200)) {
         return res.status(400).json({ error: "Every queue title must contain 1-200 characters" });
+      }
+      if (titles.some((title) => hasEncodingCorruption(title))) {
+        return encodingCorruptionResponse(res);
       }
       const db = getDb();
       const createdAt = new Date().toISOString();
@@ -344,7 +348,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const BASE = "https://cartain.kr";
       const db = getDb();
       const rows = await db.execute(
-        "SELECT slug FROM posts ORDER BY published_at DESC LIMIT 500",
+        `SELECT slug FROM posts WHERE ${PUBLIC_POST_INTEGRITY_SQL} ORDER BY published_at DESC LIMIT 500`,
       );
       const urlList = asRows<SlugRow>(rows.rows).map(
         (r) => `${BASE}/magazine/${r.slug}`,
