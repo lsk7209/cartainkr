@@ -11,6 +11,7 @@ import { next, rewrite } from "@vercel/edge";
 const BOT_UA =
   /bot|crawl|spider|slurp|mediapartners|adsbot|googlebot|bingbot|chatgpt|google-extended|anthropic-ai|oai-search|yeti|daum|naver|facebookexternalhit|twitterbot|whatsapp|telegram|slack|discord|embedly|lighthouse|inspectiontool/i;
 const CARTAIN_READ_ORIGIN = "https://cartain-site.item79.com";
+const CARTAIN_ADMIN_ORIGIN = "https://cartain-full.item79.com";
 const DYNAMIC_READ_PATHS = new Set(["/sitemap.xml", "/rss.xml", "/feed.xml", "/feed"]);
 const STATIC_READ_PATHS = new Set(["/", "/magazine", "/about", "/contact", "/privacy", "/terms", "/calculator", "/favicon.ico"]);
 
@@ -25,6 +26,8 @@ export const config = {
     "/terms",
     "/calculator",
     "/api/posts/:path*",
+    "/api/admin",
+    "/api/admin/:path*",
     "/sitemap.xml",
     "/rss.xml",
     "/feed.xml",
@@ -35,9 +38,12 @@ export const config = {
 };
 
 export default function middleware(request: Request) {
-  if (request.method !== "GET" && request.method !== "HEAD") return next();
   const url = new URL(request.url);
   if (url.hostname === "www.cartain.kr") return next();
+  if (url.pathname === "/api/admin" || url.pathname.startsWith("/api/admin/")) {
+    return rewrite(new URL(url.pathname + url.search, CARTAIN_ADMIN_ORIGIN));
+  }
+  if (request.method !== "GET" && request.method !== "HEAD") return next();
   if (url.pathname === "/api/posts" || url.pathname.startsWith("/api/posts/") || DYNAMIC_READ_PATHS.has(url.pathname)) {
     return rewrite(new URL(url.pathname + url.search, CARTAIN_READ_ORIGIN));
   }
