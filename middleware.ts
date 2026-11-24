@@ -12,6 +12,7 @@ const BOT_UA =
   /bot|crawl|spider|slurp|mediapartners|adsbot|googlebot|bingbot|chatgpt|google-extended|anthropic-ai|oai-search|yeti|daum|naver|facebookexternalhit|twitterbot|whatsapp|telegram|slack|discord|embedly|lighthouse|inspectiontool/i;
 const CARTAIN_READ_ORIGIN = "https://cartain-site.item79.com";
 const DYNAMIC_READ_PATHS = new Set(["/sitemap.xml", "/rss.xml", "/feed.xml", "/feed"]);
+const STATIC_READ_PATHS = new Set(["/", "/magazine", "/about", "/contact", "/privacy", "/terms", "/calculator", "/favicon.ico"]);
 
 export const config = {
   matcher: [
@@ -28,16 +29,22 @@ export const config = {
     "/rss.xml",
     "/feed.xml",
     "/feed",
+    "/assets/:path*",
+    "/favicon.ico",
   ],
 };
 
 export default function middleware(request: Request) {
   if (request.method !== "GET" && request.method !== "HEAD") return next();
   const url = new URL(request.url);
+  if (url.hostname === "www.cartain.kr") return next();
   if (url.pathname === "/api/posts" || url.pathname.startsWith("/api/posts/") || DYNAMIC_READ_PATHS.has(url.pathname)) {
     return rewrite(new URL(url.pathname + url.search, CARTAIN_READ_ORIGIN));
   }
   const ua = request.headers.get("user-agent") || "";
-  if (!BOT_UA.test(ua)) return next();
-  return rewrite(new URL(url.pathname + url.search, CARTAIN_READ_ORIGIN));
+  if (BOT_UA.test(ua)) return rewrite(new URL(url.pathname + url.search, CARTAIN_READ_ORIGIN));
+  if (STATIC_READ_PATHS.has(url.pathname) || url.pathname.startsWith("/assets/")) {
+    return rewrite(new URL(url.pathname + url.search, CARTAIN_READ_ORIGIN));
+  }
+  return next();
 }
