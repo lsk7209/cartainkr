@@ -1,6 +1,13 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "routes": [
+    {
+      "src": "/api/posts/(.*)",
+      "methods": ["GET", "HEAD"],
+      "dest": "https://cartain-site.item79.com/api/posts/$1"
+    }
+  ],
   "redirects": [
     {
       "source": "/sitemap_index.xml",

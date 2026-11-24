@@ -10,6 +10,8 @@ import { next, rewrite } from "@vercel/edge";
 
 const BOT_UA =
   /bot|crawl|spider|slurp|mediapartners|adsbot|googlebot|bingbot|chatgpt|google-extended|anthropic-ai|oai-search|yeti|daum|naver|facebookexternalhit|twitterbot|whatsapp|telegram|slack|discord|embedly|lighthouse|inspectiontool/i;
+const CARTAIN_READ_ORIGIN = "https://cartain-site.item79.com";
+const DYNAMIC_READ_PATHS = new Set(["/sitemap.xml", "/rss.xml", "/feed.xml", "/feed"]);
 
 export const config = {
   matcher: [
@@ -21,19 +23,21 @@ export const config = {
     "/privacy",
     "/terms",
     "/calculator",
+    "/api/posts/:path*",
+    "/sitemap.xml",
+    "/rss.xml",
+    "/feed.xml",
+    "/feed",
   ],
 };
 
 export default function middleware(request: Request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return next();
+  const url = new URL(request.url);
+  if (url.pathname === "/api/posts" || url.pathname.startsWith("/api/posts/") || DYNAMIC_READ_PATHS.has(url.pathname)) {
+    return rewrite(new URL(url.pathname + url.search, CARTAIN_READ_ORIGIN));
+  }
   const ua = request.headers.get("user-agent") || "";
   if (!BOT_UA.test(ua)) return next();
-
-  const url = new URL(request.url);
-  const dest = new URL("/api/ssr", url);
-  dest.searchParams.set("p", url.pathname);
-  for (const key of ["q", "page"]) {
-    const value = url.searchParams.get(key);
-    if (value) dest.searchParams.set(key, value);
-  }
-  return rewrite(dest);
+  return rewrite(new URL(url.pathname + url.search, CARTAIN_READ_ORIGIN));
 }
