@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { canLoadAffiliateBanner } from "@/lib/adPolicy";
 import { CONSENT_CHANGE_EVENT, hasMeasurementConsent } from "@/lib/analytics";
 
-const DASHBOARD_BASE = "https://multi-dashboard-one.vercel.app";
+const DASHBOARD_BASE = "https://dashboard.item79.com";
 const SITE_KEY = "cartain-2";
 const SLOT_KEY = "coupang-inline";
 const LABEL = "차량용 거치대";
